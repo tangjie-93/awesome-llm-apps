@@ -2,12 +2,20 @@
 
 **目标**：理解运行模式和会话状态边界。需理解同步、异步、流式与会话隔离。**本周输出**：三种运行模式对比和会话验证记录。
 
+## 本周指定目录与文件
+
+- 主示例目录：[ai_travel_agent](../../../starter_ai_agents/ai_travel_agent/)
+- 项目说明：[README.MD](../../../starter_ai_agents/ai_travel_agent/README.MD)
+- 云端入口：[travel_agent.py](../../../starter_ai_agents/ai_travel_agent/travel_agent.py)
+- 本地入口：[local_travel_agent.py](../../../starter_ai_agents/ai_travel_agent/local_travel_agent.py)
+- 会话对照：[openai_research_agent/research_agent.py](../../../starter_ai_agents/openai_research_agent/research_agent.py)
+
 | 学习日 | 学习任务 | 当日输出 |
 | --- | --- | --- |
-| D1 | 运行同步示例并解释控制流 | 同步记录 |
-| D2 | 运行异步示例并比较差异 | 异步对比 |
-| D3 | 运行流式示例并记录事件 | 事件序列 |
-| D4 | 阅读 `7_sessions` 并验证新旧会话边界 | 会话测试 |
+| D1 | 运行 [travel_agent.py](../../../starter_ai_agents/ai_travel_agent/travel_agent.py)，解释一次同步按钮提交后的控制流 | 同步记录 |
+| D2 | 运行 [local_travel_agent.py](../../../starter_ai_agents/ai_travel_agent/local_travel_agent.py)，比较云端和本地运行差异 | 本地/云端对比 |
+| D3 | 阅读 [research_agent.py](../../../starter_ai_agents/openai_research_agent/research_agent.py) 的界面状态更新，记录事件顺序 | 事件序列 |
+| D4 | 用两次不同旅行输入验证 Streamlit 会话状态边界 | 会话测试 |
 | D5 | 写出运行模式选择准则 | 选择表 |
 
 ## 每日笔记

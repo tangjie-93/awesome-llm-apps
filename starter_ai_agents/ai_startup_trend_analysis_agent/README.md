@@ -1,46 +1,52 @@
-## 📈 AI Startup Trend Analysis Agent 
+﻿# AI Startup Trend Analysis Agent
+# AI 创业趋势分析代理
 
-### 🎓 FREE Step-by-Step Tutorial 
-**👉 [Click here to follow our complete step-by-step tutorial](https://www.theunwindai.com/p/build-an-ai-startup-trend-analysis-agent-using-claude-3-5-sonnet) and learn how to build this from scratch with detailed code walkthroughs, explanations, and best practices.**
+This agent researches startup trends, market gaps, and growth opportunities.
+这个 Agent 用于研究创业趋势、市场空缺和增长机会。
 
-The AI Startup Trend Analysis Agent is tool for budding entrepreneurs that generates actionable insights by identifying nascent trends, potential market gaps, and growth opportunities in specific sectors. Entrepreneurs can use these data-driven insights to validate ideas, spot market opportunities, and make informed decisions about their startup ventures. It combines Newspaper4k and DuckDuckGo to scan and analyze startup-focused articles and market data. Using Claude 3.5 Sonnet, it processes this information to extract emerging patterns and enable entrepreneurs to identify promising startup opportunities.
+It combines DuckDuckGo, Newspaper4k, and Claude-based analysis.
+它结合 DuckDuckGo、Newspaper4k 和基于 Claude 的分析能力。
 
+## Features
+## 功能特性
 
-### Features
-- **User Prompt**: Entrepreneurs can input specific startup sectors or technologies of interest for research.
-- **News Collection**: This agent gathers recent startup news, funding rounds, and market analyses using DuckDuckGo.
-- **Summary Generation**: Concise summaries of verified information are generated using Newspaper4k.
-- **Trend Analysis**: The system identifies emerging patterns in startup funding, technology adoption, and market opportunities across analyzed stories.
-- **Streamlit UI**: The application features a user-friendly interface built with Streamlit for easy interaction.
+- Accept a startup sector or technology prompt.
+- 接收创业赛道或技术方向的提示词。
+- Gather recent news and market articles.
+- 收集最新新闻和市场文章。
+- Summarize verified information.
+- 总结已验证的信息。
+- Highlight emerging trends and opportunities.
+- 提炼新兴趋势和机会。
 
-### How to Get Started
-1. **Clone the repository**:
+## Setup
+## 安装
+
+1. Clone the repository.
+1. 克隆仓库。
    ```bash
-   git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git 
+   git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
    cd awesome-llm-apps/starter_ai_agents/ai_startup_trend_analysis_agent
    ```
-
-2. **Create and activate a virtual environment**:
+2. Create and activate a virtual environment.
+2. 创建并激活虚拟环境。
    ```bash
-   # For macOS/Linux
-   python -m venv venv
-   source venv/bin/activate
-
-   # For Windows
    python -m venv venv
    .\venv\Scripts\activate
    ```
-
-3. **Install the required packages**:
+3. Install dependencies.
+3. 安装依赖。
    ```bash
    pip install -r requirements.txt
    ```
-
-4. **Run the application**:
+4. Run the app.
+4. 运行应用。
    ```bash
    streamlit run startup_trends_agent.py
    ```
-### Important Note
-- The system specifically uses Claude's API for advanced language processing. You can obtain your Anthropic API key from [Anthropic's website](https://www.anthropic.com/api).
 
+## Note
+## 注意
 
+You need an Anthropic API key for the Claude-based workflow.
+基于 Claude 的流程需要 Anthropic API Key。

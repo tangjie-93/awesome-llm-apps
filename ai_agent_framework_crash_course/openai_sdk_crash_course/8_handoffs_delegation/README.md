@@ -1,178 +1,81 @@
-# 🤝 Tutorial 8: Handoffs & Delegation
+﻿# Tutorial 8: Handoffs and Delegation
 
-Master agent-to-agent task delegation! This tutorial teaches you how to use the OpenAI Agents SDK's handoff system to create specialized agents that can intelligently delegate tasks to each other, building powerful multi-agent workflows.
+# 教程 8：转交与委派
 
-## 🎯 What You'll Learn
+This chapter shows how one agent can hand a task to another agent with a more specific role.
 
-- **Agent Handoffs**: Delegating tasks between specialized agents
-- **Handoff Configuration**: Custom tool names, descriptions, and callbacks
-- **Input Filtering**: Controlling what context gets passed between agents
-- **Triage Patterns**: Building intelligent routing and delegation systems
+本章演示一个 Agent 如何把任务转交给更专门的另一个 Agent。
 
-## 🧠 Core Concept: What Are Handoffs?
+## What You'll Learn
 
-Handoffs enable **agent specialization and delegation** where agents can transfer tasks to other agents with specific expertise. Think of handoffs as a **smart routing system** that:
+## 你将学到什么
 
-- Creates specialized agents for different domains (support, billing, technical)
-- Allows intelligent task delegation based on user needs
-- Maintains conversation context across agent transfers
-- Provides custom routing logic and input filtering
+- Basic handoffs
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    HANDOFF WORKFLOW                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  USER REQUEST                                               │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    1. ANALYZE REQUEST                      │
-│  │   TRIAGE    │                                            │
-│  │   AGENT     │    2. DECIDE DELEGATION                    │
-│  └─────────────┘                                            │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    3. CALL HANDOFF TOOL                    │
-│  │   HANDOFF   │    "transfer_to_billing_agent"             │
-│  │    TOOL     │                                            │
-│  └─────────────┘                                            │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    4. TRANSFER CONTEXT                     │
-│  │  BILLING    │    (with optional filtering)               │
-│  │   AGENT     │                                            │
-│  └─────────────┘    5. PROCESS REQUEST                      │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    6. RETURN RESPONSE                      │
-│  │  RESPONSE   │                                            │
-│  │   TO USER   │                                            │
-│  └─────────────┘                                            │
-└─────────────────────────────────────────────────────────────┘
+  基础转交
+
+- Advanced delegation
+
+  进阶委派
+
+- Specialization boundaries
+
+  专长边界
+
+## Quick Start
+
+## 快速开始
+
+1. Install dependencies
+
+   安装依赖
+
+```bash
+pip install -r requirements.txt
 ```
 
-## 🚀 Tutorial Overview
+2. Configure your API key
 
-This tutorial demonstrates **key handoff patterns**:
+   配置 API Key
 
-### **1. Basic Handoffs** (`basic_handoffs.py`)
-- Simple agent-to-agent delegation
-- Customer support triage example
-- Automatic tool creation from handoff definitions
-
-### **2. Advanced Handoffs** (`advanced_handoffs.py`)
-- Custom handoff configuration with callbacks
-- Input filtering and context management
-- Handoff with structured input data
-
-## 📁 Project Structure
-
-```
-8_handoffs_delegation/
-├── README.md                # This file - concept explanation
-├── requirements.txt         # Dependencies
-├── basic_handoffs.py        # Simple agent handoffs (40 lines)
-├── advanced_handoffs.py     # Advanced handoff patterns (50 lines)
-├── app.py                  # Streamlit handoff demo (optional)
-└── env.example             # Environment variables template
+```bash
+cp env.example .env
 ```
 
-## 🎯 Learning Objectives
+3. Run the examples
 
-By the end of this tutorial, you'll understand:
-- ✅ How to create agent handoffs for task delegation
-- ✅ Configuring handoff tools with custom names and descriptions
-- ✅ Using input filters to control context transfer
-- ✅ Building intelligent triage systems with multiple agents
-- ✅ When and how to use handoffs vs direct agent orchestration
+   运行示例
 
-## 🚀 Getting Started
-
-1. **Install OpenAI Agents SDK**:
-   ```bash
-   pip install openai-agents
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Set up environment variables**:
-   ```bash
-   cp env.example .env
-   # Edit .env and add your OpenAI API key
-   ```
-
-3. **Test basic handoffs**:
-   ```bash
-   python basic_handoffs.py
-   ```
-
-4. **Try advanced patterns**:
-   ```bash
-   python advanced_handoffs.py
-   ```
-
-## 🔧 Key Handoff Patterns
-
-### 1. **Basic Handoff Setup**
-```python
-from agents import Agent, handoff
-
-billing_agent = Agent(name="Billing Agent")
-support_agent = Agent(name="Support Agent")
-
-triage_agent = Agent(
-    name="Triage Agent",
-    handoffs=[billing_agent, support_agent]  # Creates tools automatically
-)
+```bash
+python basic_handoffs.py
+python advanced_handoffs.py
 ```
 
-### 2. **Custom Handoff Configuration**
-```python
-from agents import Agent, handoff
+## Files
 
-def on_handoff_callback(ctx):
-    print(f"Handoff to {ctx.agent.name} initiated")
+## 文件
 
-custom_handoff = handoff(
-    agent=billing_agent,
-    tool_name_override="escalate_to_billing",
-    tool_description_override="Transfer complex billing issues",
-    on_handoff=on_handoff_callback
-)
-```
+- `basic_handoffs.py`
 
-### 3. **Input Filtering**
-```python
-from agents.extensions import handoff_filters
+  基础转交示例
 
-filtered_handoff = handoff(
-    agent=support_agent,
-    input_filter=handoff_filters.remove_all_tools  # Clean context
-)
-```
+- `advanced_handoffs.py`
 
-## 💡 Handoff Design Best Practices
+  进阶转交示例
 
-1. **Clear Specialization**: Each agent should have a distinct area of expertise
-2. **Intelligent Routing**: Use descriptive tool names and instructions for LLM
-3. **Context Management**: Consider what context should transfer between agents
-4. **Callback Integration**: Use callbacks for logging, metrics, and workflows
-5. **Input Validation**: Structure inputs when passing specific data
+- `8_1_basic_handoffs/`
 
-## 🔗 Next Steps
+  基础转交子示例
 
-After completing this tutorial, you'll be ready for:
-- **[Tutorial 9: Multi-Agent Orchestration](../9_multi_agent_orchestration/README.md)** - Complex multi-agent workflows with parallel execution
-- **[Tutorial 10: Tracing & Observability](../10_tracing_observability/README.md)** - Monitoring and debugging
-- **[Tutorial 11: Production Patterns](../11_voice/README.md)** - Real-world deployment strategies
+- `8_2_advanced_handoffs/`
 
-## 💡 Pro Tips
+  进阶转交子示例
 
-- **Start Simple**: Begin with basic handoffs, add complexity gradually
-- **Clear Instructions**: Make agent roles and handoff triggers obvious
-- **Test Routing**: Verify LLM chooses correct agents for different scenarios
-- **Monitor Handoffs**: Use callbacks and tracing to track delegation patterns
-- **Context Strategy**: Plan what information should transfer between agents
+## Next Step
+
+## 下一步
+
+Continue to Tutorial 9 for multi-agent orchestration.
+
+继续学习教程 9：多 Agent 编排。
+

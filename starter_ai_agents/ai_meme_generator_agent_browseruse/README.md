@@ -1,56 +1,46 @@
-# 🥸 AI Meme Generator Agent - Browser Use
+﻿# Meme Generator Agent Browser Use
+# 基于 Browser Use 的梗图生成代理
 
-The AI Meme Generator Agent is a powerful browser automation tool that creates memes using AI agents. This app combines multi-LLM capabilities with automated browser interactions to generate memes based on text prompts through direct website manipulation.
+This Streamlit demo shows how to combine browser automation with an LLM for meme-related workflows.
+这个 Streamlit 演示展示了如何把浏览器自动化与 LLM 结合，用于梗图相关流程。
+
+It uses Browser Use to drive the browser and `ai_meme_generator_agent.py` as the main entry script.
+它使用 Browser Use 驱动浏览器，并以 `ai_meme_generator_agent.py` 作为主入口脚本。
 
 ## Features
+## 功能特性
 
-- **Multi-LLM Support**
-  - Claude 3.5 Sonnet (Anthropic)
-  - GPT-4o (OpenAI)
-  - Deepseek v3 (Deepseek)
-  - Automatic model switching with API key validation
+- Browser automation for web-based tasks.
+- 用于网页任务的浏览器自动化。
+- Prompt-driven workflow for meme generation.
+- 基于提示词的梗图生成流程。
+- Streamlit UI for simple interaction.
+- 用于简单交互的 Streamlit 界面。
+- API key support through the sidebar.
+- 通过侧边栏管理 API Key。
 
-- **Browser Automation**:
-  - Direct interaction with imgflip.com meme templates
-  - Automated search for relevant meme formats
-  - Dynamic text insertion for top/bottom captions
-  - Image link extraction from generated memes
+## Setup
+## 安装
 
-- **Smart Generation Workflow**:
-  - Action verb extraction from prompts
-  - Metaphorical template matching
-  - Multi-step quality validation
-  - Automatic retry mechanism for failed generations
-
-- **User-Friendly Interface**:
-  - Model configuration sidebar
-  - API key management
-  - Direct meme preview with clickable links
-  - Responsive error handling
-
-
-API keys required:
-- **Anthropic** (for Claude)
-- **Deepseek** 
-- **OpenAI** (for GPT-4o)
-
-## How to Run
-
-1. **Clone the Repository**:
+1. Clone the repository.
+1. 克隆仓库。
    ```bash
    git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
    cd starter_ai_agents/ai_meme_generator_agent_browseruse
    ```
-2. **Install the dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-    Install `playwright` if needed.
-    ```bash
-    python -m playwright install --with-deps
-    ```
-3. **Run the Streamlit app**:
-    ```bash
-    streamlit run ai_meme_generator_agent.py
+2. Install dependencies.
+2. 安装依赖。
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Start the app.
+3. 启动应用。
+   ```bash
+   streamlit run ai_meme_generator_agent.py
+   ```
 
-    ```
+## Notes
+## 注意事项
+
+Check the project requirements before running browser automation locally.
+在本地运行浏览器自动化前，请先确认项目依赖和浏览器环境。

@@ -1,50 +1,46 @@
-# OpenAI Researcher Agent
-A multi-agent research application built with OpenAI's Agents SDK and Streamlit. This application enables users to conduct comprehensive research on any topic by leveraging multiple specialized AI agents.
+﻿# OpenAI Research Agent
+# OpenAI 研究代理
 
-### Features
+This project builds a structured research assistant with the OpenAI Agents SDK.
+这个项目使用 OpenAI Agents SDK 构建结构化研究助手。
 
-- Multi-Agent Architecture:
-    - Triage Agent: Plans the research approach and coordinates the workflow
-    - Research Agent: Searches the web and gathers relevant information
-    - Editor Agent: Compiles collected facts into a comprehensive report
+It combines triage, retrieval, and editor agents to produce a research report.
+它结合分诊、检索和编辑 Agent，生成研究报告。
 
-- Automatic Fact Collection: Captures important facts from research with source attribution
-- Structured Report Generation: Creates well-organized reports with titles, outlines, and source citations
-- Interactive UI: Built with Streamlit for easy research topic input and results viewing
-- Tracing and Monitoring: Integrated tracing for the entire research workflow
+## Features
+## 功能特性
 
-### How to get Started?
+- Ask a research question in natural language.
+- 用自然语言提出研究问题。
+- Route work through specialized agents.
+- 通过专门的 Agent 分配任务。
+- Collect and summarize supporting sources.
+- 收集并总结支持性来源。
+- Produce a structured final report.
+- 输出结构化最终报告。
 
-1. Clone the GitHub repository
-```bash
-git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
-cd awesome-llm-apps/starter_ai_agents/openai_research_agent
-```
+## Run
+## 运行
 
-2. Install the required dependencies:
+1. Clone the repository.
+1. 克隆仓库。
+   ```bash
+   git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
+   cd starter_ai_agents/openai_research_agent
+   ```
+2. Install dependencies.
+2. 安装依赖。
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Start the app.
+3. 启动应用。
+   ```bash
+   streamlit run research_agent.py
+   ```
 
-```bash
-cd awesome-llm-apps/starter_ai_agents/openai_research_agent
-pip install -r requirements.txt
-```
+## Notes
+## 注意事项
 
-3. Get your OpenAI API Key
-
-- - Sign up for an [OpenAI account](https://platform.openai.com/) and obtain your API key.
-- Set your OPENAI_API_KEY environment variable.
-```bash
-export OPENAI_API_KEY='your-api-key-here'
-```
-
-4. Run the team of AI Agents
-```bash
-streamlit run openai_researcher_agent.py
-```
-
-Then open your browser and navigate to the URL shown in the terminal (typically http://localhost:8501).
-
-### Research Process:
-- Enter a research topic in the sidebar or select one of the provided examples
-- Click "Start Research" to begin the process
-- View the research process in real-time on the "Research Process" tab
-- Once complete, switch to the "Report" tab to view and download the generated report
+Make sure your OpenAI API key is available before starting the workflow.
+在启动流程前，请先准备好 OpenAI API Key。

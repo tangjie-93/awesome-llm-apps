@@ -1,66 +1,48 @@
-# 🩻 Medical Imaging Diagnosis Agent
+﻿# Medical Imaging Diagnosis Agent
+# 医学影像诊断代理
 
-A Medical Imaging Diagnosis Agent build on agno powered by Gemini 2.0 Flash that provides AI-assisted analysis of medical images of various scans. The agent acts as a medical imaging diagnosis expert to analyze various types of medical images and videos, providing detailed diagnostic insights and explanations.
+This app analyzes medical images with AI-assisted reasoning.
+这个应用使用 AI 辅助推理分析医学影像。
+
+It is built with Agno and Gemini 2.0 Flash.
+它基于 Agno 和 Gemini 2.0 Flash 构建。
 
 ## Features
+## 功能特性
 
-- **Comprehensive Image Analysis**
-  - Image Type Identification (X-ray, MRI, CT scan, ultrasound)
-  - Anatomical Region Detection
-  - Key Findings and Observations
-  - Potential Abnormalities Detection
-  - Image Quality Assessment
-  - Research and Reference
+- Identify scan types such as X-ray, MRI, CT, and ultrasound.
+- 识别 X 光、MRI、CT、超声等扫描类型。
+- Detect anatomical regions and key findings.
+- 检测解剖区域和关键发现。
+- Highlight possible abnormalities.
+- 标注可能的异常情况。
+- Provide patient-friendly explanations.
+- 提供面向患者的易懂解释。
 
-## How to Run
+## Run
+## 运行
 
-1. **Setup Environment**
+1. Clone the repository.
+1. 克隆仓库。
    ```bash
-   # Clone the repository
    git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
    cd starter_ai_agents/ai_medical_imaging_agent
-
-   # Install dependencies
+   ```
+2. Install dependencies.
+2. 安装依赖。
+   ```bash
    pip install -r requirements.txt
    ```
-
-2. **Configure API Keys**
-   - Get Google API key from [Google AI Studio](https://aistudio.google.com)
-
-3. **Run the Application**
+3. Add your Google API key in the sidebar.
+3. 在侧边栏中填写 Google API Key。
+4. Start the app.
+4. 启动应用。
    ```bash
    streamlit run ai_medical_imaging.py
    ```
 
-## Analysis Components
-
-- **Image Type and Region**
-  - Identifies imaging modality
-  - Specifies anatomical region
-
-- **Key Findings**
-  - Systematic listing of observations
-  - Detailed appearance descriptions
-  - Abnormality highlighting
-
-- **Diagnostic Assessment**
-  - Potential diagnoses ranking
-  - Differential diagnoses
-  - Severity assessment
-
-- **Patient-Friendly Explanations**
-  - Simplified terminology
-  - Detailed first-principles explanations
-  - Visual reference points
-
 ## Notes
+## 注意事项
 
-- Uses Gemini 2.0 Flash for analysis
-- Requires stable internet connection
-- Free API usage costs -  1,500 free requests per day by google!
-- For educational and development purposes only
-- Not a replacement for professional medical diagnosis
-
-## Disclaimer
-
-This tool is for educational and informational purposes only. All analyses should be reviewed by qualified healthcare professionals. Do not make medical decisions based solely on this analysis.
+This demo is for educational use only and does not replace professional medical judgment.
+这个演示仅用于学习，不能替代专业医疗判断。

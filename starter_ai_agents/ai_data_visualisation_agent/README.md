@@ -1,45 +1,44 @@
-# 📊 AI Data Visualization Agent
+﻿# AI Data Visualization Agent
+# AI 数据可视化代理
 
-### 🎓 FREE Step-by-Step Tutorial 
-**👉 [Click here to follow our complete step-by-step tutorial](https://www.theunwindai.com/p/build-an-ai-data-visualization-agent) and learn how to build this from scratch with detailed code walkthroughs, explanations, and best practices.**
+This Streamlit app turns uploaded datasets into charts and insights.
+这个 Streamlit 应用可以把上传的数据集转成图表和洞察。
 
-A Streamlit application that acts as your personal data visualization expert, powered by LLMs. Simply upload your dataset and ask questions in natural language - the AI agent will analyze your data, generate appropriate visualizations, and provide insights through a combination of charts, statistics, and explanations.
+It uses LLMs to answer questions, choose chart types, and explain the results.
+它使用 LLM 回答问题、选择图表类型并解释结果。
 
 ## Features
-#### Natural Language Data Analysis
-- Ask questions about your data in plain English
-- Get instant visualizations and statistical analysis
-- Receive explanations of findings and insights
-- Interactive follow-up questioning
+## 功能特性
 
-#### Intelligent Visualization Selection
-- Automatic choice of appropriate chart types
-- Dynamic visualization generation
-- Statistical visualization support
-- Custom plot formatting and styling
+- Natural language data analysis.
+- 自然语言数据分析。
+- Automatic chart selection.
+- 自动选择合适的图表类型。
+- Multi-model AI support.
+- 多模型 AI 支持。
+- Interactive Streamlit interface.
+- 交互式 Streamlit 界面。
 
-#### Multi-Model AI Support
-- Meta-Llama 3.1 405B for complex analysis
-- DeepSeek V3 for detailed insights
-- Qwen 2.5 7B for quick analysis
-- Meta-Llama 3.3 70B for advanced queries
+## Run
+## 运行
 
-## How to Run
-
-Follow the steps below to set up and run the application:
-- Before anything else, Please get a free Together AI API Key here: https://api.together.ai/signin
-- Get a free E2B API Key here: https://e2b.dev/ ; https://e2b.dev/docs/legacy/getting-started/api-key
-
-1. **Clone the Repository**
+1. Get a Together AI API key.
+1. 获取 Together AI API Key。
+2. Get an E2B API key.
+2. 获取 E2B API Key。
+3. Install dependencies.
+3. 安装依赖。
    ```bash
-   git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
-   cd starter_ai_agents/ai_data_visualisation_agent
+   pip install -r requirements.txt
    ```
-2. **Install the dependencies**
-    ```bash
-    pip install -r requirements.txt
-    ```
-3. **Run the Streamlit app**
-    ```bash
-    streamlit run ai_data_visualisation_agent.py
-    ```
+4. Start the app.
+4. 启动应用。
+   ```bash
+   streamlit run ai_data_visualisation_agent.py
+   ```
+
+## Notes
+## 注意事项
+
+This project is best for learning how to combine LLMs with data exploration workflows.
+这个项目很适合学习如何把 LLM 和数据探索流程结合起来。

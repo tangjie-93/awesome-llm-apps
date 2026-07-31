@@ -2,12 +2,20 @@
 
 **目标**：将最小 Agent 改造成一个个人场景助手。需理解系统指令、输入样例和输出质量。**本周输出**：自定义助手与 5 条固定测试输入。
 
+## 本周指定目录与文件
+
+- 主示例目录：[ai_blog_to_podcast_agent](../../../starter_ai_agents/ai_blog_to_podcast_agent/)
+- 项目说明：[README.md](../../../starter_ai_agents/ai_blog_to_podcast_agent/README.md)
+- 依赖文件：[requirements.txt](../../../starter_ai_agents/ai_blog_to_podcast_agent/requirements.txt)
+- 入口文件：[blog_to_podcast_agent.py](../../../starter_ai_agents/ai_blog_to_podcast_agent/blog_to_podcast_agent.py)
+- 对照示例：[ai_breakup_recovery_agent.py](../../../starter_ai_agents/ai_breakup_recovery_agent/ai_breakup_recovery_agent.py)
+
 | 学习日 | 学习任务 | 当日输出 |
 | --- | --- | --- |
-| D1 | 阅读入口文件和提示词 | 角色、输入、输出关系图 |
-| D2 | 原样运行并记录基线输出 | 基线样例 |
-| D3 | 选定个人场景并重写角色指令 | 新指令 |
-| D4 | 设计 5 条固定测试输入 | 测试集 |
+| D1 | 阅读 [blog_to_podcast_agent.py](../../../starter_ai_agents/ai_blog_to_podcast_agent/blog_to_podcast_agent.py) 中的 Agent 角色、输入框和输出逻辑 | 角色、输入、输出关系图 |
+| D2 | 在 `starter_ai_agents/ai_blog_to_podcast_agent` 原样运行并记录基线输出 | 基线样例 |
+| D3 | 参考 [ai_breakup_recovery_agent.py](../../../starter_ai_agents/ai_breakup_recovery_agent/ai_breakup_recovery_agent.py)，选定个人场景并重写角色指令 | 新指令 |
+| D4 | 为你的场景设计 5 条固定测试输入 | 测试集 |
 | D5 | 对照预期评估并只修正一处提示词 | 改动前后对比 |
 
 ## 每日笔记

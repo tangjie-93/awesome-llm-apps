@@ -1,43 +1,52 @@
-## ModelsLab Music Generator
+﻿# ModelsLab Music Generator
+# ModelsLab 音乐生成器
 
-This is a Streamlit-based application that allows users to generate music using the ModelsLab API and OpenAI's GPT-4 model. Users can input a prompt describing the type of music they want to generate, and the application will generate a music track in MP3 format based on the given prompt.
+This Streamlit app generates music from text prompts.
+这个 Streamlit 应用可以根据文本提示生成音乐。
+
+It uses ModelsLab for music generation and OpenAI for prompt processing.
+它使用 ModelsLab 生成音乐，并使用 OpenAI 处理提示词。
 
 ## Features
+## 功能特性
 
-- **Generate Music**: Enter a detailed prompt for music generation (genre, instruments, mood, etc.), and the app will generate a music track.
-- **MP3 Output**: The generated music will be in MP3 format, available for listening or download.
-- **User-Friendly Interface**: Simple and clean Streamlit UI for ease of use.
-- **API Key Integration**: Requires both OpenAI and ModelsLab API keys to function. API keys are entered in the sidebar for authentication.
+- Generate music from a detailed prompt.
+- 根据详细提示词生成音乐。
+- Output MP3 files for listening or download.
+- 输出 MP3 文件，便于收听或下载。
+- Simple Streamlit interface.
+- 简洁的 Streamlit 界面。
+- API keys entered in the sidebar.
+- 在侧边栏中输入 API Key。
 
 ## Setup
+## 安装
 
-### Requirements 
-
-1. **API Keys**:
-   - **OpenAI API Key**: Sign up at [OpenAI](https://platform.openai.com/api-keys) to obtain your API key.
-   - **ModelsLab API Key**: Sign up at [ModelsLab](https://modelslab.com/dashboard/api-keys) to get your API key.
-
-2. **Python 3.8+**: Ensure you have Python 3.8 or higher installed.
-
-### Installation
-1. Clone this repository:
+1. Clone the repository.
+1. 克隆仓库。
    ```bash
    git clone https://github.com/Shubhamsaboo/awesome-llm-apps
-   cd starter_ai_agents/ai_models_lab_music_generator_agent
+   cd starter_ai_agents/ai_music_generator_agent
    ```
-
-2. Install the required Python packages:
+2. Install dependencies.
+2. 安装依赖。
    ```bash
    pip install -r requirements.txt
    ```
-### Running the App
-
-1. Start the Streamlit app:
+3. Run the app.
+3. 运行应用。
    ```bash
-   streamlit run models_lab_music_generator_agent.py
+   streamlit run music_generator_agent.py
    ```
 
-2. In the app interface:
-   - Enter a music generation prompt
-   - Click "Generate Music"
-   - Play the music & Download it.
+## Usage
+## 使用方式
+
+1. Enter your OpenAI and ModelsLab API keys.
+1. 输入 OpenAI 和 ModelsLab 的 API Key。
+2. Describe the music you want to generate.
+2. 描述你想生成的音乐风格。
+3. Click Generate Music.
+3. 点击生成音乐。
+4. Play or download the MP3 result.
+4. 播放或下载生成的 MP3 结果。

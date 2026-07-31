@@ -1,50 +1,46 @@
-## 📊 AI Finance Agent with xAI Grok
+﻿# XAI Finance Agent
+# XAI 金融代理
 
-This application creates a financial analysis agent powered by xAI's Grok model, combining real-time stock data with web search capabilities. It provides structured financial insights through an interactive playground interface.
+This agent helps query and analyze market and stock information.
+这个 Agent 用于查询和分析市场及股票信息。
 
-### Features
+It combines AI reasoning with finance-oriented tools.
+它结合了 AI 推理能力和面向金融的工具。
 
-- Powered by xAI's Grok-4 Fast model
-- Real-time stock data analysis via YFinance
-- Web search capabilities through DuckDuckGo
-- Formatted output with tables for financial data
-- Interactive playground interface
+## Features
+## 功能特性
 
-### How to get Started?
+- Ask questions about stocks or markets.
+- 询问股票或市场相关问题。
+- Gather supporting financial data.
+- 获取相关金融数据。
+- Produce concise analysis and summaries.
+- 输出简洁的分析和摘要。
+- Run through a simple Streamlit workflow.
+- 通过简单的 Streamlit 流程运行。
 
-1. Clone the GitHub repository
-```bash
-git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
-cd awesome-llm-apps/starter_ai_agents/xai_finance_agent
-```
+## Setup
+## 安装
 
-2. Install the required dependencies:
+1. Clone the repository.
+1. 克隆仓库。
+   ```bash
+   git clone https://github.com/Shubhamsaboo/awesome-llm-apps.git
+   cd starter_ai_agents/xai_finance_agent
+   ```
+2. Install dependencies.
+2. 安装依赖。
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the app.
+3. 运行应用。
+   ```bash
+   python xai_finance_agent.py
+   ```
 
-```bash
-cd awesome-llm-apps/starter_ai_agents/xai_finance_agent
-pip install -r requirements.txt
-```
+## Notes
+## 注意事项
 
-3. Get your OpenAI API Key
-
-- Sign up for an [xAI API account](https://console.x.ai/)
-- Set your XAI_API_KEY environment variable.
-```bash
-export XAI_API_KEY='your-api-key-here'
-```
-
-4. Run the team of AI Agents
-```bash
-python xai_finance_agent.py
-```
-
-5. Open your web browser and navigate to the URL provided in the console output to interact with the AI financial agent through the playground interface.
-
-6. Connecting Your AgentOS
-
-To manage, monitor, and interact with your financial agent through the AgentOS Control Plane (from your browser), you need to connect your running AgentOS instance:
-
-**Step-by-step guide:**
-
-- Visit the official documentation: [Connecting Your OS](https://docs.agno.com/agent-os/connecting-your-os)
-- Follow the steps in the guide to register your local AgentOS and establish the connection.
+Check the project requirements for the exact API keys or market-data services needed.
+请根据项目依赖确认所需的 API Key 或市场数据服务。
