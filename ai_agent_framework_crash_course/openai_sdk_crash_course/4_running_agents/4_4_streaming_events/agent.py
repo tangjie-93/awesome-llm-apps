@@ -1,8 +1,24 @@
 from agents import Agent, Runner
+from agents.stream_events import RawResponsesStreamEvent
+from openai.types.responses.response_text_delta_event import ResponseTextDeltaEvent
 import asyncio
 import time
 
 # Create agents for demonstrating streaming events
+
+from pathlib import Path
+import sys
+
+_OPENAI_SDK_ROOT = Path(__file__).resolve()
+while _OPENAI_SDK_ROOT.name != "openai_sdk_crash_course" and _OPENAI_SDK_ROOT.parent != _OPENAI_SDK_ROOT:
+    _OPENAI_SDK_ROOT = _OPENAI_SDK_ROOT.parent
+if str(_OPENAI_SDK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_OPENAI_SDK_ROOT))
+
+from openai_client_config import configure_openai_client
+
+configure_openai_client()
+
 root_agent = Agent(
     name="Streaming Demo Agent",
     instructions="""
@@ -24,15 +40,16 @@ async def basic_streaming_example():
     start_time = time.time()
     
     # Use run_streamed to get real-time events
-    async for event in Runner.run_streamed(
+    streaming_result = Runner.run_streamed(
         root_agent, 
         "Write a comprehensive explanation of how machine learning works, including examples."
-    ):
+    )
+    async for event in streaming_result.stream_events():
         # Process different types of streaming events
-        if hasattr(event, 'content') and event.content:
+        if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
             # This is a text content event
-            full_response += event.content
-            print(event.content, end='', flush=True)
+            full_response += event.data.delta
+            print(event.data.delta, end='', flush=True)
         
         if hasattr(event, 'type'):
             # Handle different event types
@@ -66,16 +83,16 @@ async def advanced_streaming_example():
     
     print("Processing streaming events:")
     
-    async for event in streaming_result:
+    async for event in streaming_result.stream_events():
         events_count += 1
         
         # Collect content chunks
-        if hasattr(event, 'content') and event.content:
-            chunks_received.append(event.content)
+        if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
+            chunks_received.append(event.data.delta)
             # Show progress every 10 chunks
             if len(chunks_received) % 10 == 0:
                 print(f"\n[PROGRESS] Received {len(chunks_received)} chunks...")
-            print(event.content, end='', flush=True)
+            print(event.data.delta, end='', flush=True)
         
         # Handle specific event types
         if hasattr(event, 'type'):
@@ -112,30 +129,31 @@ async def custom_streaming_processing():
     last_update = start_time
     current_content = ""
     
-    async for event in Runner.run_streamed(
+    streaming_result = Runner.run_streamed(
         root_agent,
         "Explain the benefits and challenges of renewable energy in detail."
-    ):
+    )
+    async for event in streaming_result.stream_events():
         current_time = time.time()
         
-        if hasattr(event, 'content') and event.content:
+        if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
             # Track chunk size
-            chunk_size = len(event.content)
+            chunk_size = len(event.data.delta)
             analytics["chunk_sizes"].append(chunk_size)
             
             # Update content
-            current_content += event.content
+            current_content += event.data.delta
             
             # Calculate words per second every few chunks
             if len(analytics["chunk_sizes"]) % 5 == 0:
                 time_diff = current_time - last_update
                 if time_diff > 0:
-                    words_in_chunk = len(event.content.split())
+                    words_in_chunk = len(event.data.delta.split())
                     wps = words_in_chunk / time_diff
                     analytics["words_per_second"].append(wps)
                     last_update = current_time
             
-            print(event.content, end='', flush=True)
+            print(event.data.delta, end='', flush=True)
     
     # Final analytics
     analytics["response_time"] = time.time() - start_time
@@ -161,14 +179,15 @@ async def streaming_with_error_handling():
     try:
         response_parts = []
         
-        async for event in Runner.run_streamed(
+        streaming_result = Runner.run_streamed(
             root_agent,
             "What are the top 3 programming languages and why?"
-        ):
+        )
+        async for event in streaming_result.stream_events():
             try:
-                if hasattr(event, 'content') and event.content:
-                    response_parts.append(event.content)
-                    print(event.content, end='', flush=True)
+                if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
+                    response_parts.append(event.data.delta)
+                    print(event.data.delta, end='', flush=True)
                     
             except Exception as chunk_error:
                 print(f"\n[ERROR] Error processing chunk: {chunk_error}")

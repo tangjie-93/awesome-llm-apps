@@ -1,8 +1,8 @@
 """
-OpenAI Agents SDK Tutorial 2: Structured Output Agent - Product Reviews
+OpenAI Agents SDK 教程 2：结构化输出 Agent - 商品评论分析
 
-This module demonstrates extracting structured data from product reviews
-using complex nested Pydantic models.
+本模块演示如何使用嵌套 Pydantic 模型，
+从商品评论文本中提取商品信息、评分、情绪、优缺点等结构化数据。
 """
 
 import os
@@ -12,11 +12,25 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, validator
 from agents import Agent, Runner
 
-# Load environment variables
+# 加载环境变量，并接入课程目录下的共享 OpenAI 客户端配置。
+
+from pathlib import Path
+import sys
+
+_OPENAI_SDK_ROOT = Path(__file__).resolve()
+while _OPENAI_SDK_ROOT.name != "openai_sdk_crash_course" and _OPENAI_SDK_ROOT.parent != _OPENAI_SDK_ROOT:
+    _OPENAI_SDK_ROOT = _OPENAI_SDK_ROOT.parent
+if str(_OPENAI_SDK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_OPENAI_SDK_ROOT))
+
+from openai_client_config import configure_openai_client
+
+configure_openai_client()
+
 load_dotenv()
 
 class Sentiment(str, Enum):
-    """Review sentiment classification"""
+    """评论情绪分类枚举。"""
     VERY_POSITIVE = "very_positive"
     POSITIVE = "positive"
     NEUTRAL = "neutral"
@@ -24,7 +38,7 @@ class Sentiment(str, Enum):
     VERY_NEGATIVE = "very_negative"
 
 class ProductCategory(str, Enum):
-    """Product category classification"""
+    """商品分类枚举。"""
     ELECTRONICS = "electronics"
     CLOTHING = "clothing"
     HOME = "home"
@@ -36,21 +50,21 @@ class ProductCategory(str, Enum):
     OTHER = "other"
 
 class ProductInfo(BaseModel):
-    """Product information extracted from review"""
+    """从评论中提取到的商品基础信息。"""
     name: Optional[str] = Field(description="Product name if mentioned", default=None)
     category: ProductCategory = Field(description="Inferred product category")
     brand: Optional[str] = Field(description="Brand name if mentioned", default=None)
     price_mentioned: Optional[str] = Field(description="Price if mentioned in review", default=None)
 
 class ReviewMetrics(BaseModel):
-    """Quantitative review metrics"""
+    """评论的量化指标，例如评分、情绪和置信度。"""
     rating: int = Field(description="Star rating (1-5)", ge=1, le=5)
     sentiment: Sentiment = Field(description="Overall sentiment of the review")
     confidence_score: float = Field(description="Confidence in sentiment analysis (0-1)", ge=0, le=1)
     word_count: int = Field(description="Approximate word count of review", ge=0)
 
 class ReviewAspects(BaseModel):
-    """Specific aspects mentioned in the review"""
+    """评论中提到的具体体验维度。"""
     quality: Optional[str] = Field(description="Quality assessment if mentioned", default=None)
     value_for_money: Optional[str] = Field(description="Value assessment if mentioned", default=None)
     shipping: Optional[str] = Field(description="Shipping experience if mentioned", default=None)
@@ -58,26 +72,26 @@ class ReviewAspects(BaseModel):
     ease_of_use: Optional[str] = Field(description="Usability assessment if mentioned", default=None)
 
 class ProductReview(BaseModel):
-    """Complete structured product review analysis"""
+    """完整的结构化商品评论分析结果。"""
     product_info: ProductInfo
     metrics: ReviewMetrics
     aspects: ReviewAspects
     
-    # Key insights
+    # 关键洞察：总结评论中的主要正向点、负向点和推荐意愿。
     main_positives: List[str] = Field(description="Main positive points mentioned", default=[])
     main_negatives: List[str] = Field(description="Main negative points mentioned", default=[])
     would_recommend: Optional[bool] = Field(description="Whether reviewer would recommend", default=None)
     
-    # Summary
+    # 摘要信息：生成短摘要并提取关键短语。
     summary: str = Field(description="Brief summary of the review")
     key_phrases: List[str] = Field(description="Important phrases from the review", default=[])
 
     @validator('key_phrases')
     def limit_key_phrases(cls, v):
-        """Limit key phrases to maximum of 5"""
+        """限制关键短语最多返回 5 个，避免输出过长。"""
         return v[:5] if len(v) > 5 else v
 
-# Create the product review agent
+# 创建商品评论分析 Agent，并声明它必须返回 ProductReview 结构。
 product_review_agent = Agent(
     name="Product Review Analyzer",
     instructions="""
@@ -125,12 +139,12 @@ product_review_agent = Agent(
 )
 
 def demonstrate_review_analysis():
-    """Demonstrate the product review agent with various examples"""
+    """使用多组示例演示商品评论 Agent 的结构化分析效果。"""
     print("🎯 OpenAI Agents SDK - Tutorial 2: Product Review Agent")
     print("=" * 60)
     print()
     
-    # Test cases with different types of reviews
+    # 准备不同情绪和品类的评论样例，用于展示结构化提取能力。
     test_reviews = [
         {
             "title": "Positive Electronics Review",
@@ -157,7 +171,7 @@ def demonstrate_review_analysis():
         print()
         
         try:
-            # Analyze the review
+            # 调用 Agent，将商品评论转换为结构化分析对象。
             result = Runner.run_sync(product_review_agent, test_case["review"])
             analysis = result.final_output
             
@@ -187,7 +201,7 @@ def demonstrate_review_analysis():
             if analysis.key_phrases:
                 print(f"🔑 Key Phrases: {', '.join(analysis.key_phrases)}")
             
-            # Show aspects that were mentioned
+            # 只展示评论中实际提到的体验维度，避免输出空字段。
             aspects_mentioned = []
             if analysis.aspects.quality:
                 aspects_mentioned.append(f"Quality: {analysis.aspects.quality}")
@@ -211,7 +225,7 @@ def demonstrate_review_analysis():
         print()
 
 def interactive_mode():
-    """Interactive mode for analyzing product reviews"""
+    """进入命令行交互模式，根据用户输入实时分析商品评论。"""
     print("=== Interactive Product Review Analysis ===")
     print("Paste a product review and I'll extract structured data from it.")
     print("Type 'quit' to exit.")
@@ -236,7 +250,7 @@ def interactive_mode():
             print("📊 REVIEW ANALYSIS COMPLETE")
             print("="*50)
             
-            # Product Information
+            # 商品基础信息。
             print("🏷️  PRODUCT INFO:")
             print(f"   Name: {analysis.product_info.name or 'Not specified'}")
             print(f"   Brand: {analysis.product_info.brand or 'Not specified'}")
@@ -244,19 +258,19 @@ def interactive_mode():
             if analysis.product_info.price_mentioned:
                 print(f"   Price: {analysis.product_info.price_mentioned}")
             
-            # Metrics
+            # 评论量化指标。
             print(f"\n📊 METRICS:")
             print(f"   Rating: {analysis.metrics.rating}/5 ⭐")
             print(f"   Sentiment: {analysis.metrics.sentiment.value.replace('_', ' ').title()}")
             print(f"   Confidence: {analysis.metrics.confidence_score:.1%}")
             
-            # Key Points
+            # 评论中的主要优点和缺点。
             if analysis.main_positives:
                 print(f"\n✅ POSITIVES: {', '.join(analysis.main_positives)}")
             if analysis.main_negatives:
                 print(f"\n❌ NEGATIVES: {', '.join(analysis.main_negatives)}")
             
-            # Summary
+            # 评论摘要。
             print(f"\n📋 SUMMARY: {analysis.summary}")
             
             print("="*50)
@@ -267,18 +281,18 @@ def interactive_mode():
             print()
 
 def main():
-    """Main function"""
-    # Check API key
+    """程序入口：检查配置后运行演示和交互模式。"""
+    # 没有 API Key 时直接给出提示，避免后续请求才报错。
     if not os.getenv("OPENAI_API_KEY"):
         print("❌ Error: OPENAI_API_KEY not found in environment variables")
         print("Please create a .env file with your OpenAI API key")
         return
     
     try:
-        # Run demonstrations
+        # 先运行内置演示，方便快速理解结构化输出效果。
         demonstrate_review_analysis()
         
-        # Interactive mode
+        # 再进入交互模式，允许用户输入自己的商品评论。
         interactive_mode()
         
     except Exception as e:

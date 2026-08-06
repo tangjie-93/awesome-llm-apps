@@ -8,13 +8,27 @@ import numpy as np
 from agents import Agent, function_tool
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 from agents.voice import (
-    StreamedAudioInput,
+
+StreamedAudioInput,
     SingleAgentVoiceWorkflow,
     SingleAgentWorkflowCallbacks,
     VoicePipeline,
 )
 
 from .util import AudioPlayer, StreamedAudioRecorder, create_silence
+
+from pathlib import Path
+import sys
+
+_OPENAI_SDK_ROOT = Path(__file__).resolve()
+while _OPENAI_SDK_ROOT.name != "openai_sdk_crash_course" and _OPENAI_SDK_ROOT.parent != _OPENAI_SDK_ROOT:
+    _OPENAI_SDK_ROOT = _OPENAI_SDK_ROOT.parent
+if str(_OPENAI_SDK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_OPENAI_SDK_ROOT))
+
+from openai_client_config import configure_openai_client
+
+configure_openai_client()
 
 """
 This is a streaming voice example that processes audio in real-time. Run it via:

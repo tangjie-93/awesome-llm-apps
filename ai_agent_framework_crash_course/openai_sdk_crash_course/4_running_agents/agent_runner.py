@@ -5,14 +5,31 @@ import json
 from datetime import datetime
 from agents import Agent, Runner, RunConfig, SQLiteSession
 from agents.exceptions import (
-    AgentsException,
+
+AgentsException,
     MaxTurnsExceeded,
     ModelBehaviorError,
     UserError
 )
+from agents.stream_events import RawResponsesStreamEvent
 from dotenv import load_dotenv
+from openai.types.responses.response_text_delta_event import ResponseTextDeltaEvent
 
 # Load environment variables
+
+from pathlib import Path
+import sys
+
+_OPENAI_SDK_ROOT = Path(__file__).resolve()
+while _OPENAI_SDK_ROOT.name != "openai_sdk_crash_course" and _OPENAI_SDK_ROOT.parent != _OPENAI_SDK_ROOT:
+    _OPENAI_SDK_ROOT = _OPENAI_SDK_ROOT.parent
+if str(_OPENAI_SDK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_OPENAI_SDK_ROOT))
+
+from openai_client_config import configure_openai_client
+
+configure_openai_client()
+
 load_dotenv()
 
 # Page configuration
@@ -214,9 +231,10 @@ def render_execution_methods(agent, model_choice, temperature, max_turns):
                     
                     async def stream_response():
                         nonlocal full_response
-                        async for event in Runner.run_streamed(agent, streaming_input):
-                            if hasattr(event, 'content') and event.content:
-                                full_response += event.content
+                        result = Runner.run_streamed(agent, streaming_input)
+                        async for event in result.stream_events():
+                            if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
+                                full_response += event.data.delta
                                 response_container.write(f"**Response:**\n{full_response}")
                         
                         execution_time = time.time() - start_time
@@ -467,11 +485,12 @@ def render_streaming_events(agent, model_choice, temperature, max_turns):
                     async def process_streaming():
                         nonlocal full_response, events_count
                         
-                        async for event in Runner.run_streamed(agent, streaming_input):
+                        result = Runner.run_streamed(agent, streaming_input)
+                        async for event in result.stream_events():
                             events_count += 1
                             
-                            if hasattr(event, 'content') and event.content:
-                                full_response += event.content
+                            if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
+                                full_response += event.data.delta
                                 
                                 # Update display
                                 response_container.write(f"**Response:**\n{full_response}")
@@ -523,15 +542,16 @@ def render_streaming_events(agent, model_choice, temperature, max_turns):
                     start_time = time.time()
                     
                     async def process_analytics_streaming():
-                        async for event in Runner.run_streamed(agent, analytics_input):
+                        result = Runner.run_streamed(agent, analytics_input)
+                        async for event in result.stream_events():
                             current_time = time.time()
                             
-                            if hasattr(event, 'content') and event.content:
+                            if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
                                 # Collect analytics
-                                analytics["chunks"].append(event.content)
-                                analytics["chunk_sizes"].append(len(event.content))
+                                analytics["chunks"].append(event.data.delta)
+                                analytics["chunk_sizes"].append(len(event.data.delta))
                                 analytics["timestamps"].append(current_time - start_time)
-                                analytics["content"] += event.content
+                                analytics["content"] += event.data.delta
                                 
                                 # Update display
                                 response_container.write(f"**Response:**\n{analytics['content']}")

@@ -7,67 +7,23 @@ Tutorial 1 的 Streamlit Web 界面：你的第一个 Agent。
 
 import os
 import asyncio
-from dataclasses import dataclass
+from pathlib import Path
+import sys
+
 import streamlit as st
-from dotenv import load_dotenv
-from agents import (
-    Agent,
-    Runner,
-    set_default_openai_api,
-    set_default_openai_client,
-    set_tracing_disabled,
-)
+from agents import Agent, Runner
 from agents.stream_events import RawResponsesStreamEvent
-from openai import AsyncOpenAI
 from openai.types.responses.response_text_delta_event import ResponseTextDeltaEvent
 
+_OPENAI_SDK_ROOT = Path(__file__).resolve()
+while _OPENAI_SDK_ROOT.name != "openai_sdk_crash_course" and _OPENAI_SDK_ROOT.parent != _OPENAI_SDK_ROOT:
+    _OPENAI_SDK_ROOT = _OPENAI_SDK_ROOT.parent
+if str(_OPENAI_SDK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_OPENAI_SDK_ROOT))
 
-@dataclass(frozen=True)
-class OpenAIClientSettings:
-    """OpenAI 兼容客户端的运行配置。"""
+from openai_client_config import configure_openai_client, get_openai_model
 
-    api_key: str | None
-    base_url: str | None
-    timeout: float
-    max_retries: int
-    api_type: str
-
-
-def load_openai_settings() -> OpenAIClientSettings:
-    """从环境变量读取 OpenAI 客户端配置。"""
-    return OpenAIClientSettings(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_url=os.getenv("OPENAI_BASE_URL") or None,
-        timeout=float(os.getenv("OPENAI_TIMEOUT", "120")),
-        max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "2")),
-        api_type=os.getenv("OPENAI_API_TYPE", "responses"),
-    )
-
-
-def configure_openai_client(settings: OpenAIClientSettings) -> None:
-    """根据配置初始化 Agents SDK 使用的 OpenAI 客户端。"""
-    if settings.api_type in {"responses", "chat_completions"}:
-        set_default_openai_api(settings.api_type)
-
-    set_default_openai_client(
-        AsyncOpenAI(
-            api_key=settings.api_key,
-            base_url=settings.base_url,
-            timeout=settings.timeout,
-            max_retries=settings.max_retries,
-        ),
-        use_for_tracing=False,
-    )
-
-
-# 加载 .env 文件中的环境变量，例如 OPENAI_API_KEY；刷新页面时允许新配置覆盖旧值。
-load_dotenv(override=True)
-
-# 本地教程默认关闭 tracing，避免网络或权限问题导致控制台反复出现非致命上报错误。
-set_tracing_disabled(True)
-
-OPENAI_SETTINGS = load_openai_settings()
-configure_openai_client(OPENAI_SETTINGS)
+OPENAI_SETTINGS = configure_openai_client()
 
 # 配置 Streamlit 页面标题、图标和布局。
 st.set_page_config(
@@ -85,7 +41,7 @@ if not os.getenv("OPENAI_API_KEY"):
     st.error("❌ OPENAI_API_KEY not found. Please create a .env file with your OpenAI API key.")
     st.stop()
 
-MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
+MODEL_NAME = get_openai_model()
 
 # 创建并缓存 Agent，避免 Streamlit 每次重跑脚本时重复初始化。
 @st.cache_resource

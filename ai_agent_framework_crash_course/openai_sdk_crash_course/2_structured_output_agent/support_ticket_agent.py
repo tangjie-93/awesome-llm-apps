@@ -1,8 +1,8 @@
 """
-OpenAI Agents SDK Tutorial 2: Structured Output Agent - Support Tickets
+OpenAI Agents SDK 教程 2：结构化输出 Agent - 支持工单
 
-This module demonstrates how to create an agent that returns structured data
-using Pydantic models for support ticket creation.
+本模块演示如何使用 Pydantic 模型约束 Agent 输出，
+把用户投诉或问题描述转换为结构化支持工单。
 """
 
 import os
@@ -12,18 +12,32 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from agents import Agent, Runner
 
-# Load environment variables
+# 加载环境变量，并接入课程目录下的共享 OpenAI 客户端配置。
+
+from pathlib import Path
+import sys
+
+_OPENAI_SDK_ROOT = Path(__file__).resolve()
+while _OPENAI_SDK_ROOT.name != "openai_sdk_crash_course" and _OPENAI_SDK_ROOT.parent != _OPENAI_SDK_ROOT:
+    _OPENAI_SDK_ROOT = _OPENAI_SDK_ROOT.parent
+if str(_OPENAI_SDK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_OPENAI_SDK_ROOT))
+
+from openai_client_config import configure_openai_client
+
+configure_openai_client()
+
 load_dotenv()
 
 class Priority(str, Enum):
-    """Priority levels for support tickets"""
+    """支持工单的优先级枚举。"""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
 class Category(str, Enum):
-    """Support ticket categories"""
+    """支持工单的问题分类枚举。"""
     TECHNICAL = "technical"
     BILLING = "billing"
     ACCOUNT = "account"
@@ -31,7 +45,7 @@ class Category(str, Enum):
     GENERAL = "general"
 
 class SupportTicket(BaseModel):
-    """Structured support ticket model"""
+    """结构化支持工单模型，用于约束 Agent 的最终输出格式。"""
     title: str = Field(description="A concise summary of the issue")
     description: str = Field(description="Detailed description of the problem")
     priority: Priority = Field(description="The ticket priority level")
@@ -52,7 +66,7 @@ class SupportTicket(BaseModel):
         default=[]
     )
 
-# Create the support ticket agent
+# 创建支持工单 Agent，并声明它必须返回 SupportTicket 结构。
 support_ticket_agent = Agent(
     name="Support Ticket Creator",
     instructions="""
@@ -94,12 +108,12 @@ support_ticket_agent = Agent(
 )
 
 def demonstrate_support_tickets():
-    """Demonstrate the support ticket agent with various examples"""
+    """使用多组示例演示支持工单 Agent 的结构化输出效果。"""
     print("🎯 OpenAI Agents SDK - Tutorial 2: Support Ticket Agent")
     print("=" * 60)
     print()
     
-    # Test cases with different types of issues
+    # 准备不同类型的问题样例，用于覆盖账单、技术、账号和低优先级需求。
     test_cases = [
         {
             "description": "Billing Issue",
@@ -126,7 +140,7 @@ def demonstrate_support_tickets():
         print()
         
         try:
-            # Generate structured support ticket
+            # 调用 Agent，将自然语言投诉转换为结构化工单对象。
             result = Runner.run_sync(support_ticket_agent, test_case["complaint"])
             ticket = result.final_output
             
@@ -153,7 +167,7 @@ def demonstrate_support_tickets():
         print()
 
 def interactive_mode():
-    """Interactive mode for creating support tickets"""
+    """进入命令行交互模式，根据用户输入实时创建支持工单。"""
     print("=== Interactive Support Ticket Creation ===")
     print("Describe a customer issue and I'll create a structured support ticket.")
     print("Type 'quit' to exit.")
@@ -198,18 +212,18 @@ def interactive_mode():
             print()
 
 def main():
-    """Main function"""
-    # Check API key
+    """程序入口：检查配置后运行演示和交互模式。"""
+    # 没有 API Key 时直接给出提示，避免后续请求才报错。
     if not os.getenv("OPENAI_API_KEY"):
         print("❌ Error: OPENAI_API_KEY not found in environment variables")
         print("Please create a .env file with your OpenAI API key")
         return
     
     try:
-        # Run demonstrations
+        # 先运行内置演示，方便快速理解结构化输出效果。
         demonstrate_support_tickets()
         
-        # Interactive mode
+        # 再进入交互模式，允许用户输入自己的问题描述。
         interactive_mode()
         
     except Exception as e:

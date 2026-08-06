@@ -3,6 +3,20 @@ from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 import asyncio
 
 # Create specialized agents
+
+from pathlib import Path
+import sys
+
+_OPENAI_SDK_ROOT = Path(__file__).resolve()
+while _OPENAI_SDK_ROOT.name != "openai_sdk_crash_course" and _OPENAI_SDK_ROOT.parent != _OPENAI_SDK_ROOT:
+    _OPENAI_SDK_ROOT = _OPENAI_SDK_ROOT.parent
+if str(_OPENAI_SDK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_OPENAI_SDK_ROOT))
+
+from openai_client_config import configure_openai_client
+
+configure_openai_client()
+
 billing_agent = Agent(
     name="Billing Agent",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
