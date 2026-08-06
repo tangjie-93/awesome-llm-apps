@@ -1,40 +1,99 @@
 """
-Streamlit Web Interface for Tutorial 1: Your First Agent
+Tutorial 1 的 Streamlit Web 界面：你的第一个 Agent。
 
-This provides an interactive web interface to test the personal assistant agent
-with different execution methods.
+该页面提供一个交互式 Web 界面，用于测试个人助理 Agent 的
+同步、异步和流式三种执行方式。
 """
 
 import os
 import asyncio
+from dataclasses import dataclass
 import streamlit as st
 from dotenv import load_dotenv
-from agents import Agent, Runner
+from agents import (
+    Agent,
+    Runner,
+    set_default_openai_api,
+    set_default_openai_client,
+    set_tracing_disabled,
+)
+from agents.stream_events import RawResponsesStreamEvent
+from openai import AsyncOpenAI
+from openai.types.responses.response_text_delta_event import ResponseTextDeltaEvent
 
-# Load environment variables
-load_dotenv()
 
-# Page configuration
+@dataclass(frozen=True)
+class OpenAIClientSettings:
+    """OpenAI 兼容客户端的运行配置。"""
+
+    api_key: str | None
+    base_url: str | None
+    timeout: float
+    max_retries: int
+    api_type: str
+
+
+def load_openai_settings() -> OpenAIClientSettings:
+    """从环境变量读取 OpenAI 客户端配置。"""
+    return OpenAIClientSettings(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("OPENAI_BASE_URL") or None,
+        timeout=float(os.getenv("OPENAI_TIMEOUT", "120")),
+        max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "2")),
+        api_type=os.getenv("OPENAI_API_TYPE", "responses"),
+    )
+
+
+def configure_openai_client(settings: OpenAIClientSettings) -> None:
+    """根据配置初始化 Agents SDK 使用的 OpenAI 客户端。"""
+    if settings.api_type in {"responses", "chat_completions"}:
+        set_default_openai_api(settings.api_type)
+
+    set_default_openai_client(
+        AsyncOpenAI(
+            api_key=settings.api_key,
+            base_url=settings.base_url,
+            timeout=settings.timeout,
+            max_retries=settings.max_retries,
+        ),
+        use_for_tracing=False,
+    )
+
+
+# 加载 .env 文件中的环境变量，例如 OPENAI_API_KEY；刷新页面时允许新配置覆盖旧值。
+load_dotenv(override=True)
+
+# 本地教程默认关闭 tracing，避免网络或权限问题导致控制台反复出现非致命上报错误。
+set_tracing_disabled(True)
+
+OPENAI_SETTINGS = load_openai_settings()
+configure_openai_client(OPENAI_SETTINGS)
+
+# 配置 Streamlit 页面标题、图标和布局。
 st.set_page_config(
     page_title="Personal Assistant Agent",
     page_icon="🎯",
     layout="wide"
 )
 
-# Title and description
+# 页面主标题和教程说明。
 st.title("🎯 Personal Assistant Agent")
 st.markdown("**Tutorial 1**: Your first OpenAI agent with different execution methods")
 
-# Check API key
+# 检查 OpenAI API Key 是否存在，缺失时直接停止页面运行。
 if not os.getenv("OPENAI_API_KEY"):
     st.error("❌ OPENAI_API_KEY not found. Please create a .env file with your OpenAI API key.")
     st.stop()
 
-# Create the agent
+MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
+
+# 创建并缓存 Agent，避免 Streamlit 每次重跑脚本时重复初始化。
 @st.cache_resource
-def create_agent():
+def create_agent(model_name: str):
+    """创建个人助理 Agent，并配置它的角色和回复要求。"""
     return Agent(
         name="Personal Assistant",
+        model=model_name,
         instructions="""
         You are a helpful personal assistant.
         
@@ -54,9 +113,9 @@ def create_agent():
         """
     )
 
-agent = create_agent()
+agent = create_agent(MODEL_NAME)
 
-# Sidebar with execution method selection
+# 侧边栏：选择 Agent 的执行方式。
 st.sidebar.title("Execution Methods")
 execution_method = st.sidebar.selectbox(
     "Choose execution method:",
@@ -65,7 +124,12 @@ execution_method = st.sidebar.selectbox(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### About Execution Methods")
+st.sidebar.caption(f"Model: `{MODEL_NAME}`")
+st.sidebar.caption(f"API: `{OPENAI_SETTINGS.api_type}`")
+if OPENAI_SETTINGS.base_url:
+    st.sidebar.caption(f"Base URL: `{OPENAI_SETTINGS.base_url}`")
 
+# 根据当前选择展示对应执行方式的说明。
 if execution_method == "Synchronous":
     st.sidebar.info("**Synchronous**: Blocks until response is complete. Simple and straightforward.")
 elif execution_method == "Asynchronous":
@@ -73,37 +137,46 @@ elif execution_method == "Asynchronous":
 else:
     st.sidebar.info("**Streaming**: Real-time response streaming. Great for long responses.")
 
-# Main chat interface
+# 主区域：聊天界面。
 st.markdown("### Chat Interface")
 
-# Initialize chat history
+# 初始化聊天历史，首次打开页面时创建空消息列表。
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
 
-# Display chat messages
+# 渲染历史消息。
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Chat input
-if prompt := st.chat_input("Ask your personal assistant anything..."):
-    # Add user message to chat history
+# 接收用户输入或侧边栏示例提示词，并触发 Agent 回复。
+chat_prompt = st.chat_input("Ask your personal assistant anything...")
+prompt = st.session_state.pending_prompt or chat_prompt
+st.session_state.pending_prompt = None
+
+if prompt:
+    # 将用户消息加入会话状态，便于页面重跑后继续显示。
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # Generate assistant response
+    # 根据选择的执行方式生成助手回复。
     with st.chat_message("assistant"):
         try:
             if execution_method == "Synchronous":
+                # 同步执行：等待完整响应返回后一次性展示。
                 with st.spinner("Thinking..."):
                     result = Runner.run_sync(agent, prompt)
                     response = result.final_output
                     st.markdown(response)
             
             elif execution_method == "Asynchronous":
+                # 异步执行：在事件循环中等待 Agent 结果。
                 with st.spinner("Processing asynchronously..."):
                     async def get_async_response():
+                        """异步调用 Agent，并返回最终文本。"""
                         result = await Runner.run(agent, prompt)
                         return result.final_output
                     
@@ -111,35 +184,45 @@ if prompt := st.chat_input("Ask your personal assistant anything..."):
                     st.markdown(response)
             
             else:  # Streaming
+                # 流式执行：边接收边刷新占位区域，模拟实时输出效果。
                 response_placeholder = st.empty()
-                response_text = ""
                 
                 async def stream_response():
+                    """消费 Agent 的流式事件，并实时更新页面内容。"""
                     full_response = ""
-                    async for event in Runner.run_streamed(agent, prompt):
-                        if hasattr(event, 'content') and event.content:
-                            full_response += event.content
+                    result = Runner.run_streamed(agent, prompt)
+                    async for event in result.stream_events():
+                        if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
+                            full_response += event.data.delta
                             response_placeholder.markdown(full_response + "▌")
                     
+                    if not full_response and result.final_output:
+                        full_response = result.final_output
                     response_placeholder.markdown(full_response)
                     return full_response
                 
                 response = asyncio.run(stream_response())
             
-            # Add assistant response to chat history
+            # 将助手回复加入聊天历史。
             st.session_state.messages.append({"role": "assistant", "content": response})
             
         except Exception as e:
-            error_msg = f"❌ Error: {str(e)}"
+            # 捕获运行异常并在聊天区显示错误信息。
+            error_msg = f"❌ {type(e).__name__}: {str(e)}"
             st.error(error_msg)
+            if type(e).__name__ == "APITimeoutError":
+                st.warning("请求超时。请检查 OPENAI_BASE_URL 是否指向你的中转站地址，或适当调大 OPENAI_TIMEOUT。")
+            with st.expander("Error details"):
+                st.exception(e)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-# Clear chat button
+# 侧边栏：清空聊天历史。
 if st.sidebar.button("Clear Chat History"):
     st.session_state.messages = []
+    st.session_state.pending_prompt = None
     st.rerun()
 
-# Example prompts
+# 侧边栏：示例提示词，点击后写入聊天历史并刷新页面。
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Example Prompts")
 
@@ -153,11 +236,11 @@ example_prompts = [
 
 for prompt in example_prompts:
     if st.sidebar.button(prompt, key=f"example_{prompt[:20]}"):
-        # Add the example prompt to chat
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        # 记录待处理提示词，下一次 rerun 时由统一聊天逻辑生成回复。
+        st.session_state.pending_prompt = prompt
         st.rerun()
 
-# Footer with tutorial information
+# 页面底部：展示本教程覆盖的核心知识点。
 st.markdown("---")
 st.markdown("""
 ### 📚 Tutorial Information
