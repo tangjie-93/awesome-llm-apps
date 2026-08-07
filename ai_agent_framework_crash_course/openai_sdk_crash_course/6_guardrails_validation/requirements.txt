@@ -1,0 +1,8 @@
+# Local wheelhouse keeps installation offline and avoids PyPI resolution issues in this tutorial.
+--no-index
+--find-links ./vendor
+
+openai-agents==0.19.4
+openai==2.53.0
+griffelib==2.1.0
+python-dotenv>=1.0.0

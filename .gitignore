@@ -1,0 +1,21 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+.env.local
+
+# Virtual environments
+env
+env/
+venv/
+.venv/
+
+# Node
+node_modules/
+.next/
+dist/
+*.tsbuildinfo
+.vscode/
