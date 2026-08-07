@@ -1,6 +1,8 @@
-from agents import Agent
+import os
+
+from agents import Agent, CodeInterpreterTool, Runner, WebSearchTool
+
 # 导入 OpenAI Agents SDK 提供的内置工具，无需自行编写工具函数。
-from agents.tools import WebSearchTool, CodeInterpreterTool
 
 # 创建一个使用 OpenAI 内置工具的 Agent。
 
@@ -43,3 +45,22 @@ root_agent = Agent(
     # Agent 会根据用户问题和 instructions 自主选择是否调用这些工具。
     tools=[WebSearchTool(), CodeInterpreterTool()]
 )
+
+
+DEMO_PROMPT = "Use the code interpreter to calculate the compound interest on $5,000 at 3.5% annually for 8 years."
+
+
+def main() -> None:
+    """运行内置工具示例，并输出 Agent 的最终回答。"""
+    if not os.getenv("OPENAI_API_KEY"):
+        print("请在 .env 文件中配置 OPENAI_API_KEY 后再运行此示例。")
+        return
+
+    print("=== Built-in Tools Demo ===")
+    print(f"Question: {DEMO_PROMPT}")
+    result = Runner.run_sync(root_agent, DEMO_PROMPT)
+    print(f"Answer: {result.final_output}")
+
+
+if __name__ == "__main__":
+    main()

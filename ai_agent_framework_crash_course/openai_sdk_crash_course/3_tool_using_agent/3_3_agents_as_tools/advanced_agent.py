@@ -1,3 +1,5 @@
+import os
+
 from agents import Agent, Runner, function_tool
 
 # 定义专用研究 Agent
@@ -79,3 +81,22 @@ advanced_orchestrator = Agent(
     """,
     tools=[run_research_agent, run_writing_agent]
 )
+
+
+DEMO_PROMPT = "Research the benefits of automated testing for a small software project and write a concise professional summary."
+
+
+def main() -> None:
+    """运行研究和写作的高级 Agent 编排示例。"""
+    if not os.getenv("OPENAI_API_KEY"):
+        print("请在 .env 文件中配置 OPENAI_API_KEY 后再运行此示例。")
+        return
+
+    print("=== Advanced Agents as Tools Demo ===")
+    print(f"Question: {DEMO_PROMPT}")
+    result = Runner.run_sync(advanced_orchestrator, DEMO_PROMPT)
+    print(f"Answer: {result.final_output}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,6 @@
-from agents import Agent
+import os
+
+from agents import Agent, Runner
 
 # 定义多个专用翻译 Agent，每个 Agent 负责一种目标语言
 
@@ -66,3 +68,22 @@ root_agent = Agent(
         )
     ]
 )
+
+
+DEMO_PROMPT = "Translate 'Good morning, how are you today?' into Spanish, French, and German."
+
+
+def main() -> None:
+    """运行基础 Agent 编排示例，并输出翻译结果。"""
+    if not os.getenv("OPENAI_API_KEY"):
+        print("请在 .env 文件中配置 OPENAI_API_KEY 后再运行此示例。")
+        return
+
+    print("=== Agents as Tools Demo ===")
+    print(f"Question: {DEMO_PROMPT}")
+    result = Runner.run_sync(root_agent, DEMO_PROMPT)
+    print(f"Answer: {result.final_output}")
+
+
+if __name__ == "__main__":
+    main()
