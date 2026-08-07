@@ -26,11 +26,14 @@ configure_openai_client()
 
 load_dotenv()
 
+# 使用 @function_tool 将普通 Python 函数包装成 Agent 可以识别和调用的工具。
+# SDK 会根据函数名、类型提示和 docstring 自动生成工具定义及参数 Schema。
 @function_tool
 def add_numbers(a: float, b: float) -> float:
     """计算两个数的和。"""
     return a + b
 
+# 装饰后的函数仍然可以在 Python 中直接调用，同时也可以被模型作为工具调用。
 @function_tool
 def subtract_numbers(a: float, b: float) -> float:
     """计算第一个数减去第二个数的差。"""
@@ -133,6 +136,7 @@ calculator_agent = Agent(
     Always use the provided tools rather than doing calculations yourself.
     Be helpful and explain your calculations step by step.
     """,
+    # 只有注册到 tools 列表中的 FunctionTool，模型才能在运行时发现并调用。
     tools=[
         add_numbers,
         subtract_numbers, 
