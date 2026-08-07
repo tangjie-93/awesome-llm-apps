@@ -28,29 +28,29 @@ load_dotenv()
 
 @function_tool
 def add_numbers(a: float, b: float) -> float:
-    """Add two numbers together"""
+    """计算两个数的和。"""
     return a + b
 
 @function_tool
 def subtract_numbers(a: float, b: float) -> float:
-    """Subtract second number from first number"""
+    """计算第一个数减去第二个数的差。"""
     return a - b
 
 @function_tool
 def multiply_numbers(a: float, b: float) -> float:
-    """Multiply two numbers together"""
+    """计算两个数的乘积。"""
     return a * b
 
 @function_tool
 def divide_numbers(a: float, b: float) -> float:
-    """Divide first number by second number"""
+    """计算第一个数除以第二个数的商。"""
     if b == 0:
         return "Error: Cannot divide by zero"
     return a / b
 
 @function_tool
 def calculate_compound_interest(principal: float, rate: float, time: int, compounds_per_year: int = 1) -> str:
-    """Calculate compound interest using the formula A = P(1 + r/n)^(nt)"""
+    """根据复利公式 A = P(1 + r/n)^(nt) 计算复利收益。"""
     if principal <= 0 or rate < 0 or time <= 0 or compounds_per_year <= 0:
         return "Error: All values must be positive"
     
@@ -65,7 +65,7 @@ def calculate_compound_interest(principal: float, rate: float, time: int, compou
 
 @function_tool
 def calculate_circle_area(radius: float) -> str:
-    """Calculate the area of a circle given its radius"""
+    """根据半径计算圆的面积。"""
     if radius <= 0:
         return "Error: Radius must be positive"
     
@@ -74,7 +74,7 @@ def calculate_circle_area(radius: float) -> str:
 
 @function_tool
 def calculate_triangle_area(base: float, height: float) -> str:
-    """Calculate the area of a triangle given base and height"""
+    """根据底边和高计算三角形的面积。"""
     if base <= 0 or height <= 0:
         return "Error: Base and height must be positive"
     
@@ -83,7 +83,7 @@ def calculate_triangle_area(base: float, height: float) -> str:
 
 @function_tool
 def convert_temperature(temperature: float, from_unit: str, to_unit: str) -> str:
-    """Convert temperature between Celsius, Fahrenheit, and Kelvin"""
+    """在摄氏度、华氏度和开尔文之间转换温度。"""
     from_unit = from_unit.lower()
     to_unit = to_unit.lower()
     
@@ -146,7 +146,7 @@ calculator_agent = Agent(
 )
 
 def demonstrate_calculator():
-    """Demonstrate the calculator agent with various examples"""
+    """使用多个示例演示计算器代理的功能。"""
     print("🎯 OpenAI Agents SDK - Tutorial 3: Calculator Agent")
     print("=" * 60)
     print()
@@ -176,7 +176,7 @@ def demonstrate_calculator():
         print()
 
 def interactive_mode():
-    """Interactive calculator mode"""
+    """启动交互式计算器模式，持续接收并处理用户问题。"""
     print("=== Interactive Calculator ===")
     print("Ask me to perform any mathematical calculation!")
     print("Type 'quit' to exit.")
@@ -201,7 +201,7 @@ def interactive_mode():
             print()
 
 def main():
-    """Main function"""
+    """程序入口：检查 API 密钥并运行演示及交互模式。"""
     # Check API key
     if not os.getenv("OPENAI_API_KEY"):
         print("❌ Error: OPENAI_API_KEY not found in environment variables")
