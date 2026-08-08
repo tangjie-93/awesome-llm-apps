@@ -78,3 +78,11 @@ The main UI component is in `src/app/page.tsx`. You can:
 - [ADK Documentation](https://google.github.io/adk-docs/) - Learn more about the ADK and its features
 - [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
 - [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
+
+## 中文对照
+
+### AI 财务教练智能体
+
+这是一个多智能体财务教练，可以分析预算、规划储蓄并制定还债策略，并在独立报告页中渲染交互式 UI 卡片。项目基于 Next.js、Google ADK、CopilotKit 和 AG-UI。
+
+运行前需要 Node.js、Python、Google API Key 以及 npm、pnpm、yarn 或 bun。安装依赖、配置 `GOOGLE_API_KEY` 后运行 `npm run dev`。

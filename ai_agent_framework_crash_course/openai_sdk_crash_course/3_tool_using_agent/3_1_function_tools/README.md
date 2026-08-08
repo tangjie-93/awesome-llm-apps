@@ -44,6 +44,12 @@ Demonstrates custom function tools creation using the `@function_tool` decorator
    print(result.final_output)
    ```
 
+4. **Run the complete demo / 运行完整 demo**
+
+   ```bash
+   python agent.py
+   ```
+
 ## Key Concepts
 ## 核心概念
 

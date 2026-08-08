@@ -108,3 +108,11 @@ React component that:
 - Displays streaming preview from `toolInputsPartial.code` as code arrives
 - Executes final code from `toolInputs.code` when complete
 - Renders to a pre-created canvas with configurable height
+
+## 中文对照
+
+### Three.js 示例应用
+
+这是一个使用 Three.js 的交互式 3D 场景渲染器，支持流式代码预览和完整的 MCP App 集成。它提供 OrbitControls、后处理效果和 Three.js 文档工具。
+
+运行前安装依赖并启动 HTTP 或 stdio 服务，然后通过 basic-host 或其他兼容 MCP Apps 的宿主查看场景。

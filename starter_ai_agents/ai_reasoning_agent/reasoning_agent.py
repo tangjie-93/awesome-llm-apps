@@ -5,7 +5,7 @@ from rich.console import Console
 regular_agent = Agent(model=OpenAIChat(id="gpt-4o-mini"), markdown=True)
 console = Console()
 reasoning_agent = Agent(
-    model=OpenAIChat(id="gpt-4o"),
+    model=OpenAIChat(id="gpt-5.5"),
     reasoning=True,
     markdown=True,
     structured_outputs=True,

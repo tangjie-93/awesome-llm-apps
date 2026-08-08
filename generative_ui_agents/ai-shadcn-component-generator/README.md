@@ -58,3 +58,11 @@ UI runs at [localhost:5173](http://localhost:5173). Runtime on 4000, agent on 81
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
 Or connect your repo — `render.yaml` defines everything.
+
+## 中文对照
+
+### AI Shadcn 组件生成器
+
+用户可以用自然语言描述 UI，系统会生成可实时交互的 shadcn/ui 组件，并导出干净的 React 代码。智能体使用完整的组件 Schema 作为上下文，将结构化组件树流式传输到浏览器。
+
+项目由 shadcn/ui、CopilotKit、AG-UI、LangGraph 和 Render 构成，采用 pnpm monorepo 结构，包含 UI、Runtime 和 Agent 三个服务。

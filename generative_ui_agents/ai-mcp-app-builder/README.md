@@ -66,3 +66,11 @@ Open the URL shown by Next (usually `http://localhost:3000`).
 - [CopilotKit](https://docs.copilotkit.ai)
 - [Next.js](https://nextjs.org/docs)
 - [MCP Apps / UI](https://mcpui.dev/guide/introduction)
+
+## 中文对照
+
+### AI MCP 应用构建器
+
+用户可以在聊天中描述一个 MCP 应用，系统会动态生成并返回一个实时、沙箱化的应用实例。智能体在运行时编写 MCP 应用，E2B 负责提供沙箱，应用通过 MCP 工具进行双向交互。
+
+项目包含 `apps/web` Web 界面、Mastra 智能体、E2B 沙箱以及 `apps/mcp-use-server` 模板。运行前需要 Node.js、pnpm、OpenAI API Key 和相应的 E2B 环境变量。

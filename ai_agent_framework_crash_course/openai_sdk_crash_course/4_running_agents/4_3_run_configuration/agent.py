@@ -1,6 +1,7 @@
 from agents import Agent, Runner, RunConfig
 
 # Create an agent for demonstrating run configuration
+# 创建用于演示单次运行配置的 Agent
 
 from pathlib import Path
 import sys
@@ -21,17 +22,26 @@ root_agent = Agent(
 )
 
 # Example 1: Basic run configuration with model settings
+# 示例 1：通过 RunConfig 覆盖模型和运行参数
 async def model_config_example():
     """Demonstrates run configuration with model overrides and settings"""
     
     run_config = RunConfig(
-        model="gpt-4o",  # Override agent's default model
+        # Override agent's default model
+        # 覆盖 Agent 的默认模型
+        model="gpt-5.5",
         model_settings={
-            "temperature": 0.1,  # Low temperature for consistent responses
+            # Low temperature for consistent responses
+            # 较低温度有助于获得稳定响应
+            "temperature": 0.1,
             "top_p": 0.9
         },
-        max_turns=5,  # Limit conversation turns
-        workflow_name="demo_workflow",  # For tracing
+        # Limit conversation turns
+        # 限制最多执行轮数
+        max_turns=5,
+        # For tracing
+        # 用于追踪标识
+        workflow_name="demo_workflow",
         trace_metadata={"experiment": "config_demo"}
     )
     
@@ -44,14 +54,21 @@ async def model_config_example():
     return result.final_output
 
 # Example 2: Run configuration with tracing settings
+# 示例 2：通过 RunConfig 配置追踪行为
 async def tracing_config_example():
     """Demonstrates run configuration with tracing options"""
     
     run_config = RunConfig(
-        tracing_disabled=False,  # Enable tracing
-        trace_include_sensitive_data=False,  # Exclude sensitive data
+        # Enable tracing
+        # 启用追踪
+        tracing_disabled=False,
+        # Exclude sensitive data
+        # 不记录敏感数据
+        trace_include_sensitive_data=False,
         workflow_name="production_workflow",
-        group_id="user_session_456",  # Link multiple runs
+        # Link multiple runs
+        # 将多次运行关联到同一组
+        group_id="user_session_456",
         trace_metadata={
             "user_id": "user_123",
             "feature": "chat_assistance"

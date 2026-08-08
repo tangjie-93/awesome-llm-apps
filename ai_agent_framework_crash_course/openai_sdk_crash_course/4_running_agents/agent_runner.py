@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from openai.types.responses.response_text_delta_event import ResponseTextDeltaEvent
 
 # Load environment variables
+# 加载环境变量并配置 OpenAI 客户端
 
 from pathlib import Path
 import sys
@@ -33,6 +34,7 @@ configure_openai_client()
 load_dotenv()
 
 # Page configuration
+# 配置 Streamlit 页面布局和初始状态
 st.set_page_config(
     page_title="Agent Runner Demo",
     page_icon="🚀",
@@ -41,6 +43,7 @@ st.set_page_config(
 )
 
 # Initialize agents
+# 缓存并初始化各个演示场景使用的 Agent
 @st.cache_resource
 def initialize_agents():
     """Initialize agents for different demonstrations"""
@@ -82,6 +85,7 @@ def initialize_agents():
     return execution_agent, conversation_agent, config_agent, streaming_agent
 
 # Session management
+# 保存流式响应及其统计信息的会话对象
 class StreamingCapture:
     def __init__(self):
         self.events = []
@@ -96,20 +100,24 @@ class StreamingCapture:
         self.end_time = None
 
 # Initialize session state
+# 初始化 Streamlit 会话状态，避免每次重载页面时丢失数据
 if 'session_manager' not in st.session_state:
     st.session_state.session_manager = {}
 if 'streaming_capture' not in st.session_state:
     st.session_state.streaming_capture = StreamingCapture()
 
 # Main UI
+# 主页面：根据侧边栏选择渲染不同演示
 def main():
     st.title("🚀 Agent Runner Demo")
     st.markdown("**Demonstrates OpenAI Agents SDK execution capabilities**")
     
     # Initialize agents
+    # 从缓存中获取各个演示 Agent
     execution_agent, conversation_agent, config_agent, streaming_agent = initialize_agents()
     
     # Sidebar for configuration
+    # 侧边栏：选择演示类型和全局运行参数
     with st.sidebar:
         st.header("⚙️ Execution Configuration")
         
@@ -121,9 +129,11 @@ def main():
         st.divider()
         
         # Global settings
+        # 全局设置会传递给各个演示模块
         st.subheader("Global Settings")
         
         # Model configuration
+        # 模型、温度和最大轮数配置
         model_choice = st.selectbox(
             "Model",
             ["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
@@ -146,6 +156,7 @@ def main():
         )
     
     # Main content area
+    # 主内容区域根据演示类型分发到对应渲染函数
     if demo_type == "Execution Methods":
         render_execution_methods(execution_agent, model_choice, temperature, max_turns)
     elif demo_type == "Conversation Management":
@@ -222,6 +233,7 @@ def render_execution_methods(agent, model_choice, temperature, max_turns):
                 st.info("🔄 Streaming response...")
                 
                 # Create containers for streaming output
+                # 创建用于显示流式响应的容器
                 response_container = st.empty()
                 progress_container = st.empty()
                 
@@ -257,6 +269,7 @@ def render_conversation_management(agent, model_choice, temperature, max_turns):
         st.caption("Using result.to_input_list() for conversation history")
         
         # Initialize conversation history in session state
+        # 在会话状态中初始化手动维护的对话历史
         if 'manual_conversation' not in st.session_state:
             st.session_state.manual_conversation = []
         
@@ -268,12 +281,14 @@ def render_conversation_management(agent, model_choice, temperature, max_turns):
                 with st.spinner("Processing..."):
                     try:
                         # Build input list manually
+                        # 手动拼接历史消息和当前用户输入
                         input_list = st.session_state.manual_conversation.copy()
                         input_list.append({"role": "user", "content": manual_input})
                         
                         result = asyncio.run(Runner.run(agent, input_list))
                         
                         # Update conversation history
+                        # 保存本轮结果，供下一轮继续使用
                         st.session_state.manual_conversation = result.to_input_list()
                         
                         st.success("Message sent!")
@@ -283,6 +298,7 @@ def render_conversation_management(agent, model_choice, temperature, max_turns):
                         st.error(f"❌ Error: {e}")
         
         # Show conversation history
+        # 展示当前手动维护的对话历史
         if st.button("📋 Show Manual History"):
             if st.session_state.manual_conversation:
                 st.write("**Conversation History:**")
@@ -310,6 +326,7 @@ def render_conversation_management(agent, model_choice, temperature, max_turns):
                 with st.spinner("Processing..."):
                     try:
                         # Get or create session
+                        # 获取已有会话或创建新的 SQLiteSession
                         if session_id not in st.session_state.session_manager:
                             st.session_state.session_manager[session_id] = SQLiteSession(session_id)
                         
@@ -323,6 +340,7 @@ def render_conversation_management(agent, model_choice, temperature, max_turns):
                         st.error(f"❌ Error: {e}")
         
         # Show session history
+        # 展示自动会话中保存的历史记录
         if st.button("📋 Show Session History"):
             if session_id in st.session_state.session_manager:
                 session = st.session_state.session_manager[session_id]
@@ -391,6 +409,7 @@ def render_run_configuration(agent, model_choice, temperature, max_turns):
                         st.write(result.final_output)
                         
                         # Show configuration used
+                        # 展示本次运行实际使用的配置
                         st.write("**Configuration Used:**")
                         st.json({
                             "model": model_choice,
@@ -440,6 +459,7 @@ def render_run_configuration(agent, model_choice, temperature, max_turns):
                         st.write(result.final_output)
                         
                         # Show tracing configuration
+                        # 展示本次运行的追踪配置
                         st.write("**Tracing Configuration:**")
                         st.json({
                             "workflow_name": workflow_name,
@@ -474,6 +494,7 @@ def render_streaming_events(agent, model_choice, temperature, max_turns):
                 st.info("🔄 Streaming in progress...")
                 
                 # Create containers
+                # 创建响应和统计信息的显示容器
                 response_container = st.empty()
                 stats_container = st.empty()
                 
@@ -493,9 +514,11 @@ def render_streaming_events(agent, model_choice, temperature, max_turns):
                                 full_response += event.data.delta
                                 
                                 # Update display
+                                # 实时更新当前响应内容
                                 response_container.write(f"**Response:**\n{full_response}")
                                 
                                 # Update stats
+                                # 实时更新字符数、词数和耗时统计
                                 elapsed = time.time() - start_time
                                 char_count = len(full_response)
                                 word_count = len(full_response.split())
@@ -528,6 +551,7 @@ def render_streaming_events(agent, model_choice, temperature, max_turns):
                 st.info("🔄 Streaming with analytics...")
                 
                 # Create analytics containers
+                # 创建用于展示流式分析指标的容器
                 response_container = st.empty()
                 metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
                 
@@ -548,15 +572,18 @@ def render_streaming_events(agent, model_choice, temperature, max_turns):
                             
                             if isinstance(event, RawResponsesStreamEvent) and isinstance(event.data, ResponseTextDeltaEvent):
                                 # Collect analytics
+                                # 收集内容块、大小和时间戳等指标
                                 analytics["chunks"].append(event.data.delta)
                                 analytics["chunk_sizes"].append(len(event.data.delta))
                                 analytics["timestamps"].append(current_time - start_time)
                                 analytics["content"] += event.data.delta
                                 
                                 # Update display
+                                # 更新流式响应展示
                                 response_container.write(f"**Response:**\n{analytics['content']}")
                                 
                                 # Update metrics
+                                # 更新块数、平均块大小和输出速度
                                 with metrics_col1:
                                     st.metric("Chunks", len(analytics["chunks"]))
                                 
@@ -573,12 +600,14 @@ def render_streaming_events(agent, model_choice, temperature, max_turns):
                     asyncio.run(process_analytics_streaming())
                     
                     # Final analytics
+                    # 计算本次流式处理的最终指标
                     total_time = time.time() - start_time
                     total_words = len(analytics["content"].split())
                     
                     st.success(f"✅ Analytics complete!")
                     
                     # Display final analytics
+                    # 展示最终统计结果
                     st.write("**Final Analytics:**")
                     col1, col2, col3, col4 = st.columns(4)
                     
@@ -667,6 +696,7 @@ def render_exception_handling(agent, model_choice, temperature, max_turns):
                     st.info("An unexpected error occurred. Please try again.")
     
     # Exception handling reference
+    # 展示常见异常类型及其含义
     st.divider()
     st.subheader("📚 Exception Handling Reference")
     
@@ -683,6 +713,7 @@ def render_exception_handling(agent, model_choice, temperature, max_turns):
         st.write(f"**{exception}**: {description}")
 
 # Footer
+# 页面底部：汇总本课程覆盖的 Agent Runner 能力
 def render_footer():
     st.divider()
     st.markdown("""

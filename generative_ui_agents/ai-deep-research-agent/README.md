@@ -98,3 +98,11 @@ Deep Agent (research_assistant)
 ## License
 
 Upstream license applies — see [`CopilotKit/CopilotKit`](https://github.com/CopilotKit/CopilotKit).
+
+## 中文对照
+
+### AI 深度研究智能体
+
+这是一个深度研究助手，可以规划任务、搜索互联网、读写虚拟文件系统，并在工作区面板中以实时卡片展示工具调用。项目由 Next.js、LangGraph、CopilotKit、AG-UI、Deep Agents 和 Tavily 构成。
+
+启动时需要配置 OpenAI API Key 和 Tavily API Key，分别启动 Python Agent 后端和 Next.js 前端。

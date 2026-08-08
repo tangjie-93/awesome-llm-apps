@@ -67,3 +67,11 @@ pnpm run dev
 - [ADK](https://google.github.io/adk-docs/)
 - [CopilotKit](https://github.com/CopilotKit/CopilotKit)
 - [AG-UI](https://docs.ag-ui.com/introduction)
+
+## 中文对照
+
+### AI 仪表盘画布智能体
+
+该项目让智能体将实时图表、指标和数据填充到 Canvas 仪表盘中，而不是只输出文本。聊天区域是侧边栏，持久化 Canvas 才是主要工作区；智能体可以跨轮次创建、更新和排列图表、KPI 与面板。
+
+快速开始需要安装 Node.js、Python 和 Google API Key，然后安装依赖、配置 `.env`，最后运行 `pnpm run dev`。

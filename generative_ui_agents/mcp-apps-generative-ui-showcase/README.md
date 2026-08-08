@@ -137,3 +137,11 @@ The demo is deployed on Railway with two services:
 | MCP Server | https://mcp-server-production-bbb4.up.railway.app |
 
 For production, set `MCP_SERVER_URL` environment variable to point to your deployed MCP server.
+
+## 中文对照
+
+### MCP Apps 生成式 UI 展示项目
+
+该项目在聊天中展示航班预订、酒店预订、投资组合和看板等交互式应用。MCP Server 通过工具和 HTML/JS 资源注册 UI，CopilotKit 将应用作为沙箱 iframe 嵌入聊天，并通过 JSON-RPC 与 MCP 工具通信。
+
+运行前安装前端和 MCP Server 依赖，配置 `OPENAI_API_KEY)，分别启动 MCP Server 和 Next.js 前端。

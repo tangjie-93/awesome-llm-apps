@@ -39,7 +39,15 @@ Demonstrates advanced orchestration patterns where agents are used as tools by o
    print(result.final_output)
    ```
 
-## 💡 Key Concepts
+5. **Run the complete demos / 运行完整 demo**
+
+   ```bash
+   python agent.py
+   python advanced_agent.py
+   ```
+
+## Key Concepts
+## 核心概念
 
 ### Basic Agent Tools (`agent.py`)
 - **Agent.as_tool()**: Simple agent-to-tool conversion

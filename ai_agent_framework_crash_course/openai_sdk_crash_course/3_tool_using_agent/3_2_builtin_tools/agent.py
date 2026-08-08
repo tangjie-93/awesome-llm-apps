@@ -36,5 +36,12 @@ root_agent = Agent(
     2. Use code execution for computations and analysis
     3. Provide clear explanations of results
     """,
-    tools=[WebSearchTool(), CodeInterpreterTool()]
+    # WebSearchTool 获取实时网络信息，CodeInterpreterTool 在托管容器中执行代码和计算。
+    # Agent 会根据用户问题和 instructions 自主选择是否调用这些工具。
+    tools=[
+        WebSearchTool(),
+        CodeInterpreterTool(
+            tool_config={"type": "code_interpreter", "container": {"type": "auto"}}
+        ),
+    ]
 )

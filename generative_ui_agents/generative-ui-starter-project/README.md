@@ -160,3 +160,11 @@ Both patterns use the same catalog on the frontend — the difference is where t
 
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/) - Learn more about LangGraph and its features
 - [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
+
+## 中文对照
+
+### 生成式 UI 入门项目
+
+这是一个聊天驱动的看板，用户和智能体共同维护任务列表。项目基于 Next.js、CopilotKit、AG-UI 和 LangGraph，并包含 A2UI 支持，可让智能体以声明式方式生成交互式 UI。
+
+运行前安装依赖、配置 OpenAI API Key，然后运行 `npm run dev`。README 同时介绍了项目结构、A2UI 的固定 Schema 和动态 Schema 两种模式，以及如何添加自定义组件。
