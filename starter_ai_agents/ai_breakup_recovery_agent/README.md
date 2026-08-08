@@ -2,9 +2,11 @@
 # 分手恢复代理团队
 
 This app helps users process breakup-related emotions with a multi-agent workflow.
+
 这个应用通过多智能体工作流帮助用户处理分手后的情绪。
 
 It is built with Streamlit, Agno, and Gemini 2.0 Flash.
+
 它基于 Streamlit、Agno 和 Gemini 2.0 Flash 构建。
 
 ## Features

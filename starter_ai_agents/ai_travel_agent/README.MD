@@ -2,9 +2,11 @@
 # AI 旅行代理
 
 This Streamlit app helps plan trips with destination research and itinerary generation.
+
 这个 Streamlit 应用可以结合目的地调研和行程生成来规划旅行。
 
 It includes a cloud version and a local version based on Ollama.
+
 它同时提供云端版本和基于 Ollama 的本地版本。
 
 ## Features

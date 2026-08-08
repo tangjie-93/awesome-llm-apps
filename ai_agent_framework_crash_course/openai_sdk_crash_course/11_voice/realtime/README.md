@@ -1,334 +1,90 @@
 # ⚡ Realtime Voice Agent
+# ⚡ 实时语音 Agent
 
-A basic realtime voice agent example using OpenAI's Realtime API. This demonstrates the core components for ultra-low latency voice conversations with minimal setup.
+A low-latency voice agent built with OpenAI's Realtime API for natural, persistent audio conversations.<br>
+这是一个基于 OpenAI Realtime API 构建的低延迟语音 Agent，用于自然且持续的音频对话。
 
 ## 🎯 What This Demonstrates
+## 🎯 本示例演示的内容
 
-- **Core Realtime Components**: RealtimeAgent, RealtimeRunner, and RealtimeSession
-- **Basic Voice Conversation**: Ultra-low latency voice interaction
-- **Function Tools**: Simple tools callable during voice conversation
-- **Agent Handoffs**: Basic handoff to specialized agent
-- **Event Handling**: Essential event processing for realtime sessions
+- `RealtimeAgent`, `RealtimeRunner`, and `RealtimeSession` for live conversations.<br>
+  使用 `RealtimeAgent`、`RealtimeRunner` 和 `RealtimeSession` 构建实时对话。
+- Realtime tool calls, specialized-agent handoffs, and event handling.<br>
+  实时工具调用、专用 Agent 交接和事件处理。
+- Voice activity detection, audio configuration, guardrails, and production concerns.<br>
+  语音活动检测、音频配置、护栏和生产环境注意事项。
 
 ## 🧠 Core Concept: Realtime Voice Processing
+## 🧠 核心概念：实时语音处理
 
-Realtime agents provide **ultra-low latency voice conversation** using OpenAI's Realtime API. Unlike traditional voice pipelines, realtime agents maintain persistent WebSocket connections for immediate audio processing. Think of realtime agents as **live conversation partners** that:
+Realtime agents maintain a persistent connection so audio can be processed and answered with minimal delay.<br>
+实时 Agent 会保持持久连接，以便快速处理音频并给出回答。
 
-- Process audio and respond instantly with minimal latency
-- Handle interruptions gracefully during conversation
-- Maintain persistent connections for natural dialogue flow
-- Support real-time tool execution and agent handoffs
-- Apply safety guardrails during live generation
-
-Based on the [official documentation](https://openai.github.io/openai-agents-python/realtime/quickstart/), realtime agents enable natural voice conversations with the lowest possible latency.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                   REALTIME VOICE WORKFLOW                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  🎤 LIVE AUDIO INPUT                                        |
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    1. WEBSOCKET CONNECTION                 │
-│  │ PERSISTENT  │    ◦ Continuous audio streaming            │
-│  │ CONNECTION  │    ◦ Ultra-low latency pipeline            │
-│  └─────────────┘    ◦ Real-time processing                  │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    2. INSTANT PROCESSING                   │
-│  │ REALTIME    │    ◦ Immediate speech recognition          │
-│  │ AGENTS      │    ◦ Live agent reasoning                  │
-│  └─────────────┘    ◦ Real-time tool execution              │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    3. IMMEDIATE RESPONSE                   │
-│  │   LIVE      │    ◦ Real-time audio generation            │
-│  │ RESPONSE    │    ◦ Streaming audio output                │
-│  └─────────────┘    ◦ Interruption handling                 │
-│       │                                                     │
-│       ▼                                                     │
-│  🔊 INSTANT AUDIO OUTPUT                                    |
-│                                                             │
-│  ↺ CONTINUOUS CONVERSATION LOOP                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Unlike a static pipeline, the user can interrupt the Agent naturally while it is speaking.<br>
+与静态流水线不同，用户可以在 Agent 讲话时自然地打断它。
 
 ## 🚀 Quick Start
+## 🚀 快速开始
 
-1. **Install OpenAI Agents SDK**:
+1. Install dependencies.<br>
+   安装依赖。
+
    ```bash
-   pip install openai-agents
+   pip install -r requirements.txt
    ```
 
-2. **Set up environment**:
-   ```bash
-   cp env.example .env
-   # Edit .env and add your OpenAI API key
-   ```
+2. Copy `env.example` to `.env` and configure an API key with Realtime API access.<br>
+   将 `env.example` 复制为 `.env`，并配置具有 Realtime API 访问权限的 API Key。
 
-3. **Run the basic realtime agent**:
+3. Run the realtime Agent.<br>
+   运行实时 Agent。
+
    ```bash
    python agent.py
    ```
 
-4. **Start talking**: The agent will respond in real-time. Try:
-   - "What's the weather in Paris?"
-   - "Book appointment tomorrow at 2pm"
-
-## 🧪 What This Example Includes
-
-### **Core Realtime Components**
-Based on the [official guide](https://openai.github.io/openai-agents-python/realtime/guide/):
-- **RealtimeAgent**: Agent with instructions, tools, and handoffs
-- **RealtimeRunner**: Manages configuration and returns sessions  
-- **RealtimeSession**: Single conversation session with event streaming
-
-### **Basic Function Tools**
-- `get_weather(city)`: Simple weather information
-- `book_appointment(date, time, service)`: Basic appointment booking
-
-### **Simple Agent Handoff**
-- **Main Assistant**: General conversation agent
-- **Billing Agent**: Specialized billing support (demonstrates handoff pattern)
-
-### **Essential Event Handling**
-- **Audio Transcripts**: User and assistant speech transcription
-- **Tool Calls**: Function execution notifications
-- **Error Events**: Basic error handling
-
 ## 🎯 Example Voice Interactions
+## 🎯 语音交互示例
 
-### **Basic Conversation**
-- "What's the weather in Paris?" → Tool call with instant response
-- "Book appointment tomorrow at 2pm" → Appointment booking tool
-
-### **Agent Handoff**
-- "I need help with billing" → Handoff to billing support agent
+- “What's the weather in Paris?” / “巴黎天气怎么样？”
+- “Translate this into French.” / “把这句话翻译成法语。”
+- “Stop, I want to ask something else.” / “停一下，我想问别的问题。”
 
 ## 🔧 Key Implementation Patterns
+## 🔧 关键实现模式
 
-Based on the [official guide](https://openai.github.io/openai-agents-python/realtime/guide/):
+- Create a `RealtimeAgent` with concise instructions and the required tools.<br>
+  使用简洁指令和所需工具创建 `RealtimeAgent`。
+- Start a `RealtimeRunner` session, then forward microphone input and play audio output events.<br>
+  启动 `RealtimeRunner` 会话，然后转发麦克风输入并播放音频输出事件。
+- Configure turn detection to control when the Agent treats speech as a completed turn.<br>
+  配置轮次检测，控制 Agent 在何时将语音视为一个完成的轮次。
+- Observe session events for transcription, audio deltas, tool calls, errors, and interruptions.<br>
+  监听转写、音频增量、工具调用、错误和打断等会话事件。
 
-### **1. Create RealtimeAgent**
-```python
-from agents.realtime import RealtimeAgent
+## 📊 Realtime vs Traditional Voice
+## 📊 实时语音与传统语音的对比
 
-agent = RealtimeAgent(
-    name="Assistant",
-    instructions="You are a helpful voice assistant...",
-    tools=[get_weather, book_appointment],
-    handoffs=[realtime_handoff(billing_agent)]
-)
-```
+Realtime voice provides the most natural interaction and lowest perceived latency, while static and streamed pipelines are simpler to operate.<br>
+实时语音能提供最自然的交互和最低的感知延迟；静态和流式流水线则更易于运行和维护。
 
-### **2. Set up RealtimeRunner**
-```python
-from agents.realtime import RealtimeRunner
+Choose realtime voice for conversational assistants, live support, language practice, and hands-free interfaces.<br>
+实时语音适用于对话助手、实时支持、语言练习和免手持交互界面。
 
-runner = RealtimeRunner(
-    starting_agent=agent,
-    config={
-        "model_settings": {
-            "model_name": "gpt-4o-realtime-preview",
-            "voice": "alloy",
-            "modalities": ["text", "audio"]
-        }
-    }
-)
-```
+## 🚨 Requirements and Production Considerations
+## 🚨 运行要求与生产环境注意事项
 
-### **3. Start Session and Handle Events**
-```python
-session = await runner.run()
+- Python 3.9+, microphone and speaker access, and a Realtime API-enabled model.<br>
+  Python 3.9+、麦克风和扬声器权限，以及支持 Realtime API 的模型。
+- Use reconnection, timeout, and error-handling strategies for persistent sessions.<br>
+  为持久会话提供重连、超时和错误处理策略。
+- Monitor latency, interruption rate, tool failures, and audio quality in production.<br>
+  在生产环境中监控延迟、打断率、工具失败和音频质量。
+- Keep safety instructions and guardrails close to the Agent configuration.<br>
+  将安全指令和护栏配置靠近 Agent 配置定义。
 
-async with session:
-    async for event in session:
-        if event.type == "response.audio_transcript.done":
-            print(f"Assistant: {event.transcript}")
-```
+## 🔗 Related Examples
+## 🔗 相关示例
 
-## 💡 Basic Realtime Concepts
-
-From the [official guide](https://openai.github.io/openai-agents-python/realtime/guide/):
-
-1. **Session Flow**: Create agents → Set up runner → Start session → Handle events
-2. **Event Handling**: Listen for audio transcripts, tool calls, and errors
-3. **Voice Configuration**: Choose from 6 voices (alloy, echo, fable, onyx, nova, shimmer)
-4. **Turn Detection**: Server-side voice activity detection for natural conversation
-
-## 📊 Realtime vs Traditional Voice Comparison
-
-| Feature | Traditional Voice | Realtime Voice |
-|---------|------------------|----------------|
-| **Latency** | 2-5 seconds | <500ms |
-| **Connection** | Request/Response | Persistent WebSocket |
-| **Interruptions** | Limited | Natural handling |
-| **Audio Processing** | Batched | Streaming |
-| **Tool Execution** | Turn-based | Real-time |
-| **Conversation Flow** | Structured | Natural |
-| **API** | REST endpoints | WebSocket events |
-
-## 🌟 Advanced Realtime Features
-
-### **Voice Activity Detection (VAD)**
-- **Server VAD**: OpenAI's optimized speech detection
-- **Configurable Thresholds**: Adjust sensitivity for different environments
-- **Silence Detection**: Intelligent turn boundary detection
-- **Prefix Padding**: Capture speech start accurately
-
-### **Audio Configuration Options**
-- **Voice Selection**: Choose from 6 different voices (alloy, echo, fable, onyx, nova, shimmer)
-- **Audio Formats**: Support for PCM16, G.711 μ-law, and G.711 A-law
-- **Transcription Models**: Whisper integration for speech-to-text
-- **Multi-Modal Support**: Text and audio modalities
-
-### **Real-Time Guardrails**
-Based on the [guide documentation](https://openai.github.io/openai-agents-python/realtime/guide/), realtime guardrails are:
-- **Debounced**: Run periodically (not on every word) for performance
-- **Configurable**: Adjustable debounce length (default 100 characters)
-- **Non-Blocking**: Don't raise exceptions, generate events instead
-- **Real-Time**: Can interrupt responses immediately when triggered
-
-### **Session Event Types**
-- **Audio Events**: `response.audio.delta`, `response.audio.done`
-- **Transcription Events**: `response.audio_transcript.done`, `input_audio_transcription.completed`
-- **Tool Events**: `response.function_call_arguments.done`
-- **Lifecycle Events**: `session.created`, `session.updated`, `response.done`
-- **Error Events**: `error`, `guardrail_tripped`
-
-## 🚨 Requirements & Dependencies
-
-### **Core Dependencies**
-- `openai-agents>=1.0.0`: OpenAI Agents SDK with realtime support
-- `python-dotenv>=1.0.0`: Environment variable management
-- Python 3.9 or higher (required for realtime features)
-
-### **API Requirements**
-- **OpenAI API Key**: Required for Realtime API access
-- **Model Access**: Access to `gpt-4o-realtime-preview` model
-- **WebSocket Support**: Stable internet connection for persistent connections
-
-### **System Requirements**
-- **Real-Time Capable**: Low-latency network connection
-- **Audio Hardware**: Microphone and speakers for voice interaction
-- **Processing Power**: Sufficient CPU for real-time audio processing
-
-## 🔧 Configuration Options
-
-### **Model Settings**
-```python
-"model_settings": {
-    "model_name": "gpt-4o-realtime-preview",  # Realtime model
-    "voice": "alloy",                         # Voice selection
-    "modalities": ["text", "audio"],          # Supported modalities
-    "input_audio_format": "pcm16",           # Audio input format
-    "output_audio_format": "pcm16"           # Audio output format
-}
-```
-
-### **Turn Detection Settings**
-```python
-"turn_detection": {
-    "type": "server_vad",           # Voice activity detection
-    "threshold": 0.5,               # Detection sensitivity (0.0-1.0)
-    "prefix_padding_ms": 300,       # Audio padding before speech
-    "silence_duration_ms": 200      # Silence to detect turn end
-}
-```
-
-### **Transcription Configuration**
-```python
-"input_audio_transcription": {
-    "model": "whisper-1",           # Transcription model
-    "language": "en",               # Language preference
-    "prompt": "Custom prompt..."    # Domain-specific terms
-}
-```
-
-## 🛡️ Safety and Guardrails
-
-### **Real-Time Safety Features**
-- **Debounced Processing**: Guardrails run periodically for performance
-- **Immediate Intervention**: Can interrupt unsafe responses in real-time
-- **Event-Based Alerts**: Generate `guardrail_tripped` events instead of exceptions
-- **Configurable Sensitivity**: Adjust debounce length based on requirements
-
-### **Safety Implementation**
-```python
-@output_guardrail
-def sensitive_data_guardrail(ctx, agent, output: str) -> GuardrailFunctionOutput:
-    if contains_sensitive_data(output):
-        return GuardrailFunctionOutput(
-            tripwire_triggered=True,
-            output_info="Blocked sensitive data"
-        )
-    return GuardrailFunctionOutput(tripwire_triggered=False)
-```
-
-## 🎯 Production Considerations
-
-### **Performance Optimization**
-- **Connection Management**: Maintain persistent WebSocket connections
-- **Error Recovery**: Implement automatic reconnection logic
-- **Resource Monitoring**: Track memory and CPU usage during sessions
-- **Event Processing**: Optimize event handling for high-throughput scenarios
-
-### **Scalability Patterns**
-- **Session Isolation**: Each user gets independent realtime sessions
-- **Load Balancing**: Distribute sessions across multiple instances
-- **Connection Pooling**: Manage WebSocket connections efficiently
-- **Graceful Shutdown**: Handle session cleanup properly
-
-### **Monitoring and Analytics**
-- **Event Tracking**: Monitor all realtime events for insights
-- **Performance Metrics**: Track latency, throughput, and error rates
-- **User Analytics**: Analyze conversation patterns and success rates
-- **Safety Metrics**: Monitor guardrail activation and effectiveness
-
-## 🚨 Beta Considerations
-
-As noted in the [official documentation](https://openai.github.io/openai-agents-python/realtime/quickstart/), realtime agents are currently in beta. Consider:
-
-- **API Stability**: Expect potential breaking changes as the API evolves
-- **Feature Development**: New capabilities may be added regularly
-- **Testing Requirements**: Thorough testing recommended before production deployment
-- **Feedback Channels**: Provide feedback to help improve the realtime experience
-
-## 💡 Pro Tips
-
-- **Start Simple**: Begin with basic realtime conversation before adding complex features
-- **Monitor Events**: Use comprehensive event logging to understand behavior
-- **Optimize Guardrails**: Balance safety with real-time performance requirements
-- **Test Interruptions**: Ensure natural handling of conversation interruptions
-- **Plan for Scale**: Design session management for production workloads
-
-## 🔗 Related Documentation
-
-- **[Realtime Quickstart](https://openai.github.io/openai-agents-python/realtime/quickstart/)**: Official getting started guide
-- **[Realtime Guide](https://openai.github.io/openai-agents-python/realtime/guide/)**: Comprehensive realtime documentation
-- **[Voice Agents](../README.md)**: Overview of all voice agent capabilities
-- **[Agent Fundamentals](../../1_starter_agent/README.md)**: Basic agent concepts
-
-## 🎯 Troubleshooting
-
-### **Common Issues**
-- **High Latency**: Check network connection and WebSocket stability
-- **Audio Quality**: Verify microphone settings and audio formats
-- **Event Processing**: Monitor event handling performance and errors
-- **Guardrail Performance**: Optimize debounce settings for real-time requirements
-- **Model Access**: Ensure access to `gpt-4o-realtime-preview` model
-
-### **Debug Strategies**
-- **Event Logging**: Enable comprehensive event debugging
-- **Connection Monitoring**: Track WebSocket connection health
-- **Performance Profiling**: Monitor CPU and memory usage during sessions
-- **Audio Pipeline**: Verify audio input/output processing
-
-## 🚀 Next Steps
-
-After mastering realtime voice agents:
-- **Production Deployment**: Scale realtime agents for production use
-- **Custom Integrations**: Build realtime voice into existing applications
-- **Advanced Features**: Explore cutting-edge realtime capabilities
-- **Multi-Modal Experiences**: Combine realtime voice with other modalities
+- [Static Voice Agent](../static/README.md) / [静态语音 Agent](../static/README.md)
+- [Streaming Voice Agent](../streamed/README.md) / [流式语音 Agent](../streamed/README.md)

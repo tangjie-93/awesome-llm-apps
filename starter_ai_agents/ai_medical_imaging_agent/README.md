@@ -2,9 +2,11 @@
 # 医学影像诊断代理
 
 This app analyzes medical images with AI-assisted reasoning.
+
 这个应用使用 AI 辅助推理分析医学影像。
 
 It is built with Agno and Gemini 2.0 Flash.
+
 它基于 Agno 和 Gemini 2.0 Flash 构建。
 
 ## Features

@@ -2,9 +2,11 @@
 # XAI 金融代理
 
 This agent helps query and analyze market and stock information.
+
 这个 Agent 用于查询和分析市场及股票信息。
 
 It combines AI reasoning with finance-oriented tools.
+
 它结合了 AI 推理能力和面向金融的工具。
 
 ## Features

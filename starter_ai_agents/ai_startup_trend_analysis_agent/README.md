@@ -2,9 +2,11 @@
 # AI 创业趋势分析代理
 
 This agent researches startup trends, market gaps, and growth opportunities.
+
 这个 Agent 用于研究创业趋势、市场空缺和增长机会。
 
 It combines DuckDuckGo, Newspaper4k, and Claude-based analysis.
+
 它结合 DuckDuckGo、Newspaper4k 和基于 Claude 的分析能力。
 
 ## Features

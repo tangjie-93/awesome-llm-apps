@@ -1,225 +1,85 @@
 # 🎙️ Static Voice Agent
+# 🎙️ 静态语音 Agent
 
-A complete voice interaction example using the OpenAI Agents SDK with pre-recorded audio input. This demonstrates the basic voice pipeline workflow with speech-to-text, agent processing, and text-to-speech capabilities.
+A turn-based voice agent that records an audio clip, transcribes it, runs an agent, and synthesizes the reply as audio.<br>
+这是一个轮次式语音 Agent：录制一段音频，转写为文本，运行 Agent，再将回答合成为音频。
 
 ## 🎯 What This Demonstrates
+## 🎯 本示例演示的内容
 
-- **Static Audio Processing**: Record once, process completely
-- **Voice Pipeline**: Complete speech-to-text → agent → text-to-speech workflow
-- **Multi-Agent System**: Agent handoffs based on language detection
-- **Tool Integration**: Voice-activated tools for weather, time, and calculations
-- **Audio Management**: Recording, playback, and audio utility functions
+- Static voice pipeline: audio input, transcription, Agent reasoning, and speech output.<br>
+  静态语音流水线：音频输入、语音转写、Agent 推理和语音输出。
+- Multi-language responses, function tools, handoffs, and audio utility functions.<br>
+  多语言响应、函数工具、Agent 交接和音频工具函数。
+- Workflow callbacks for observing each processing stage.<br>
+  用于观察各处理阶段的工作流回调。
 
 ## 🧠 Core Concept: Static Voice Pipeline
+## 🧠 核心概念：静态语音流水线
 
-The static voice pipeline processes a complete audio recording in one workflow. Think of it as a **turn-based voice assistant** that:
+The pipeline completes one request at a time: record audio, convert speech to text, generate a response, then convert the response to speech.<br>
+该流水线一次完成一个请求：录制音频、将语音转换为文本、生成回答，再将回答转换为语音。
 
-- Records your complete message first
-- Transcribes the entire audio to text
-- Processes with AI agents and tools
-- Converts the complete response back to speech
-- Plays the full audio response
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    STATIC VOICE WORKFLOW                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  🎤 RECORD AUDIO                                            |
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    1. COMPLETE RECORDING                   │
-│  │   AUDIO     │    ◦ Record for fixed duration             │
-│  │  CAPTURE    │    ◦ Full audio buffer                     │
-│  └─────────────┘                                            │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    2. SPEECH-TO-TEXT                       │
-│  │ TRANSCRIBE  │    ◦ Convert full audio to text            │
-│  │   AUDIO     │    ◦ Complete transcription                │
-│  └─────────────┘                                            │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    3. AGENT PROCESSING                     │
-│  │   AGENT     │    ◦ Multi-agent workflow                  │
-│  │ WORKFLOW    │    ◦ Tool calls & handoffs                 │
-│  └─────────────┘                                            │
-│       │                                                     │
-│       ▼                                                     │
-│  ┌─────────────┐    4. TEXT-TO-SPEECH                       │
-│  │  GENERATE   │    ◦ Convert response to audio             │
-│  │   SPEECH    │    ◦ Stream audio output                   │
-│  └─────────────┘                                            │
-│       │                                                     │
-│       ▼                                                     │
-│  🔊 PLAY RESPONSE                                           │
-└─────────────────────────────────────────────────────────────┘
-```
+This approach is simple and reliable, but the user waits for the full processing cycle before hearing the response.<br>
+这种方式简单可靠，但用户需要等待整个处理周期完成后才能听到回答。
 
 ## 🚀 Quick Start
+## 🚀 快速开始
 
-1. **Install voice dependencies**:
+1. Install dependencies.<br>
+   安装依赖。
+
    ```bash
-   pip install 'openai-agents[voice]'
-   pip install sounddevice numpy soundfile librosa
+   pip install -r requirements.txt
    ```
 
-2. **Set up environment**:
-   ```bash
-   cp env.example .env
-   # Edit .env and add your OpenAI API key
-   ```
+2. Copy `env.example` to `.env` and configure `OPENAI_API_KEY`.<br>
+   将 `env.example` 复制为 `.env`，并配置 `OPENAI_API_KEY`。
 
-3. **Run the static voice agent**:
+3. Run the example.<br>
+   运行示例。
+
    ```bash
    python agent.py
    ```
 
-## 🧪 What This Example Includes
-
-### **Multi-Language Support**
-- **English Agent**: Primary assistant with all tools
-- **Spanish Agent**: Specialized Spanish-speaking agent 
-- **French Agent**: Specialized French-speaking agent
-- **Automatic Language Detection**: Handoffs based on detected language
-
-### **Voice-Activated Tools**
-- `get_weather(city)`: Get weather information for any city
-- `get_time()`: Get current time
-- `calculate_tip(bill, percentage)`: Calculate tips for bills
-
-### **Audio Utilities**
-- `AudioPlayer`: Real-time audio playback with sounddevice
-- `record_audio()`: Microphone recording with duration control
-- `create_silence()`: Generate silence buffers
-- `save_audio()` / `load_audio()`: Audio file operations
-
-### **Workflow Callbacks**
-- `WorkflowCallbacks`: Monitor transcription, tool calls, and handoffs
-- Debug output for pipeline monitoring
-- Performance tracking and statistics
-
 ## 🎯 Example Interactions
+## 🎯 交互示例
 
-### **English Examples**
-- "Tell me a joke" → Agent responds with humor
-- "What's the weather in Tokyo?" → Calls weather tool
-- "What time is it?" → Calls time tool
-- "Calculate a 20% tip on a $50 bill" → Performs calculation
-
-### **Language Handoffs**
-- "Hola, ¿cómo estás?" → Handoff to Spanish agent
-- "Bonjour, comment allez-vous?" → Handoff to French agent
-- Agents respond in the detected language
-
-### **Tool Integration**
-- Weather queries work in any language
-- Time and calculation tools available to all agents
-- Tools called automatically based on user requests
+- “What is the weather in Paris?” / “巴黎天气怎么样？”
+- “Translate this to Spanish.” / “把这句话翻译成西班牙语。”
+- “Help me schedule an appointment tomorrow.” / “帮我预约明天的时间。”
 
 ## 🔧 Key Implementation Patterns
+## 🔧 关键实现模式
 
-### **1. Voice Pipeline Setup**
-```python
-pipeline = VoicePipeline(
-    workflow=SingleAgentVoiceWorkflow(agent, callbacks=WorkflowCallbacks())
-)
-```
+- Use an audio input component to capture a complete utterance.<br>
+  使用音频输入组件捕获一段完整话语。
+- Send the recording to speech-to-text before calling `Runner`.<br>
+  调用 `Runner` 前，先将录音发送至语音转文字服务。
+- Convert `result.final_output` to speech and play or save the generated audio.<br>
+  将 `result.final_output` 转换为语音，并播放或保存生成的音频。
+- Delegate language-specific tasks to specialized agents when needed.<br>
+  需要时将特定语言任务委派给专用 Agent。
 
-### **2. Audio Input Processing**
-```python
-audio_buffer = record_audio(duration=5.0)
-audio_input = AudioInput(buffer=audio_buffer)
-result = await pipeline.run(audio_input)
-```
+## 📊 When to Use It
+## 📊 适用场景
 
-### **3. Audio Output Streaming**
-```python
-with AudioPlayer() as player:
-    async for event in result.stream():
-        if event.type == "voice_stream_event_audio":
-            player.add_audio(event.data)
-```
+Use static voice processing for voice forms, short commands, accessibility controls, and simple assistant interactions.<br>
+静态语音处理适用于语音表单、短指令、无障碍控制和简单助手交互。
 
-### **4. Multi-Agent Configuration**
-```python
-agent = Agent(
-    name="Assistant",
-    handoffs=[spanish_agent, french_agent],
-    tools=[get_weather, get_time, calculate_tip]
-)
-```
+## 🚨 Requirements
+## 🚨 运行要求
 
-## 💡 Voice Agent Best Practices
-
-1. **Clear Audio Recording**: Ensure good microphone quality and minimal background noise
-2. **Concise Instructions**: Voice interactions work best with brief, clear agent instructions
-3. **Error Handling**: Implement robust error handling for audio recording failures
-4. **Language Detection**: Use prompt engineering for automatic language switching
-5. **Tool Design**: Design tools for voice interaction with conversational responses
-
-## 📊 Performance Characteristics
-
-### **Static Pipeline Benefits**
-- **Predictable Processing**: Fixed recording duration
-- **Complete Context**: Full utterance available for processing
-- **Simpler Implementation**: No real-time complexity
-- **Better for Complex Queries**: Can process longer, detailed requests
-
-### **Use Cases**
-- **Voice Assistants**: Traditional turn-based interaction
-- **Voice Commands**: Specific task automation
-- **Language Learning**: Practice with multilingual agents
-- **Accessibility**: Voice interface for applications
-
-## 🚨 Requirements & Dependencies
-
-### **Core Dependencies**
-- `openai-agents[voice]`: OpenAI Agents SDK with voice support
-- `sounddevice`: Audio recording and playback
-- `numpy`: Audio data processing
-- `soundfile`: Audio file operations (optional)
-- `librosa`: Audio resampling (optional)
-
-### **System Requirements**
-- **Microphone**: For audio input
-- **Speakers/Headphones**: For audio output
-- **Python 3.8+**: Required for async support
+- Python 3.9+ and the dependencies listed in `requirements.txt`.<br>
+  Python 3.9+，以及 `requirements.txt` 中列出的依赖。
+- A working microphone and audio output device.<br>
+  可用的麦克风和音频输出设备。
+- An OpenAI API key with access to the required voice models.<br>
+  有权访问所需语音模型的 OpenAI API Key。
 
 ## 🔗 Related Examples
+## 🔗 相关示例
 
-- **[Streaming Voice](../streamed/README.md)**: Real-time voice interaction
-- **[Voice Pipeline Documentation](https://openai.github.io/openai-agents-python/voice/pipeline/)**: Official pipeline docs
-- **[Voice Quickstart](https://openai.github.io/openai-agents-python/voice/quickstart/)**: Basic voice setup
-
-## 🛠️ Customization Options
-
-### **Extend Audio Utilities**
-- Add audio effects and filtering
-- Implement custom audio formats
-- Add audio visualization
-
-### **Enhance Agent Capabilities**
-- Add more specialized language agents
-- Implement domain-specific tools
-- Add conversation memory
-
-### **Improve Voice Experience**
-- Add voice activity detection
-- Implement custom wake words
-- Add voice emotion detection
-
-## 💡 Pro Tips
-
-- **Test Audio Setup**: Verify microphone and speakers before running
-- **Experiment with Duration**: Adjust recording duration based on use case
-- **Monitor Debug Output**: Use callbacks to understand pipeline behavior
-- **Handle Interruptions**: Implement graceful handling of Ctrl+C
-- **Optimize for Voice**: Keep agent responses concise and conversational
-
-## 🔗 Next Steps
-
-After mastering static voice agents:
-- **[Streaming Voice](../streamed/README.md)**: Implement real-time voice interaction
-- **[Advanced Voice Pipelines](https://openai.github.io/openai-agents-python/voice/pipeline/)**: Custom pipeline configurations
-- **Production Voice Apps**: Deploy voice agents in real applications
+- [Streaming Voice Agent](../streamed/README.md) / [流式语音 Agent](../streamed/README.md)
+- [Realtime Voice Agent](../realtime/README.md) / [实时语音 Agent](../realtime/README.md)

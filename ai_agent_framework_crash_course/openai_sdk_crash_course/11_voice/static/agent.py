@@ -46,7 +46,10 @@ Try examples like:
 
 @function_tool
 def get_weather(city: str) -> str:
-    """Get the weather for a given city."""
+    """Get the weather for a given city.
+
+    获取指定城市的天气信息。
+    """
     print(f"[debug] get_weather called with city: {city}")
     choices = ["sunny", "cloudy", "rainy", "snowy"]
     return f"The weather in {city} is {random.choice(choices)}."
@@ -54,7 +57,10 @@ def get_weather(city: str) -> str:
 
 @function_tool
 def get_time() -> str:
-    """Get the current time."""
+    """Get the current time.
+
+    获取当前时间。
+    """
     import datetime
     current_time = datetime.datetime.now().strftime("%I:%M %p")
     print(f"[debug] get_time called, current time: {current_time}")
@@ -63,7 +69,10 @@ def get_time() -> str:
 
 @function_tool
 def calculate_tip(bill_amount: float, tip_percentage: float = 15.0) -> str:
-    """Calculate tip amount for a bill."""
+    """Calculate tip amount for a bill.
+
+    根据账单金额和小费比例计算小费及总金额。
+    """
     tip_amount = bill_amount * (tip_percentage / 100)
     total_amount = bill_amount + tip_amount
     print(f"[debug] calculate_tip called with bill: ${bill_amount}, tip: {tip_percentage}%")
@@ -117,28 +126,44 @@ agent = Agent(
 
 
 class WorkflowCallbacks(SingleAgentWorkflowCallbacks):
-    """Custom callbacks to monitor the voice workflow."""
+    """Custom callbacks to monitor the voice workflow.
+
+    用于监控语音工作流生命周期的自定义回调。
+    """
     
     def on_run(self, workflow: SingleAgentVoiceWorkflow, transcription: str) -> None:
-        """Called when the workflow runs with a new transcription."""
+        """Called when the workflow runs with a new transcription.
+
+        工作流收到新的语音转写文本并开始运行时调用。
+        """
         print(f"[debug] 🎯 Workflow running with transcription: '{transcription}'")
     
     def on_tool_call(self, tool_name: str, arguments: dict) -> None:
-        """Called when a tool is about to be executed."""
+        """Called when a tool is about to be executed.
+
+        工具即将执行时调用，用于记录工具名称和参数。
+        """
         print(f"[debug] 🔧 Tool call: {tool_name} with args: {arguments}")
     
     def on_handoff(self, from_agent: str, to_agent: str) -> None:
-        """Called when a handoff occurs between agents."""
+        """Called when a handoff occurs between agents.
+
+        Agent 之间发生交接时调用，用于记录交接方向。
+        """
         print(f"[debug] 🔄 Handoff from {from_agent} to {to_agent}")
 
 
 async def main():
-    """Main function to run the static voice agent example."""
+    """Main function to run the static voice agent example.
+
+    运行静态语音 Agent 示例的主函数。
+    """
     print("🎙️ Static Voice Agent Demo")
     print("=" * 50)
     print()
     
     # Create the voice pipeline with our agent and callbacks
+    # 使用 Agent 和回调创建语音处理管道
     pipeline = VoicePipeline(
         workflow=SingleAgentVoiceWorkflow(agent, callbacks=WorkflowCallbacks())
     )
@@ -151,18 +176,22 @@ async def main():
     print()
     
     # Record audio input
+    # 录制语音输入
     try:
         audio_buffer = record_audio(duration=5.0)
         print(f"📊 Recorded {len(audio_buffer)} audio samples")
         
         # Create audio input for the pipeline
+        # 将录音缓冲区封装为管道可处理的音频输入
         audio_input = AudioInput(buffer=audio_buffer)
         
         # Run the voice pipeline
+        # 执行语音处理管道并获取流式结果
         print("\n🔄 Processing with voice pipeline...")
         result = await pipeline.run(audio_input)
         
         # Play the result audio
+        # 播放 Agent 返回的音频响应
         print("🔊 Playing AI response...")
         
         with AudioPlayer() as player:
@@ -184,6 +213,7 @@ async def main():
                     print(f"❌ Error event: {event.error}")
             
             # Add 1 second of silence to ensure the audio finishes playing
+            # 添加 1 秒静音，确保末尾音频能够完整播放
             print("🔇 Adding silence buffer...")
             player.add_audio(np.zeros(24000 * 1, dtype=np.int16))
             
@@ -201,7 +231,10 @@ async def main():
 
 
 def demo_with_examples():
-    """Run multiple example scenarios for demonstration."""
+    """Run multiple example scenarios for demonstration.
+
+    输出多个示例场景，便于测试语音 Agent 的工具调用和 Agent 交接。
+    """
     examples = [
         "Tell me a joke",
         "What's the weather in New York?",
@@ -223,7 +256,9 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Show example prompts
+    # 展示可尝试的示例提示词
     demo_with_examples()
     
     # Run the main demo
+    # 启动主语音演示流程
     asyncio.run(main())

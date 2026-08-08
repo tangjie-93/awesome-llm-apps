@@ -2,9 +2,11 @@
 # AI 数据可视化代理
 
 This Streamlit app turns uploaded datasets into charts and insights.
+
 这个 Streamlit 应用可以把上传的数据集转成图表和洞察。
 
 It uses LLMs to answer questions, choose chart types, and explain the results.
+
 它使用 LLM 回答问题、选择图表类型并解释结果。
 
 ## Features

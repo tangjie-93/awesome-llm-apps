@@ -7,8 +7,12 @@ import sounddevice as sd
 
 
 class AudioPlayer:
-    """A simple audio player using sounddevice for real-time audio playback."""
+    """A simple audio player using sounddevice for real-time audio playback.
+
+使用 sounddevice 实时播放音频的简单播放器。"""
     
+    # Initialize the audio player configuration.
+    # 初始化音频播放器的采样率、声道数和数据类型。
     def __init__(self, sample_rate: int = 24000, channels: int = 1, dtype=np.int16):
         self.sample_rate = sample_rate
         self.channels = channels
@@ -17,7 +21,9 @@ class AudioPlayer:
         self._stop_event = threading.Event()
     
     def __enter__(self):
-        """Context manager entry - start the audio stream."""
+        """Context manager entry - start the audio stream.
+
+上下文管理器入口：启动音频流。"""
         self.stream = sd.OutputStream(
             samplerate=self.sample_rate,
             channels=self.channels,
@@ -27,13 +33,17 @@ class AudioPlayer:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit - stop and close the audio stream."""
+        """Context manager exit - stop and close the audio stream.
+
+上下文管理器退出：停止并关闭音频流。"""
         if self.stream:
             self.stream.stop()
             self.stream.close()
     
     def add_audio(self, audio_data: np.ndarray):
-        """Add audio data to be played immediately."""
+        """Add audio data to be played immediately.
+
+添加需要立即播放的音频数据。"""
         if self.stream and not self._stop_event.is_set():
             try:
                 self.stream.write(audio_data)
@@ -41,7 +51,9 @@ class AudioPlayer:
                 print(f"[error] Failed to play audio: {e}")
     
     def stop(self):
-        """Stop the audio player."""
+        """Stop the audio player.
+
+停止音频播放器。"""
         self._stop_event.set()
 
 
@@ -54,12 +66,22 @@ def record_audio(
     """
     Record audio from the microphone for a specified duration.
     
+    参数说明：
+        duration：录音时长，单位为秒
+
     Args:
         duration: Recording duration in seconds
+        sample_rate：音频采样率（Hz）
+        channels：音频声道数
+        dtype：音频数据类型
+
         sample_rate: Audio sample rate (Hz)
         channels: Number of audio channels
         dtype: Audio data type
     
+    返回：
+        录制的音频数据（NumPy 数组）
+
     Returns:
         Recorded audio as numpy array
     """
@@ -68,6 +90,7 @@ def record_audio(
     
     try:
         # Record audio
+        # 录制音频
         recording = sd.rec(
             int(duration * sample_rate),
             samplerate=sample_rate,
@@ -76,11 +99,13 @@ def record_audio(
         )
         
         # Wait for recording to complete
+        # 等待录音完成
         sd.wait()
         
         print("✅ Recording completed!")
         
         # Convert to 1D array if mono
+        # 单声道录音转换为一维数组
         if channels == 1:
             recording = recording.flatten()
         
@@ -93,6 +118,7 @@ def record_audio(
             return recording[:int(time.time() * sample_rate)].astype(dtype)
         else:
             # Return empty array if no recording was captured
+            # 如果没有捕获到录音，则返回空数组
             return np.zeros(sample_rate, dtype=dtype)
     
     except Exception as e:
@@ -104,11 +130,20 @@ def create_silence(duration: float = 1.0, sample_rate: int = 24000, dtype=np.int
     """
     Create a buffer of silence for the specified duration.
     
+    参数说明：
+        duration：静音时长，单位为秒
+
     Args:
         duration: Duration of silence in seconds
+        sample_rate：音频采样率（Hz）
+        dtype：音频数据类型
+
         sample_rate: Audio sample rate (Hz)
         dtype: Audio data type
     
+    返回：
+        静音缓冲区（NumPy 数组）
+
     Returns:
         Silence buffer as numpy array
     """
