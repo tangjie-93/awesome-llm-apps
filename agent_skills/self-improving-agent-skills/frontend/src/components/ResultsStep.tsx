@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Download, RotateCcw, TrendingUp, CheckCircle, XCircle } from "lucide-react";
+import { Download, RotateCcw, TrendingUp, CheckCircle } from "lucide-react";
 import { diffLines, Change } from "diff";
+import { getApiBase, Provider } from "@/lib/api";
 
 interface ResultsStepProps {
   result: any;
   sessionId: string;
+  provider: Provider;
   onStartOver: () => void;
 }
 
 export default function ResultsStep({
   result,
   sessionId,
+  provider,
   onStartOver,
 }: ResultsStepProps) {
   const [showDiff, setShowDiff] = useState(false);
@@ -20,7 +23,7 @@ export default function ResultsStep({
   const handleDownload = async () => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8891"}/api/download/${sessionId}`
+        `${getApiBase(provider)}/api/download/${sessionId}`
       );
 
       if (!response.ok) {

@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import ThemeToggle from "@/components/ThemeToggle";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "Self-Improving Agent Skills",
-  description: "Optimize agent skills with Google ADK multi-agent system and Gemini",
+  description: "Optimize agent skills with Gemini or OpenAI-powered agent loops",
 };
 
 export default function RootLayout({
@@ -33,7 +30,7 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body className={inter.className}>
+      <body>
         <ThemeToggle />
         {children}
       </body>

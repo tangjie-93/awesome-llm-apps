@@ -2,18 +2,25 @@
 
 import { useState, useRef } from "react";
 import { Upload, FileText, Loader2, Sparkles, FolderOpen } from "lucide-react";
+import {
+  buildAuthBody,
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_OPENAI_MODEL,
+  getApiBase,
+  Provider,
+} from "@/lib/api";
 
 interface UploadStepProps {
   onComplete: (
     sessionId: string,
     apiKey: string,
+    provider: Provider,
+    model: string,
     metadata: any,
     scenarios: any[],
     evals: any[]
   ) => void;
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8891";
 
 const EXAMPLE_SKILLS = [
   {
@@ -29,6 +36,8 @@ const EXAMPLE_SKILLS = [
 ];
 
 export default function UploadStep({ onComplete }: UploadStepProps) {
+  const [provider, setProvider] = useState<Provider>("openai");
+  const [model, setModel] = useState(DEFAULT_OPENAI_MODEL);
   const [isDragging, setIsDragging] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -37,6 +46,13 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
   const [metadata, setMetadata] = useState<any>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const apiBase = getApiBase(provider);
+  const providerLabel = provider === "openai" ? "OpenAI" : "Google";
+
+  const handleProviderChange = (nextProvider: Provider) => {
+    setProvider(nextProvider);
+    setModel(nextProvider === "openai" ? DEFAULT_OPENAI_MODEL : DEFAULT_GEMINI_MODEL);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -78,7 +94,7 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const response = await fetch(`${API_BASE}/api/upload`, {
+      const response = await fetch(`${apiBase}/api/upload`, {
         method: "POST",
         body: formData,
       });
@@ -105,7 +121,7 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
         const path = (f as any).webkitRelativePath || f.name;
         formData.append("files", f, path);
       }
-      const response = await fetch(`${API_BASE}/api/upload-files`, {
+      const response = await fetch(`${apiBase}/api/upload-files`, {
         method: "POST",
         body: formData,
       });
@@ -128,19 +144,22 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
     if (!apiKey || !sessionId) return;
     setIsAnalyzing(true);
     try {
-      const response = await fetch(`${API_BASE}/api/analyze`, {
+      const response = await fetch(`${apiBase}/api/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, gemini_api_key: apiKey }),
+        body: JSON.stringify({
+          session_id: sessionId,
+          ...buildAuthBody(provider, apiKey, model),
+        }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.detail || "Analysis failed");
       }
       const data = await response.json();
-      onComplete(sessionId, apiKey, metadata, data.scenarios, data.evals);
+      onComplete(sessionId, apiKey, provider, model, metadata, data.scenarios, data.evals);
     } catch (error: any) {
-      alert(error.message || "Analysis failed. Check your API key.");
+      alert(error.message || `Analysis failed. Check your ${providerLabel} API key.`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -148,12 +167,12 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
 
   const handleExampleSelect = async (examplePath: string) => {
     if (!apiKey) {
-      alert("Please enter your Google API key first.");
+      alert(`Please enter your ${providerLabel} API key first.`);
       return;
     }
     setIsUploading(true);
     try {
-      const loadResponse = await fetch(`${API_BASE}/api/examples/${examplePath}/load`, {
+      const loadResponse = await fetch(`${apiBase}/api/examples/${examplePath}/load`, {
         method: "POST",
       });
       if (!loadResponse.ok) throw new Error("Failed to load example");
@@ -164,17 +183,20 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
       setIsUploading(false);
       setIsAnalyzing(true);
 
-      const analyzeResponse = await fetch(`${API_BASE}/api/analyze`, {
+      const analyzeResponse = await fetch(`${apiBase}/api/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: loadData.session_id, gemini_api_key: apiKey }),
+        body: JSON.stringify({
+          session_id: loadData.session_id,
+          ...buildAuthBody(provider, apiKey, model),
+        }),
       });
       if (!analyzeResponse.ok) {
         const err = await analyzeResponse.json().catch(() => ({}));
         throw new Error(err.detail || "Analysis failed");
       }
       const analyzeData = await analyzeResponse.json();
-      onComplete(loadData.session_id, apiKey, loadData.metadata, analyzeData.scenarios, analyzeData.evals);
+      onComplete(loadData.session_id, apiKey, provider, model, loadData.metadata, analyzeData.scenarios, analyzeData.evals);
     } catch (error: any) {
       alert(error.message || "Failed to load example skill.");
       setSessionId(null);
@@ -188,6 +210,47 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
     <div className="max-w-4xl mx-auto space-y-8">
       {!sessionId ? (
         <>
+          <div className="glass rounded-2xl p-6">
+            <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4">
+              <div>
+                <span className="text-sm font-medium text-zinc-400 mb-2 block">
+                  Model Provider
+                </span>
+                <div className="grid grid-cols-2 gap-2 bg-zinc-900 border border-zinc-800 rounded-xl p-1">
+                  {(["openai", "gemini"] as Provider[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => handleProviderChange(option)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        provider === option
+                          ? "bg-violet-600 text-white"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                      }`}
+                    >
+                      {option === "openai" ? "OpenAI" : "Gemini"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label className="block">
+                <span className="text-sm font-medium text-zinc-400 mb-2 block">
+                  Model
+                </span>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(event) => setModel(event.target.value)}
+                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-violet-500 transition-colors"
+                />
+                <span className="text-xs text-zinc-500 mt-1 block">
+                  OpenAI defaults to {DEFAULT_OPENAI_MODEL}; Gemini defaults to {DEFAULT_GEMINI_MODEL}.
+                </span>
+              </label>
+            </div>
+          </div>
+
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -240,12 +303,14 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
 
           <div className="glass rounded-2xl p-6">
             <label className="block">
-              <span className="text-sm font-medium text-zinc-400 mb-2 block">Google API Key</span>
+              <span className="text-sm font-medium text-zinc-400 mb-2 block">
+                {providerLabel} API Key
+              </span>
               <input
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your Google API key"
+                placeholder={`Enter your ${providerLabel} API key`}
                 className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-violet-500 transition-colors"
               />
               <span className="text-xs text-zinc-500 mt-1 block">
@@ -256,7 +321,7 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
 
           <div>
             <p className="text-center text-zinc-500 mb-4">
-              {isAnalyzing ? "Analyzing with ADK agents..." : "Or try an example skill:"}
+              {isAnalyzing ? `Analyzing with ${provider === "openai" ? "OpenAI agents" : "ADK agents"}...` : "Or try an example skill:"}
             </p>
             <div className="grid grid-cols-2 gap-4">
               {EXAMPLE_SKILLS.map((skill) => (
@@ -304,12 +369,14 @@ export default function UploadStep({ onComplete }: UploadStepProps) {
 
           <div className="glass rounded-2xl p-8">
             <label className="block mb-4">
-              <span className="text-sm font-medium text-zinc-400 mb-2 block">Google API Key</span>
+              <span className="text-sm font-medium text-zinc-400 mb-2 block">
+                {providerLabel} API Key
+              </span>
               <input
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your Google API key"
+                placeholder={`Enter your ${providerLabel} API key`}
                 className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-violet-500 transition-colors"
               />
             </label>

@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { CheckSquare, Square, Plus, X, RefreshCw, ArrowRight } from "lucide-react";
+import { buildAuthBody, getApiBase, Provider } from "@/lib/api";
 
 interface ConfigStepProps {
   sessionId: string;
   apiKey: string;
+  provider: Provider;
+  model: string;
   scenarios: any[];
   evals: any[];
   onScenariosChange: (scenarios: any[]) => void;
@@ -16,6 +19,8 @@ interface ConfigStepProps {
 export default function ConfigStep({
   sessionId,
   apiKey,
+  provider,
+  model,
   scenarios: initialScenarios,
   evals: initialEvals,
   onScenariosChange,
@@ -100,11 +105,14 @@ export default function ConfigStep({
     setIsRegenerating(true);
 
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8891";
-      const response = await fetch(`${API_BASE}/api/regenerate`, {
+      const apiBase = getApiBase(provider);
+      const response = await fetch(`${apiBase}/api/regenerate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, gemini_api_key: apiKey }),
+        body: JSON.stringify({
+          session_id: sessionId,
+          ...buildAuthBody(provider, apiKey, model),
+        }),
       });
 
       if (!response.ok) {
@@ -131,8 +139,8 @@ export default function ConfigStep({
     }
 
     try {
-      const API_BASE2 = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8891";
-      const response = await fetch(`${API_BASE2}/api/update-config`, {
+      const apiBase = getApiBase(provider);
+      const response = await fetch(`${apiBase}/api/update-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

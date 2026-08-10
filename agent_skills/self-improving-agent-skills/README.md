@@ -1,25 +1,25 @@
 # Self-Improving Agent Skills
 # 自我改进的 Agent Skills
 
-Automatically optimize your agent skills using a multi-agent system built with **Google ADK (Agent Development Kit)** and **Gemini**. Upload a skill, let the agents generate test scenarios and evaluation criteria, then watch as three specialized ADK agents collaborate to improve your skill through iterative optimization.
+Automatically optimize your agent skills using either **Google ADK (Agent Development Kit) + Gemini** or an **OpenAI Responses API** backend. Upload a skill, let the agents generate test scenarios and evaluation criteria, then watch specialized agents collaborate to improve your skill through iterative optimization.
 
-使用基于 **Google ADK（Agent Development Kit）** 和 **Gemini** 构建的多 Agent 系统，自动优化你的 agent skills。上传一个 skill，让 Agent 生成测试场景和评估标准，然后观察三个专用 ADK Agent 通过迭代优化协作改进你的 skill。
+使用 **Google ADK（Agent Development Kit）+ Gemini** 或 **OpenAI Responses API** 后端，自动优化你的 agent skills。上传一个 skill，让 Agent 生成测试场景和评估标准，然后观察专用 Agent 通过迭代优化协作改进你的 skill。
 
 <img width="960" height="718" alt="Screenshot 2026-04-12 at 7 26 04 PM" src="https://github.com/user-attachments/assets/35a31f1a-398d-4797-a5d8-de538b4391e5" />
 
 ## How It Works
 ## 工作原理
 
-This app implements an automated skill improvement loop inspired by Karpathy's autoresearch methodology, powered by a team of ADK agents:
+This app implements an automated skill improvement loop inspired by Karpathy's autoresearch methodology, powered by either ADK agents or OpenAI-backed agent roles:
 
-该应用实现了一个自动化 skill 改进循环，灵感来自 Karpathy 的 autoresearch 方法，并由一组 ADK Agent 驱动：
+该应用实现了一个自动化 skill 改进循环，灵感来自 Karpathy 的 autoresearch 方法，并由 ADK Agent 或 OpenAI 驱动的 Agent 角色执行：
 
 1. **Upload**: Drop in your skill folder (following [agentskills.io](https://agentskills.io) spec)
 1. **上传**：放入你的 skill 文件夹（遵循 [agentskills.io](https://agentskills.io) 规范）
-2. **Configure**: The Executor agent generates test scenarios and evaluation criteria. Edit, add, or regenerate as needed
-2. **配置**：Executor Agent 会生成测试场景和评估标准。你可以按需编辑、添加或重新生成
-3. **Optimize**: Three ADK agents collaborate — one executes and scores, one diagnoses failures, one applies fixes
-3. **优化**：三个 ADK Agent 协作工作，一个负责执行和打分，一个诊断失败原因，一个应用修复
+2. **Configure**: The selected provider generates test scenarios and evaluation criteria. Edit, add, or regenerate as needed
+2. **配置**：所选 Provider 会生成测试场景和评估标准。你可以按需编辑、添加或重新生成
+3. **Optimize**: Three roles collaborate — one executes and scores, one diagnoses failures, one applies fixes
+3. **优化**：三个角色协作工作，一个负责执行和打分，一个诊断失败原因，一个应用修复
 4. **Results**: Download your improved skill with a detailed changelog
 4. **结果**：下载改进后的 skill，并获得详细变更日志
 
@@ -62,6 +62,11 @@ self-improving-agent-skills/
 │   ├── app.py              # REST API endpoints + SSE streaming
 │   ├── adk_optimizer.py    # Multi-agent optimizer (Executor, Analyst, Mutator)
 │   └── requirements.txt
+├── backend-openai/          # FastAPI server + OpenAI optimization engine
+│   ├── app.py              # Compatible REST API endpoints + SSE streaming
+│   ├── openai_optimizer.py # OpenAI Responses API optimizer roles
+│   ├── requirements.txt
+│   └── tests/
 ├── frontend/               # Next.js + React + Tailwind
 │   ├── src/
 │   │   ├── app/            # Main page + layout
@@ -76,20 +81,20 @@ self-improving-agent-skills/
 ## Tech Stack
 ## 技术栈
 
-- **Backend**: Python 3.10+, FastAPI, Google ADK, Pydantic
-- **后端**：Python 3.10+、FastAPI、Google ADK、Pydantic
+- **Backend**: Python 3.10+, FastAPI, Google ADK, OpenAI Python SDK, Pydantic
+- **后端**：Python 3.10+、FastAPI、Google ADK、OpenAI Python SDK、Pydantic
 - **Frontend**: Next.js 15, React 19, Tailwind CSS v4, Recharts
 - **前端**：Next.js 15、React 19、Tailwind CSS v4、Recharts
-- **AI**: Google ADK multi-agent system with Gemini (`gemini-3-flash-preview`) — structured output via `output_schema` on Analyst and Mutator agents
-- **AI**：使用 Gemini（`gemini-3-flash-preview`）的 Google ADK 多 Agent 系统，Analyst 和 Mutator Agent 通过 `output_schema` 输出结构化结果
+- **AI**: Gemini (`gemini-3-flash-preview`) through Google ADK, or OpenAI (`gpt-5-mini` by default) through the Responses API
+- **AI**：通过 Google ADK 使用 Gemini（`gemini-3-flash-preview`），或通过 Responses API 使用 OpenAI（默认 `gpt-5-mini`）
 - **Real-time**: Server-Sent Events (SSE) for live optimization progress
 - **实时通信**：使用 Server-Sent Events（SSE）展示实时优化进度
 
 ## Quick Start
 ## 快速开始
 
-### Backend Setup
-### 后端配置
+### Gemini Backend Setup
+### Gemini 后端配置
 
 ```bash
 cd backend
@@ -110,6 +115,24 @@ python app.py
 # Server runs on http://localhost:8891
 ```
 
+### OpenAI Backend Setup
+### OpenAI 后端配置
+
+```bash
+cd backend-openai
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run server
+OPENAI_API_KEY=sk-... python app.py
+# Server runs on http://localhost:8892
+```
+
 ### Frontend Setup
 ### 前端配置
 
@@ -124,17 +147,26 @@ npm run dev
 # App runs on http://localhost:3000
 ```
 
+Optional frontend environment variables:
+
+可选前端环境变量：
+
+```bash
+NEXT_PUBLIC_GEMINI_API_URL=http://localhost:8891
+NEXT_PUBLIC_OPENAI_API_URL=http://localhost:8892
+```
+
 ### Usage
 ### 使用方法
 
-1. Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
-1. 从 [Google AI Studio](https://aistudio.google.com/apikey) 获取 Gemini API Key
+1. Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey) or an OpenAI API key from the OpenAI platform
+1. 从 [Google AI Studio](https://aistudio.google.com/apikey) 获取 Gemini API Key，或从 OpenAI 平台获取 OpenAI API Key
 2. Open http://localhost:3000
 2. 打开 http://localhost:3000
 3. Upload a skill folder as a .zip file (or try an example)
 3. 将 skill 文件夹以 .zip 文件形式上传（也可以试用示例）
-4. Enter your Gemini API key
-4. 输入你的 Gemini API Key
+4. Select `Gemini` or `OpenAI`, choose a model, and enter the matching API key
+4. 选择 `Gemini` 或 `OpenAI`，选择模型，并输入对应的 API Key
 5. Review and edit the generated test scenarios and evaluation criteria
 5. 查看并编辑生成的测试场景和评估标准
 6. Click "Start Optimization" and watch the agents collaborate to improve your skill
@@ -257,8 +289,8 @@ For each round, the three agents collaborate:
 | `POST` | `/api/upload` | 上传 skill zip 文件（最大 10MB，仅文本文件） |
 | `POST` | `/api/upload-files` | Upload multiple files (folder upload) |
 | `POST` | `/api/upload-files` | 上传多个文件（文件夹上传） |
-| `POST` | `/api/analyze` | Generate scenarios and evals (requires Gemini API key) |
-| `POST` | `/api/analyze` | 生成场景和评估标准（需要 Gemini API Key） |
+| `POST` | `/api/analyze` | Generate scenarios and evals (requires provider API key) |
+| `POST` | `/api/analyze` | 生成场景和评估标准（需要所选 Provider 的 API Key） |
 | `POST` | `/api/regenerate` | Regenerate scenarios and evals |
 | `POST` | `/api/regenerate` | 重新生成场景和评估标准 |
 | `POST` | `/api/update-config` | Save user's selected/edited config |
@@ -286,9 +318,9 @@ For each round, the three agents collaborate:
 ### Backend
 ### 后端
 
-The Gemini API key is passed from the frontend with each request. Optionally set `GOOGLE_API_KEY` in `.env` for local development. Server runs on port **8891**.
+The Gemini API key is passed from the frontend with each request. Optionally set `GOOGLE_API_KEY` in `.env` for local development. The Gemini backend runs on port **8891**. The OpenAI backend accepts `api_key`, `openai_api_key`, or `OPENAI_API_KEY`; it runs on port **8892** by default.
 
-Gemini API Key 会随每个请求从前端传给后端。本地开发时，也可以选择在 `.env` 中设置 `GOOGLE_API_KEY`。服务运行在 **8891** 端口。
+Gemini API Key 会随每个请求从前端传给后端。本地开发时，也可以选择在 `.env` 中设置 `GOOGLE_API_KEY`。Gemini 后端运行在 **8891** 端口。OpenAI 后端接受 `api_key`、`openai_api_key` 或 `OPENAI_API_KEY`，默认运行在 **8892** 端口。
 
 Upload limits:
 
@@ -310,9 +342,9 @@ Sessions 会在 **1 小时** 后自动过期。
 ### Frontend
 ### 前端
 
-API key is entered in the UI, stored in component state (not persisted), and sent with each request. The key is passed to the backend which sets `GOOGLE_API_KEY` for ADK agent authentication.
+API key is entered in the UI, stored in component state (not persisted), and sent with each request. The provider selector routes Gemini requests to `NEXT_PUBLIC_GEMINI_API_URL` or `NEXT_PUBLIC_API_URL`, and OpenAI requests to `NEXT_PUBLIC_OPENAI_API_URL`.
 
-API Key 在界面中输入，存储在组件状态中（不会持久化），并随每个请求发送。该 Key 会传给后端，由后端设置 `GOOGLE_API_KEY`，用于 ADK Agent 认证。
+API Key 在界面中输入，存储在组件状态中（不会持久化），并随每个请求发送。Provider 选择器会把 Gemini 请求路由到 `NEXT_PUBLIC_GEMINI_API_URL` 或 `NEXT_PUBLIC_API_URL`，把 OpenAI 请求路由到 `NEXT_PUBLIC_OPENAI_API_URL`。
 
 ### Optimization Parameters
 ### 优化参数
@@ -335,6 +367,14 @@ In `adk_optimizer.py`, adjust the model:
 def __init__(self, api_key: str, model: str = "gemini-3-flash-preview"):
 ```
 
+In `backend-openai/openai_optimizer.py`, adjust the default OpenAI model:
+
+在 `backend-openai/openai_optimizer.py` 中调整默认 OpenAI 模型：
+
+```python
+DEFAULT_MODEL = "gpt-5-mini"
+```
+
 ## Development
 ## 开发
 
@@ -344,6 +384,9 @@ def __init__(self, api_key: str, model: str = "gemini-3-flash-preview"):
 ```bash
 cd backend
 python -c "from adk_optimizer import SkillOptimizer; print('OK')"
+
+cd ../backend-openai
+python3 -m unittest discover tests -v
 ```
 
 ### Frontend Build
@@ -364,9 +407,9 @@ Both servers support hot reload. Edit code and see changes immediately.
 ## Based on Karpathy's Autoresearch
 ## 基于 Karpathy 的 Autoresearch
 
-This tool applies Andrej Karpathy's autoresearch methodology (using LLMs to iteratively improve their own prompts) to agent skills. The key insight: rather than manually tweaking prompts, define success criteria and let the AI optimize itself — now powered by a team of specialized ADK agents.
+This tool applies Andrej Karpathy's autoresearch methodology (using LLMs to iteratively improve their own prompts) to agent skills. The key insight: rather than manually tweaking prompts, define success criteria and let the AI optimize itself — now available through either specialized ADK agents or OpenAI-backed roles.
 
-这个工具把 Andrej Karpathy 的 autoresearch 方法（使用 LLM 迭代改进自己的 prompts）应用到 agent skills 上。核心洞察是：与其手动调整 prompts，不如定义成功标准，让 AI 自我优化。现在，这个过程由一组专用 ADK Agent 驱动。
+这个工具把 Andrej Karpathy 的 autoresearch 方法（使用 LLM 迭代改进自己的 prompts）应用到 agent skills 上。核心洞察是：与其手动调整 prompts，不如定义成功标准，让 AI 自我优化。现在，这个过程可以由专用 ADK Agent 或 OpenAI 驱动的角色执行。
 
 Original concept: [https://github.com/karpathy/autoresearch](https://github.com/karpathy/autoresearch)
 

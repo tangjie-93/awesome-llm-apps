@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Loader2, StopCircle } from "lucide-react";
+import { buildAuthBody, getApiBase, Provider } from "@/lib/api";
 
 interface RunningStepProps {
   sessionId: string;
   apiKey: string;
+  provider: Provider;
+  model: string;
   scenarios: any[];
   evals: any[];
   onComplete: (result: any) => void;
@@ -25,6 +28,8 @@ interface Experiment {
 export default function RunningStep({
   sessionId,
   apiKey,
+  provider,
+  model,
   scenarios,
   evals,
   onComplete,
@@ -44,17 +49,17 @@ export default function RunningStep({
 
   const startOptimization = async () => {
     setIsRunning(true);
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8891";
+    const apiBase = getApiBase(provider);
 
     try {
       // Start the optimization
       const startResponse = await fetch(
-        `${API_BASE}/api/start/${sessionId}`,
+        `${apiBase}/api/start/${sessionId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            gemini_api_key: apiKey,
+            ...buildAuthBody(provider, apiKey, model),
             max_rounds: 20,
           }),
         }
@@ -74,7 +79,7 @@ export default function RunningStep({
           await new Promise((r) => setTimeout(r, 3000));
 
           try {
-            const res = await fetch(`${API_BASE}/api/status/${sessionId}`);
+            const res = await fetch(`${apiBase}/api/status/${sessionId}`);
             if (!res.ok) continue;
             const data = await res.json();
 
@@ -124,8 +129,8 @@ export default function RunningStep({
 
   const handleStop = async () => {
     try {
-      const API_BASE2 = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8891";
-      await fetch(`${API_BASE2}/api/stop/${sessionId}`, {
+      const apiBase = getApiBase(provider);
+      await fetch(`${apiBase}/api/stop/${sessionId}`, {
         method: "POST",
       });
       setIsRunning(false);

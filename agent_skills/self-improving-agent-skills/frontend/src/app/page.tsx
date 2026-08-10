@@ -6,11 +6,17 @@ import UploadStep from "@/components/UploadStep";
 import ConfigStep from "@/components/ConfigStep";
 import RunningStep from "@/components/RunningStep";
 import ResultsStep from "@/components/ResultsStep";
+import {
+  DEFAULT_OPENAI_MODEL,
+  Provider,
+} from "@/lib/api";
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [provider, setProvider] = useState<Provider>("openai");
+  const [model, setModel] = useState(DEFAULT_OPENAI_MODEL);
   const [metadata, setMetadata] = useState<any>(null);
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [evals, setEvals] = useState<any[]>([]);
@@ -19,12 +25,16 @@ export default function Home() {
   const handleUploadComplete = (
     sid: string,
     key: string,
+    selectedProvider: Provider,
+    selectedModel: string,
     meta: any,
     initialScenarios: any[],
     initialEvals: any[]
   ) => {
     setSessionId(sid);
     setApiKey(key);
+    setProvider(selectedProvider);
+    setModel(selectedModel);
     setMetadata(meta);
     setScenarios(initialScenarios);
     setEvals(initialEvals);
@@ -44,6 +54,8 @@ export default function Home() {
     setCurrentStep(1);
     setSessionId(null);
     setApiKey("");
+    setProvider("openai");
+    setModel(DEFAULT_OPENAI_MODEL);
     setMetadata(null);
     setScenarios([]);
     setEvals([]);
@@ -58,10 +70,11 @@ export default function Home() {
             <span className="gradient-text">Self-Improving</span> Agent Skills
           </h1>
           <p className="text-zinc-400 dark:text-zinc-400 text-zinc-600 text-lg">
-            Powered by Google ADK multi-agent system and Gemini
+            Optimize agent skills with Gemini or OpenAI-powered agent loops
           </p>
           <div className="flex items-center justify-center gap-2 mt-3">
             <span className="px-3 py-1 bg-blue-500/10 text-blue-400 dark:text-blue-400 text-blue-600 rounded-full text-xs font-medium border border-blue-500/20">Google ADK</span>
+            <span className="px-3 py-1 bg-sky-500/10 text-sky-400 dark:text-sky-400 text-sky-600 rounded-full text-xs font-medium border border-sky-500/20">OpenAI</span>
             <span className="px-3 py-1 bg-violet-500/10 text-violet-400 dark:text-violet-400 text-violet-600 rounded-full text-xs font-medium border border-violet-500/20">Gemini</span>
             <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 dark:text-emerald-400 text-emerald-600 rounded-full text-xs font-medium border border-emerald-500/20">Multi-Agent</span>
           </div>
@@ -78,6 +91,8 @@ export default function Home() {
             <ConfigStep
               sessionId={sessionId}
               apiKey={apiKey}
+              provider={provider}
+              model={model}
               scenarios={scenarios}
               evals={evals}
               onScenariosChange={setScenarios}
@@ -90,6 +105,8 @@ export default function Home() {
             <RunningStep
               sessionId={sessionId}
               apiKey={apiKey}
+              provider={provider}
+              model={model}
               scenarios={scenarios}
               evals={evals}
               onComplete={handleOptimizationComplete}
@@ -100,6 +117,7 @@ export default function Home() {
             <ResultsStep
               result={finalResult}
               sessionId={sessionId!}
+              provider={provider}
               onStartOver={handleStartOver}
             />
           )}

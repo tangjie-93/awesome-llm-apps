@@ -1,14 +1,11 @@
 ---
 name: project-graveyard
 description: >-
-  Scans the developer's machine for dead side projects, autopsies each one from
-  its git history (died at the payments wall, killed by a newer project,
-  finished but never shipped), surfaces their personal death patterns, and picks
-  the corpse most worth resurrecting — then helps ship it. Use when the user
-  mentions abandoned, unfinished, or old side projects, asks "what should I
-  finish", wants to revive or resurrect a project, says "run the graveyard",
-  wonders why they never finish anything, or is about to start a new project
-  that sounds like one they already built. Runs entirely locally.
+  扫描开发者机器上已经死亡的副项目，从每个项目的 git 历史中验尸
+  （死在支付墙、被新项目杀死、已经完成但从未发布），揭示用户个人的死亡模式，
+  选出最值得复活的遗骸，并帮助把它发布出去。用户提到被放弃、未完成或旧的副项目，
+  询问“我应该完成什么”，想复活某个项目，说“运行 graveyard”，想知道自己为什么总是
+  完成不了项目，或准备启动一个听起来像已经做过的新项目时使用。完全在本地运行。
 license: Apache-2.0
 metadata:
   author: "Shubham Saboo"
@@ -18,98 +15,69 @@ metadata:
 
 # Project Graveyard
 
-Every developer has a folder full of dead projects. Nobody has ever gotten an
-autopsy report. This skill scans the machine for abandoned repos, works out why
-each one died from its git history, finds the user's personal death patterns,
-and picks the one corpse worth digging up — then helps ship it.
+每个开发者都有一个装满已死项目的文件夹。却没人真正拿到过一份验尸报告。这个技能会扫描机器上的废弃仓库，从 `git` 历史判断每个项目为什么死掉，找出用户个人的项目死亡模式，并挑出一个最值得挖出来的遗骸，然后帮助把它发布出去。
 
-Everything runs locally. No API, no network, nothing leaves the machine.
+所有流程都在本地运行。没有 `API`，没有网络请求，也不会把任何东西传出这台机器。
 
-## When to use
+## 何时使用
 
-- The user asks about abandoned/unfinished/old side projects, or what to finish
-- The user wants to revive, resurrect, or "finally ship" something
-- The user asks why they never finish projects
-- The user proposes a new project — check the graveyard first (see Necromancer
-  mode). There's a decent chance they already built half of it.
+- 用户询问被放弃、未完成或旧的副项目，或问应该完成什么
+- 用户想复活、重启，或“终于发布”某个东西
+- 用户询问为什么自己总是完成不了项目
+- 用户提出一个新项目时，先检查 `graveyard`（见 `Necromancer mode`）。他们很可能已经做完了其中一半。
 
-## When not to use
+## 何时不要使用
 
-- Cleaning up disk space or node_modules — that's `kondo`/`npkill`, not this
-- Archiving repos on GitHub — this works on local clones and never-pushed work
-- Analyzing one specific repo's history in depth — just read the git log
+- 清理磁盘空间或 `node_modules`：那是 `kondo`/`npkill` 的工作，不是这个技能的工作
+- 在 `GitHub` 上归档仓库：这个技能处理的是本地克隆和从未推送过的工作
+- 深入分析某一个特定仓库的历史：直接读 `git log`
 
-## Run it
+## 运行方式
 
 ```bash
 python3 scripts/graveyard.py ~/dev ~/projects
 ```
 
-Point it at wherever projects actually live. If you don't know where that
-is, ask — one question beats sweeping someone's home directory uninvited.
-No args scans the usual suspects (~/dev, ~/projects, ~/code, ~/Desktop, ...).
-Useful flags:
+把路径指向项目实际所在的位置。如果不知道在哪里，就问用户；问一个问题比擅自扫描别人的主目录更好。不带参数时会扫描常见位置（`~/dev`、`~/projects`、`~/code`、`~/Desktop` 等）。常用参数：
 
-- `--days 90` — how long silent before a repo counts as dead (default 45)
-- `--json report.json` — full machine-readable data
-- `--me work@email.com` — claim commits made under other emails (repeatable);
-  without it, projects committed via a work identity or a builder tool get
-  skipped as "not yours"
-- `--include-foreign` — also include repos the user barely committed to
-  (skipped by default: clones, forks, work checkouts are not their corpses)
-- `--state FILE` — remember scans and resurrections; enables relapse watch
+- `--days 90`：一个仓库沉默多久才算死亡（默认 `45`）
+- `--json report.json`：输出完整的机器可读数据
+- `--me work@email.com`：认领其他邮箱提交的 commit（可重复传入）；如果不传，使用工作身份或构建工具提交的项目会被跳过，标记为“不是你的”
+- `--include-foreign`：也包含用户几乎没有提交过的仓库（默认跳过：克隆、fork、工作 checkout 都不是他们的遗骸）
+- `--state FILE`：记住扫描和复活记录；启用 `relapse watch`
 
-The script is read-only. It never writes inside a scanned repo.
+脚本是只读的。它绝不会在被扫描的仓库内部写入文件。
 
-## Reading the report
+## 阅读报告
 
-The script gives you four blocks: census, the dead (with cause of death),
-patterns, and the top 3 by "pulse" (resurrectability score). Causes are
-evidence-based guesses, not verdicts — each comes with the evidence line that
-justifies it. If a cause looks wrong, check the evidence before repeating it.
-The cause taxonomy and what each one means for resurrection is in
-`references/causes-of-death.md` — read it before writing the report.
+脚本会给出四个区块：`census`、`dead`（带死因）、`patterns`，以及按 `pulse`（可复活性分数）排名的 `top 3`。死因是基于证据的推测，不是判决；每个死因都会附带支持它的证据行。如果某个死因看起来不对，先检查证据再复述。死因分类以及每种死因对复活意味着什么，写在 `references/causes-of-death.md` 中；写报告前先阅读它。
 
-## The autopsy interview
+## 验尸访谈
 
-The script can only read git. You can ask. For corpses whose primary cause is
-`unknown` or `slow_fade` — the low-confidence verdicts — ask the user one
-question each, two or three total at most:
+脚本只能读取 `git`。你可以提问。对于主死因为 `unknown` 或 `slow_fade` 的遗骸，也就是低置信度判定，每个项目问用户一个问题，总共最多两三个：
 
-> "`recipe-scraper` — the history just shows it drifting. Do you remember
-> what actually stopped you?"
+> "`recipe-scraper` -- 历史记录只显示它慢慢漂走了。你还记得真正让它停下来的原因吗？"
 
-Blend the answers in, and label verdicts honestly in the report:
-**(forensic)** for what git showed, **(confirmed)** for what the user told
-you. Testimony beats a forensic guess — update the tombstone, not just the
-prose. Two questions is a conversation; five is a deposition.
+把答案融合进去，并在报告中诚实标注判定：
+**(forensic)** 表示 `git` 展示的内容，**(confirmed)** 表示用户告诉你的内容。证词优先于法医式推测；更新 `tombstone`，而不是只改报告措辞。两个问题是对话；五个问题就是审讯。
 
-## Writing the tombstone report
+## 撰写墓碑报告
 
-Turn the script output into a report the user will actually feel. Format:
+把脚本输出转成一份用户真的会有感觉的报告。格式：
 
-1. **The census.** Deaths, combined lifespan, oldest corpse. Plain numbers —
-   they land on their own.
-2. **Tombstones.** One per dead project, worst-to-best pulse. Name, lifespan,
-   commit count, cause of death with its evidence, and a one-line epitaph.
-   Above ~10 corpses, give full tombstones only to the 6-8 most interesting
-   (highest pulse, most distinctive deaths) and bury the rest together in one
-   line — "...plus 11 one-day experiments, buried in a shared plot." A wall
-   of 23 tombstones kills the funeral.
-3. **The patterns.** This is the part they'll remember. "Your projects die at
-   day 19." "Four of six were killed by a newer project." Quote the script's
-   numbers; add anything you can see that it can't.
-4. **The resurrection.** One project. Not three. See below.
+1. **统计总览。** 死亡项目数、总生命周期、最老的遗骸。使用朴素数字，它们自己就有分量。
+2. **墓碑。** 每个死亡项目一条，按 `pulse` 从低到高排列。包含名称、生命周期、`commit` 数、带证据的死因，以及一句墓志铭。超过约 `10` 个遗骸时，只给最有意思的 `6-8` 个完整墓碑（最高 `pulse`、最有特点的死亡方式），剩下的一行合葬：“...另外 `11` 个一天实验，合葬在一起。” 一堵 `23` 块墓碑的墙会毁掉这场葬礼。
+3. **模式。** 这是用户会记住的部分。“你的项目会在第 `19` 天死掉。”“六个项目里有四个被更新的项目杀死。”引用脚本给出的数字；再补充你能看见、但脚本看不见的东西。
+4. **复活。** 一个项目。不是三个。见下文。
 
-Carve the resurrection pick (and only it) as an ASCII tombstone card —
-stone is earned, not sprayed; every other corpse stays a line in the table:
+只为复活候选项目，而且只为它，雕一张 `ASCII tombstone` 卡片。墓碑是挣来的，不是撒出去的；其他遗骸留在表格里一行即可：
 
-```
+```text
         .------------------------.
        /                          \
       |        tab-sensei          |
-      |      Apr — May 2026        |
-      |   54 commits · 12 days     |
+      |      Apr -- May 2026       |
+      |   54 commits . 12 days     |
       |                            |
       |   died of deploy fear      |
       |                            |
@@ -119,111 +87,63 @@ stone is earned, not sprayed; every other corpse stays a line in the table:
       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 ```
 
-Center the text, keep the card under 44 columns so it never wraps, epitaph
-last. If the graveyard is empty, no card — don't carve a stone for nobody.
+文本居中，卡片保持在 `44` 列以内，避免换行；墓志铭放在最后。如果 `graveyard` 为空，不要画卡片；不要为不存在的人刻碑。
 
-Epitaph rules — this is where the whole thing lives or dies:
+墓志铭规则，这是整件事成败的关键：
 
-- Every epitaph must be traceable to evidence from the scan. "Died as it
-  lived: configuring webpack" works because the config ratio was 78%. Made-up
-  jokes about code you haven't seen don't work and the user will know.
-- Punch at the pattern, not the person. "It worked. It just never shipped" is
-  fine. "You were too scared to ship" is not.
-- Dry beats wacky. One sentence. No puns unless they're earned.
-- If a project deserves respect, give it. A 26-commit repo with a finished
-  README that never shipped is a small tragedy, not a punchline.
+- 每一句墓志铭都必须能追溯到扫描证据。“生如配置 webpack，死亦配置 webpack” 可行，因为配置占比是 `78%`。没看过代码就编笑话不行，用户会看出来。
+- 调侃模式，不调侃人。“它能跑，只是从未发布”可以。“你太害怕发布了”不行。
+- 干一点胜过闹腾。一句话。除非真的值得，否则不要用双关。
+- 如果一个项目值得尊重，就给它尊重。一个 `26` 次 commit、`README` 已完成但从未发布的仓库，是一场小小的悲剧，不是一个笑点。
 
-Offer `--redact` framing if the user wants to share the report: project names
-swapped for `project-1..n`, causes and patterns intact.
+如果用户想分享报告，提供 `--redact` 叙述方式：项目名替换为 `project-1..n`，死因和模式保留。
 
-## The resurrection
+## 复活
 
-Pick ONE corpse. Highest pulse wins unless its idea is dead in the world too.
-Before deciding, read the top candidate's README and skim the code — then do
-the **world-check**, the part only you can do because the script can't see
-the present:
+选择一个遗骸。除非它的想法在现实世界里也已经死了，否则最高 `pulse` 获胜。决定前，先阅读最高候选项目的 `README` 并浏览代码；然后做 `world-check`，这部分只有你能做，因为脚本看不到当下：
 
-- Search whether what blocked it got easier since it died: the API it fought
-  may have an official SDK now, the model that was too expensive may be 20x
-  cheaper, the thing it hand-rolled may be a library today.
-- Search whether the world shipped the idea. If three funded products do
-  exactly this now, say so — that changes the plan from "ship it" to "ship it
-  for yourself," or to "let it rest."
+- 搜索当年挡住它的问题现在是否变简单了：它曾经对抗的 `API` 现在也许有官方 `SDK`；当时太贵的模型现在也许便宜了 `20x`；它手写的东西现在也许已经有现成库。
+- 搜索世界是否已经发布了这个想法。如果已经有三个拿到融资的产品在做完全一样的事，就说出来；这会把计划从“发布它”改成“为自己发布它”，或者改成“让它安息”。
 
-Cite what you find in the plan. "This got easier: X exists now" is the
-strongest argument for digging; "the window closed" is the strongest for
-leaving it buried.
+在计划里引用你找到的资料。“现在更容易了：X 已经存在”是挖出来的最强理由；“窗口已经关闭”是让它继续埋着的最强理由。
 
-Then write the resurrection plan. The per-cause dig strategy is in
-`references/causes-of-death.md` (each cause has a "resurrection angle" —
-deploy-fear corpses need shipping steps only, wall deaths need the managed
-alternative, scope explosions get one feature extracted). Plan rules:
+然后写复活计划。每种死因对应的挖掘策略在 `references/causes-of-death.md` 中（每个死因都有一个 `resurrection angle`：`deploy-fear` 遗骸只需要发布步骤，`wall deaths` 需要托管替代方案，`scope explosions` 要抽出一个功能）。计划规则：
 
-- At most 7 concrete steps, ending at *shipped* (a URL, a release, a
-  published package — not "keep working on it")
-- Step 0 is always: confirm it still runs. Deps rot; prove the install and
-  the entry point before promising anything.
-- Step 1 must be completable today — the first session has to end with
-  visible progress
-- Ask before touching the repo. Then offer to start on step 1 right now —
-  that offer is the entire point of running this inside an agent.
+- 最多 `7` 个具体步骤，终点必须是 `shipped`（一个 `URL`、一个 `release`、一个已发布 `package`，而不是“继续做”）
+- `Step 0` 永远是：确认它还能跑。依赖会腐烂；先证明安装和入口点能用，再承诺任何事情。
+- `Step 1` 必须今天就能完成；第一次 `session` 必须以可见进展结束
+- 动仓库前先征求用户同意。然后提出现在就开始 `Step 1`；这个提议正是把技能放进 `agent` 里运行的全部意义。
 
-**When to leave it buried** — say it plainly when it's true: the user doesn't
-care anymore (a shrug at the interview is closure, not a project); the
-window closed and the world shipped the idea; or every candidate is weak.
-"Nothing here is worth digging up, and that's fine — here's what the patterns
-say about the *next* project" is a legitimate and useful ending.
+**什么时候让它继续埋着**：真实情况如此时，要直说。用户已经不在乎了（访谈里的耸肩是结案，不是项目）；窗口已经关闭，世界已经发布了这个想法；或者所有候选都很弱。“这里没有什么值得挖出来，这没关系；下面是这些模式对你*下一个*项目的启示”是一个合法且有用的结尾。
 
-When the user commits to a resurrection, record it (ask once where to keep
-the state file — `~/.project-graveyard.json` is a sane default):
+当用户承诺复活某个项目时，记录下来（只问一次状态文件放在哪里；`~/.project-graveyard.json` 是合理默认值）：
 
 ```bash
 python3 scripts/graveyard.py --state ~/.project-graveyard.json \
     --mark-resurrected /path/to/the/corpse
 ```
 
-## Relapse watch
+## 复发监测
 
-Scans run with `--state` hold past resurrections to their promise: the report
-gains a RELAPSE WATCH block showing whether each resurrected project is
-holding or going silent again. When one relapses, say it plainly and make the
-user choose — recommit or bury it honestly. A second silent death is an
-answer, not a failure; close the loop instead of prescribing a third attempt.
-No tool follows up on its own prescription. This one does — that's the point
-of keeping state.
+使用 `--state` 运行扫描时，会把过去的复活记录纳入承诺监督：报告会新增一个 `RELAPSE WATCH` 区块，显示每个被复活的项目是在坚持，还是又一次沉默。当一个项目复发时，直接说出来，让用户选择：重新承诺，或诚实地埋葬它。第二次沉默死亡就是答案，不是失败；闭环，而不是开第三张药方。没有工具会跟进自己的处方。这个会，这就是保存状态的意义。
 
-## Necromancer mode
+## 死灵法师模式
 
-When the user proposes building something new, check the graveyard for prior
-attempts before scaffolding anything — grep the state file (or a fresh
-`--json` report) for name and README overlap. If there's a match:
+当用户提出要构建新东西时，在脚手架任何内容之前，先检查 `graveyard` 里是否有既往尝试：用 `grep` 搜索状态文件（或新的 `--json` 报告）里的名称和 `README` 重叠。如果有匹配：
 
-> "You already built about 60% of this. It's called `project-14`, it died in
-> March at the auth step, and its parser still works. Resurrect instead?"
+> "你已经做完了大约 `60%`。它叫 `project-14`，三月死在身份验证步骤，而且解析器仍然能用。要不要复活它？"
 
-Don't be preachy about it. Mention it once, let them choose, drop it.
+不要说教。提一次，让用户选择，然后放下。
 
-## Gotchas
+## 注意事项
 
-- **~/Desktop might itself be a git repo** (accidental `git init`, backup
-  tools). The scanner handles nested repos, but if the census looks absurd,
-  that's usually why.
-- **Ownership filter uses git email.** If the user commits under multiple
-  emails (work address, GitHub web edits, builder tools), real corpses get
-  skipped as "not yours" — the census names what it skipped; claim yours with
-  `--me that@email.com`.
-- **"Dead" is a threshold, not a truth.** A stable finished tool looks dead at
-  45 days. The script separates `finished` (deploy config + pushed + README)
-  from dead, but the heuristic is rough — ask before eulogizing anything the
-  user considers done.
-- **One-day corpses are usually vibe-coded bursts**, not failures — a project
-  built in one sitting and never reopened. The pattern worth surfacing is how
-  many of them there are, not that each one "died."
-- **Don't resurrect by default.** The report is the product; the resurrection
-  is an offer. Some corpses should stay buried — see "When to leave it buried"
-  above.
+- **`~/Desktop` 本身可能就是一个 `git` 仓库**（意外执行了 `git init`，或备份工具导致）。扫描器会处理嵌套仓库，但如果 census 看起来荒唐，通常就是这个原因。
+- **所有权过滤使用 `git` 邮箱。** 如果用户用多个邮箱提交（工作邮箱、`GitHub` 网页编辑、构建工具），真正的遗骸会被跳过，标记为“不是你的”；census 会列出跳过了什么。用 `--me that@email.com` 认领自己的项目。
+- **“死亡”是阈值，不是真相。** 一个稳定完成的工具在 `45` 天后看起来也像死了。脚本会把 `finished`（有部署配置、已推送、有 `README`）和 dead 分开，但启发式判断很粗；在悼念用户认为已完成的东西前先问清楚。
+- **一天遗骸通常是凭感觉写出的短促爆发**，不是失败；也就是一口气做出来、之后再没打开的项目。值得揭示的模式是这种项目有多少，而不是每个都“死了”。
+- **不要默认复活。** 报告本身就是产品；复活只是提议。有些遗骸应该继续埋着，见上面的“什么时候让它继续埋着”。
 
-## Files
+## 文件
 
-- `scripts/graveyard.py` — scanner + autopsy + pulse ranking (stdlib, offline, read-only)
-- `references/causes-of-death.md` — the taxonomy: signals, confidence, and the per-cause resurrection strategy
+- `scripts/graveyard.py`：扫描器 + 验尸 + `pulse` 排名（标准库、离线、只读）
+- `references/causes-of-death.md`：分类法：信号、置信度，以及每种死因的复活策略
