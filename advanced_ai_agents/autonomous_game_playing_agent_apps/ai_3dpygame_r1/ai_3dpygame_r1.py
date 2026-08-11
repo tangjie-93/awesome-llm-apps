@@ -7,36 +7,26 @@ from langchain_openai import ChatOpenAI
 import asyncio
 from browser_use import Browser
 
+from config import load_api_settings
+
 st.set_page_config(page_title="PyGame Code Generator", layout="wide")
 
-# Initialize session state
-if "api_keys" not in st.session_state:
-    st.session_state.api_keys = {
-        "deepseek": "",
-        "openai": ""
-    }
+settings = load_api_settings()
+deepseek_api_key = settings.deepseek_api_key
+openai_api_key = settings.openai_api_key
+openai_base_url = settings.openai_base_url or None
 
-# Streamlit sidebar for API keys
+# Streamlit sidebar for usage notes
 with st.sidebar:
-    st.title("API Keys Configuration")
-    st.session_state.api_keys["deepseek"] = st.text_input(
-        "DeepSeek API Key",
-        type="password",
-        value=st.session_state.api_keys["deepseek"]
-    )
-    st.session_state.api_keys["openai"] = st.text_input(
-        "OpenAI API Key",
-        type="password",
-        value=st.session_state.api_keys["openai"]
-    )
-    
+    st.title("Configuration")
     st.markdown("---")
     st.info("""
     📝 How to use:
-    1. Enter your API keys above
-    2. Write your PyGame visualization query
-    3. Click 'Generate Code' to get the code
-    4. Click 'Generate Visualization' to:
+    1. Create a `.env` file in this folder
+    2. Set `DEEPSEEK_API_KEY` and `OPENAI_API_KEY`
+    3. Write your PyGame visualization query
+    4. Click 'Generate Code' to get the code
+    5. Click 'Generate Visualization' to:
        - Open Trinket.io PyGame editor
        - Copy and paste the generated code
        - Watch it run automatically
@@ -57,13 +47,13 @@ generate_code_btn = col1.button("Generate Code")
 generate_vis_btn = col2.button("Generate Visualization")
 
 if generate_code_btn and query:
-    if not st.session_state.api_keys["deepseek"] or not st.session_state.api_keys["openai"]:
-        st.error("Please provide both API keys in the sidebar")
+    if not deepseek_api_key or not openai_api_key:
+        st.error("Please set `DEEPSEEK_API_KEY` and `OPENAI_API_KEY` in the `.env` file")
         st.stop()
 
     # Initialize Deepseek client
     deepseek_client = OpenAI(
-        api_key=st.session_state.api_keys["deepseek"],
+        api_key=deepseek_api_key,
         base_url="https://api.deepseek.com"
     )
 
@@ -94,7 +84,8 @@ if generate_code_btn and query:
         openai_agent = AgnoAgent(
             model=AgnoOpenAIChat(
                 id="gpt-4o",
-                api_key=st.session_state.api_keys["openai"]
+                api_key=openai_api_key,
+                base_url=openai_base_url,
             ),
             debug_mode=True,
             markdown=True
@@ -122,6 +113,9 @@ if generate_code_btn and query:
         st.error(f"An error occurred: {str(e)}")
 
 elif generate_vis_btn:
+    if not openai_api_key:
+        st.error("Please set `OPENAI_API_KEY` in the `.env` file")
+        st.stop()
     if "generated_code" not in st.session_state:
         st.warning("Please generate code first before visualization")
     else:
@@ -131,7 +125,8 @@ elif generate_vis_btn:
             async with await browser.new_context() as context:
                 model = ChatOpenAI(
                     model="gpt-4o", 
-                    api_key=st.session_state.api_keys["openai"]
+                    api_key=openai_api_key,
+                    base_url=openai_base_url,
                 )
                 
                 agent1 = Agent(
