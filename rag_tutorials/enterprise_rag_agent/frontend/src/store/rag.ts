@@ -1,0 +1,85 @@
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
+import { ragApi } from '@/services/ragApi';
+import type {
+    RagAnswerLog,
+    RagDocumentSummary,
+    RagEvaluationLog,
+    RagKnowledgeBasesView,
+    RagSearchView,
+    RagStatsView
+} from '@/types/rag';
+
+export const useRagStore = defineStore('rag', () => {
+    const baseUrl = ref<string>(localStorage.getItem('enterprise-rag-base-url') ?? 'http://127.0.0.1:8000');
+    const companyName = ref<string>('Acme Corp');
+    const knowledgeBases = ref<string[]>([]);
+    const documents = ref<RagDocumentSummary[]>([]);
+    const answerLogs = ref<RagAnswerLog[]>([]);
+    const evaluationLogs = ref<RagEvaluationLog[]>([]);
+    const stats = ref<RagStatsView>({});
+    const loading = ref<boolean>(false);
+    const error = ref<string>('');
+
+    const hasKnowledgeBases = computed<boolean>(() => knowledgeBases.value.length > 0);
+
+    async function syncDashboard(): Promise<void> {
+        loading.value = true;
+        error.value = '';
+        try {
+            ragApi.setBaseUrl(baseUrl.value);
+            const [statsData, kbData, docsData, answerData, evalData] = await Promise.all([
+                ragApi.getStats(),
+                ragApi.getKnowledgeBases(),
+                ragApi.getDocuments(),
+                ragApi.getAnswerLogs(),
+                ragApi.getEvaluationLogs()
+            ]);
+            stats.value = statsData;
+            companyName.value = String(statsData.company_name ?? companyName.value);
+            knowledgeBases.value = kbData.knowledge_bases ?? [];
+            documents.value = docsData.documents ?? [];
+            answerLogs.value = answerData.answer_logs ?? [];
+            evaluationLogs.value = evalData.evaluation_logs ?? [];
+            localStorage.setItem('enterprise-rag-base-url', baseUrl.value);
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : '加载失败';
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function ingestPath(path: string, knowledgeBase?: string, allowedGroups?: string[]): Promise<Record<string, unknown>> {
+        return ragApi.ingest(path, knowledgeBase, allowedGroups);
+    }
+
+    async function askQuestion(question: string, knowledgeBase?: string, userGroups?: string[], topK?: number) {
+        return ragApi.ask(question, knowledgeBase, userGroups, topK);
+    }
+
+    async function searchQuestion(question: string, knowledgeBase?: string, userGroups?: string[], topK?: number): Promise<RagSearchView> {
+        return ragApi.search(question, knowledgeBase, userGroups, topK);
+    }
+
+    async function evaluateAnswer(question: string, expectedAnswer: string | null, actualAnswer: string): Promise<Record<string, unknown>> {
+        return ragApi.evaluate(question, expectedAnswer, actualAnswer);
+    }
+
+    return {
+        baseUrl,
+        companyName,
+        knowledgeBases,
+        documents,
+        answerLogs,
+        evaluationLogs,
+        stats,
+        loading,
+        error,
+        hasKnowledgeBases,
+        syncDashboard,
+        ingestPath,
+        askQuestion,
+        searchQuestion,
+        evaluateAnswer
+    };
+});
