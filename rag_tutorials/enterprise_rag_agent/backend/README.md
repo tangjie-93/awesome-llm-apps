@@ -19,9 +19,14 @@
 
 ```bash
 pip install -r requirements.txt
+python app.py
+```
+
+默认会启动 API 服务；首次使用时可以再执行：
+
+```bash
 python app.py ingest sample_docs
 python app.py ask "安全事件怎么升级？"
-python app.py serve
 ```
 
 ## 模型配置

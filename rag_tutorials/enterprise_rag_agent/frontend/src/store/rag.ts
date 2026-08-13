@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { ragApi } from '@/services/ragApi';
 import type {
     RagAnswerLog,
+    RagConfigView,
     RagDocumentSummary,
     RagEvaluationLog,
     RagKnowledgeBasesView,
@@ -13,6 +14,7 @@ import type {
 export const useRagStore = defineStore('rag', () => {
     const baseUrl = ref<string>(localStorage.getItem('enterprise-rag-base-url') ?? 'http://127.0.0.1:8000');
     const companyName = ref<string>('Acme Corp');
+    const config = ref<RagConfigView>({});
     const knowledgeBases = ref<string[]>([]);
     const documents = ref<RagDocumentSummary[]>([]);
     const answerLogs = ref<RagAnswerLog[]>([]);
@@ -28,8 +30,9 @@ export const useRagStore = defineStore('rag', () => {
         error.value = '';
         try {
             ragApi.setBaseUrl(baseUrl.value);
-            const [statsData, kbData, docsData, answerData, evalData] = await Promise.all([
+            const [statsData, configData, kbData, docsData, answerData, evalData] = await Promise.all([
                 ragApi.getStats(),
+                ragApi.getConfig(),
                 ragApi.getKnowledgeBases(),
                 ragApi.getDocuments(),
                 ragApi.getAnswerLogs(),
@@ -37,6 +40,7 @@ export const useRagStore = defineStore('rag', () => {
             ]);
             stats.value = statsData;
             companyName.value = String(statsData.company_name ?? companyName.value);
+            config.value = configData;
             knowledgeBases.value = kbData.knowledge_bases ?? [];
             documents.value = docsData.documents ?? [];
             answerLogs.value = answerData.answer_logs ?? [];
@@ -73,6 +77,7 @@ export const useRagStore = defineStore('rag', () => {
         answerLogs,
         evaluationLogs,
         stats,
+        config,
         loading,
         error,
         hasKnowledgeBases,

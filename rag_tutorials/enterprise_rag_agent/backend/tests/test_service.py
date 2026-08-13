@@ -34,6 +34,11 @@ class EnterpriseRAGServiceTest(unittest.TestCase):
                 rerank_top_k=6,
                 enable_llm=False,
                 llm_model="gpt-4o-mini",
+                llm_provider="chatgpt",
+                llm_base_url="https://api.openai.com/v1",
+                llm_api_key=None,
+                default_groups=("public", "security", "hr", "it", "ops"),
+                default_risk_levels=("low", "medium", "high"),
             )
             service = EnterpriseRAGService(config)
             ingest_result = service.ingest_path(kb_root)

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from ..application.service import EnterpriseRAGService
@@ -29,9 +31,18 @@ class EvaluateRequest(BaseModel):
 
 
 def create_app() -> FastAPI:
-    config = load_config()
-    service = EnterpriseRAGService(config)
+    app_config = load_config()
+    service = EnterpriseRAGService(app_config)
     app = FastAPI(title="Enterprise RAG Agent", version="1.0.0")
+
+    # 本地联调时允许前端开发服务器直接访问后端接口。
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins(),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -40,6 +51,22 @@ def create_app() -> FastAPI:
     @app.get("/stats")
     def stats() -> dict[str, Any]:
         return service.stats()
+
+    @app.get("/config")
+    def config_view() -> dict[str, Any]:
+        return {
+            "company_name": app_config.company_name,
+            "default_knowledge_base": app_config.default_knowledge_base,
+            "default_groups": list(app_config.default_groups),
+            "default_risk_levels": list(app_config.default_risk_levels),
+            "chunk_size": app_config.chunk_size,
+            "chunk_overlap": app_config.chunk_overlap,
+            "top_k": app_config.top_k,
+            "rerank_top_k": app_config.rerank_top_k,
+            "enable_llm": app_config.enable_llm,
+            "llm_provider": app_config.llm_provider,
+            "llm_model": app_config.llm_model,
+        }
 
     @app.get("/knowledge-bases")
     def knowledge_bases() -> dict[str, Any]:
@@ -94,3 +121,18 @@ def _resolve_path(value: str):
     from pathlib import Path
 
     return Path(value)
+
+
+def _cors_origins() -> list[str]:
+    """返回本地开发阶段允许的前端来源。"""
+    raw_value = os.getenv("ENTERPRISE_RAG_CORS_ORIGINS", "").strip()
+    if raw_value:
+        return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+    return [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+    ]

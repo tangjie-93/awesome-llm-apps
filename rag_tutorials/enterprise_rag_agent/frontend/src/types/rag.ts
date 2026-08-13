@@ -29,6 +29,20 @@ export interface RagStatsView {
     knowledge_bases?: string[];
 }
 
+export interface RagConfigView {
+    company_name?: string;
+    default_knowledge_base?: string;
+    default_groups?: string[];
+    default_risk_levels?: string[];
+    chunk_size?: number;
+    chunk_overlap?: number;
+    top_k?: number;
+    rerank_top_k?: number;
+    enable_llm?: boolean;
+    llm_provider?: string;
+    llm_model?: string;
+}
+
 export interface RagDocumentsView {
     documents: RagDocumentSummary[];
 }

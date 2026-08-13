@@ -7,6 +7,7 @@ import os
 
 @dataclass(frozen=True, slots=True)
 class EnterpriseRAGConfig:
+    """后端运行配置，集中承载知识库、检索和模型默认值。"""
     company_name: str
     db_path: Path
     default_knowledge_base: str
@@ -19,9 +20,12 @@ class EnterpriseRAGConfig:
     llm_model: str
     llm_base_url: str | None
     llm_api_key: str | None
+    default_groups: tuple[str, ...]
+    default_risk_levels: tuple[str, ...]
 
 
 def load_config() -> EnterpriseRAGConfig:
+    """从环境变量读取配置，并补齐一组可落地的默认值。"""
     llm_provider = os.getenv("ENTERPRISE_RAG_LLM_PROVIDER", "chatgpt").strip().lower() or "chatgpt"
     default_model, default_base_url = _llm_defaults(llm_provider)
     llm_base_url = os.getenv("ENTERPRISE_RAG_LLM_BASE_URL", default_base_url).strip() or None
@@ -40,14 +44,18 @@ def load_config() -> EnterpriseRAGConfig:
         llm_model=os.getenv("ENTERPRISE_RAG_MODEL", default_model),
         llm_base_url=llm_base_url,
         llm_api_key=llm_api_key,
+        default_groups=("public", "security", "hr", "it", "ops"),
+        default_risk_levels=("low", "medium", "high"),
     )
 
 
 def _read_bool(name: str, default: str) -> bool:
+    """把常见布尔型环境变量统一解析为 True / False。"""
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _llm_defaults(provider: str) -> tuple[str, str]:
+    """按模型供应商返回默认模型名和兼容接口地址。"""
     if provider == "deepseek":
         return "deepseek-chat", "https://api.deepseek.com"
     return "gpt-4o-mini", "https://api.openai.com/v1"

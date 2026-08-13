@@ -29,6 +29,11 @@ const routes = [
         path: '/logs',
         name: 'Logs',
         component: () => import('@/views/logs/index.vue')
+    },
+    {
+        path: '/scope',
+        name: 'Scope',
+        component: () => import('@/views/scope/index.vue')
     }
 ];
 
@@ -38,4 +43,3 @@ const router = createRouter({
 });
 
 export default router;
-

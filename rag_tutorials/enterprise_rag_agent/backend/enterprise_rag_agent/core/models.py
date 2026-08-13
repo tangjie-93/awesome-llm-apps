@@ -6,6 +6,7 @@ from typing import Any
 
 @dataclass(slots=True)
 class SourceDocument:
+    """原始接入文档的标准化表示。"""
     source_id: str
     knowledge_base: str
     path: str
@@ -19,6 +20,7 @@ class SourceDocument:
 
 @dataclass(slots=True)
 class ChunkRecord:
+    """切块后的最小检索单元。"""
     chunk_id: str
     source_id: str
     knowledge_base: str
@@ -34,6 +36,7 @@ class ChunkRecord:
 
 @dataclass(slots=True)
 class RetrievedChunk:
+    """检索阶段返回的候选切块及其打分信息。"""
     chunk: ChunkRecord
     score: float
     lexical_score: float
@@ -41,6 +44,7 @@ class RetrievedChunk:
     matched_terms: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
+        """把检索结果展开为可序列化字典。"""
         payload = asdict(self)
         payload["chunk"] = asdict(self.chunk)
         return payload
@@ -48,17 +52,20 @@ class RetrievedChunk:
 
 @dataclass(slots=True)
 class IngestResult:
+    """文档接入完成后的汇总结果。"""
     documents_indexed: int
     chunks_indexed: int
     knowledge_bases: list[str]
     paths: list[str]
 
     def to_dict(self) -> dict[str, Any]:
+        """把接入结果转成接口返回结构。"""
         return asdict(self)
 
 
 @dataclass(slots=True)
 class AnswerResult:
+    """问答结果，包含答案、证据和置信度。"""
     question: str
     answer: str
     confidence: float
@@ -69,11 +76,13 @@ class AnswerResult:
     sources_consulted: int = 0
 
     def to_dict(self) -> dict[str, Any]:
+        """把问答结果转成接口返回结构。"""
         return asdict(self)
 
 
 @dataclass(slots=True)
 class EvaluationResult:
+    """答案评估结果。"""
     question: str
     expected_answer: str | None
     actual_answer: str
@@ -81,5 +90,5 @@ class EvaluationResult:
     notes: str
 
     def to_dict(self) -> dict[str, Any]:
+        """把评估结果转成接口返回结构。"""
         return asdict(self)
-

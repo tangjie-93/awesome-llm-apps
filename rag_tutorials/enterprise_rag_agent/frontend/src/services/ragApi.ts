@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from 'axios';
 import type {
     AnswerView,
+    RagConfigView,
     RagDocumentsView,
     RagKnowledgeBasesView,
     RagLogsView,
@@ -27,6 +28,10 @@ class RagApi {
 
     public async getStats(): Promise<RagStatsView> {
         return this.request('/stats');
+    }
+
+    public async getConfig(): Promise<RagConfigView> {
+        return this.request('/config');
     }
 
     public async getKnowledgeBases(): Promise<RagKnowledgeBasesView> {
