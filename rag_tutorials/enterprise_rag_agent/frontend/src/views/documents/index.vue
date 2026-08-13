@@ -1,9 +1,9 @@
-<template>
+﻿<template>
     <section class="page">
         <header class="page__header">
             <div>
-                <h1 class="page__title">Documents</h1>
-                <p class="page__subtitle">已摄入文档与版本信息</p>
+                <h1 class="page__title">文档</h1>
+                <p class="page__subtitle">已撰入文档与版本信息</p>
             </div>
         </header>
 
@@ -80,6 +80,4 @@ onMounted(() => {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
 </style>
-

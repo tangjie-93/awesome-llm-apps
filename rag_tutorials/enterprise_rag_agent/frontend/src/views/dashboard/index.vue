@@ -1,9 +1,9 @@
-<template>
+﻿<template>
     <section class="page">
         <header class="page__header">
             <div>
-                <h1 class="page__title">Enterprise RAG</h1>
-                <p class="page__subtitle">公司知识库检索与问答控制台</p>
+                <h1 class="page__title">仪表盘</h1>
+                <p class="page__subtitle">企业知识检索与问答总览</p>
             </div>
             <button class="button button--primary" @click="refreshDashboard">刷新</button>
         </header>
@@ -37,9 +37,6 @@ import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
 
-/**
- * 刷新仪表盘数据。
- */
 async function refreshDashboard(): Promise<void> {
     await store.syncDashboard();
 }
@@ -118,6 +115,4 @@ onMounted(() => {
     background: #fef2f2;
     color: #b91c1c;
 }
-
 </style>
-

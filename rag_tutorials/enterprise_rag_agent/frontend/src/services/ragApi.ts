@@ -105,4 +105,4 @@ class RagApi {
     }
 }
 
-export const ragApi = new RagApi('http://127.0.0.1:8000');
+export const ragApi = new RagApi('/api');

@@ -1,17 +1,17 @@
-<template>
+﻿<template>
     <div class="app-shell">
         <header class="app-shell__header">
             <div class="app-shell__brand">
-                <div class="app-shell__title">Enterprise RAG</div>
-                <div class="app-shell__subtitle">Stage 0 scope and knowledge workspace</div>
+                <div class="app-shell__title">企业 RAG</div>
+                <div class="app-shell__subtitle">阶段 0 范围与知识工作区</div>
             </div>
-            <nav class="app-shell__nav" aria-label="Primary">
-                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/dashboard">Dashboard</RouterLink>
-                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/knowledge-bases">Knowledge Bases</RouterLink>
-                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/documents">Documents</RouterLink>
-                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/ask">Ask</RouterLink>
-                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/logs">Logs</RouterLink>
-                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/scope">Scope</RouterLink>
+            <nav class="app-shell__nav" aria-label="主导航">
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/dashboard">仪表盘</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/knowledge-bases">知识库</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/documents">文档</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/ask">提问</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/logs">日志</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/scope">范围</RouterLink>
             </nav>
         </header>
         <main class="app-shell__main">

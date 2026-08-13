@@ -1,8 +1,8 @@
-<template>
+﻿<template>
     <section class="page">
         <header class="page__header">
             <div>
-                <h1 class="page__title">Knowledge Bases</h1>
+                <h1 class="page__title">知识库</h1>
                 <p class="page__subtitle">路由后的知识库和权限范围</p>
             </div>
         </header>
@@ -61,6 +61,4 @@ onMounted(() => {
         font-weight: 600;
     }
 }
-
 </style>
-

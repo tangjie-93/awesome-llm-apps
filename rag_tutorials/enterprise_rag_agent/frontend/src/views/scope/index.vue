@@ -1,42 +1,42 @@
-<template>
+﻿<template>
     <section class="scope-page">
         <header class="scope-page__header">
             <div>
-                <h1 class="scope-page__title">Scope</h1>
-                <p class="scope-page__subtitle">Stage 0 scope, config and access overview</p>
+                <h1 class="scope-page__title">范围</h1>
+                <p class="scope-page__subtitle">阶段 0 范围、配置和权限总览</p>
             </div>
-            <button class="scope-page__button" @click="refreshScope">Refresh</button>
+            <button class="scope-page__button" @click="refreshScope">刷新</button>
         </header>
 
         <div class="scope-grid">
             <article class="scope-card">
-                <h2 class="scope-card__title">Base Config</h2>
+                <h2 class="scope-card__title">基础配置</h2>
                 <dl class="scope-list">
                     <div>
-                        <dt>Company</dt>
+                        <dt>公司</dt>
                         <dd>{{ store.config.company_name ?? store.companyName }}</dd>
                     </div>
                     <div>
-                        <dt>Default KB</dt>
+                        <dt>默认知识库</dt>
                         <dd>{{ store.config.default_knowledge_base ?? 'general' }}</dd>
                     </div>
                     <div>
                         <dt>LLM</dt>
-                        <dd>{{ store.config.enable_llm ? 'enabled' : 'disabled' }}</dd>
+                        <dd>{{ store.config.enable_llm ? '已启用' : '未启用' }}</dd>
                     </div>
                     <div>
-                        <dt>Provider</dt>
+                        <dt>供应商</dt>
                         <dd>{{ store.config.llm_provider ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt>Model</dt>
+                        <dt>模型</dt>
                         <dd>{{ store.config.llm_model ?? '-' }}</dd>
                     </div>
                 </dl>
             </article>
 
             <article class="scope-card">
-                <h2 class="scope-card__title">Access Groups</h2>
+                <h2 class="scope-card__title">访问组</h2>
                 <div class="tag-list">
                     <span v-for="group in store.config.default_groups ?? []" :key="group" class="tag">
                         {{ group }}
@@ -45,7 +45,7 @@
             </article>
 
             <article class="scope-card">
-                <h2 class="scope-card__title">Risk Levels</h2>
+                <h2 class="scope-card__title">风险等级</h2>
                 <div class="tag-list">
                     <span v-for="risk in store.config.default_risk_levels ?? []" :key="risk" class="tag tag--risk">
                         {{ risk }}
@@ -54,14 +54,14 @@
             </article>
 
             <article class="scope-card">
-                <h2 class="scope-card__title">Retrieval Defaults</h2>
+                <h2 class="scope-card__title">检索默认值</h2>
                 <dl class="scope-list">
                     <div>
-                        <dt>Chunk Size</dt>
+                        <dt>分块大小</dt>
                         <dd>{{ store.config.chunk_size ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt>Chunk Overlap</dt>
+                        <dt>分块重叠</dt>
                         <dd>{{ store.config.chunk_overlap ?? '-' }}</dd>
                     </div>
                     <div>
@@ -69,14 +69,14 @@
                         <dd>{{ store.config.top_k ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt>Rerank Top K</dt>
+                        <dt>重排 Top K</dt>
                         <dd>{{ store.config.rerank_top_k ?? '-' }}</dd>
                     </div>
                 </dl>
             </article>
 
             <article class="scope-card">
-                <h2 class="scope-card__title">Knowledge Bases</h2>
+                <h2 class="scope-card__title">知识库</h2>
                 <div class="tag-list">
                     <span v-for="kb in store.knowledgeBases" :key="kb" class="tag">
                         {{ kb }}
@@ -85,7 +85,7 @@
             </article>
 
             <article class="scope-card">
-                <h2 class="scope-card__title">Sample Docs</h2>
+                <h2 class="scope-card__title">样本文档</h2>
                 <ul class="scope-bullets">
                     <li v-for="doc in store.documents" :key="String(doc.source_id)">
                         {{ doc.knowledge_base }} / {{ doc.title }} / {{ doc.allowed_groups.join(', ') }}
@@ -94,31 +94,30 @@
             </article>
 
             <article class="scope-card scope-card--wide">
-                <h2 class="scope-card__title">Business Scope</h2>
+                <h2 class="scope-card__title">业务范围</h2>
                 <ul class="scope-bullets">
-                    <li>security: security policy, incident response, access control</li>
-                    <li>hr: onboarding, training, employee handbook</li>
-                    <li>it: backup, operations, core IT standards</li>
+                    <li>security：安全制度、事件响应、访问控制</li>
+                    <li>hr：入职、培训、员工手册</li>
+                    <li>it：备份、运维、核心 IT 标准</li>
                 </ul>
             </article>
 
             <article class="scope-card scope-card--wide">
-                <h2 class="scope-card__title">Out of Scope</h2>
+                <h2 class="scope-card__title">不在范围内</h2>
                 <ul class="scope-bullets">
-                    <li>multi-tenant isolation</li>
-                    <li>segment-level permission</li>
-                    <li>automatic action execution</li>
-                    <li>multimodal input</li>
-                    <li>knowledge graph</li>
+                    <li>多租户隔离</li>
+                    <li>细粒度段权限</li>
+                    <li>自动执行动作</li>
+                    <li>多模态输入</li>
+                    <li>知识图谱</li>
                 </ul>
             </article>
 
             <article class="scope-card scope-card--wide">
-                <h2 class="scope-card__title">Permission Notes</h2>
+                <h2 class="scope-card__title">权限说明</h2>
                 <p class="scope-copy">
-                    Documents default to <strong>public</strong>. Sensitive documents must be assigned explicitly.
-                    Search results are filtered before answering. <strong>high</strong> risk content can produce a
-                    candidate answer, but it must be reviewed and approved.
+                    文档默认是 <strong>公开</strong>。敏感文档必须显式分配权限组。
+                    检索结果会先过滤再回答。<strong>high</strong> 风险内容可以生成候选答案，但必须人工复核并批准。
                 </p>
             </article>
         </div>

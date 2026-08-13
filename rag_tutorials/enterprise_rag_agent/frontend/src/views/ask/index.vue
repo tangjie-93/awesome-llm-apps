@@ -1,37 +1,33 @@
-<template>
+﻿<template>
     <section class="page">
         <header class="page__header">
             <div>
-                <h1 class="page__title">Ask</h1>
+                <h1 class="page__title">提问</h1>
                 <p class="page__subtitle">按知识库提问并查看引用</p>
             </div>
         </header>
 
         <div class="form">
-            <label class="field">
-                <span class="field__label">Base URL</span>
-                <input v-model="store.baseUrl" class="field__input" type="text" />
-            </label>
             <label class="field field--full">
-                <span class="field__label">Question</span>
+                <span class="field__label">问题</span>
                 <textarea v-model="question" class="field__textarea" rows="4"></textarea>
             </label>
             <div class="actions">
-                <button class="button button--primary" :disabled="submitting" @click="submitQuestion">Ask</button>
-                <button class="button" :disabled="submitting" @click="searchQuestion">Search</button>
+                <button class="button button--primary" :disabled="submitting" @click="submitQuestion">提问</button>
+                <button class="button" :disabled="submitting" @click="searchQuestion">检索</button>
             </div>
         </div>
 
         <article v-if="answer" class="result">
             <div class="result__header">
-                <div class="result__score">Confidence {{ answer.confidence.toFixed(2) }}</div>
+                <div class="result__score">置信度 {{ answer.confidence.toFixed(2) }}</div>
             </div>
             <pre class="result__text">{{ answer.answer }}</pre>
             <div v-if="answer.citations.length" class="citations">
-                <h2 class="section-title">Citations</h2>
+                <h2 class="section-title">引用来源</h2>
                 <div v-for="citation in answer.citations" :key="citation.source + String(citation.chunk_index)" class="citation">
                     <div class="citation__title">{{ citation.knowledge_base }} / {{ citation.title }}</div>
-                    <div class="citation__meta">{{ citation.section_path }} · chunk {{ citation.chunk_index }}</div>
+                    <div class="citation__meta">{{ citation.section_path }} 段 chunk {{ citation.chunk_index }}</div>
                     <div class="citation__terms">{{ citation.matched_terms.join(', ') }}</div>
                 </div>
             </div>
@@ -49,9 +45,6 @@ const question = ref<string>('How fast should we acknowledge the incident?');
 const answer = ref<AnswerView | null>(null);
 const submitting = ref<boolean>(false);
 
-/**
- * 提交问答请求。
- */
 async function submitQuestion(): Promise<void> {
     submitting.value = true;
     try {
@@ -61,9 +54,6 @@ async function submitQuestion(): Promise<void> {
     }
 }
 
-/**
- * 执行检索并展示结果。
- */
 async function searchQuestion(): Promise<void> {
     submitting.value = true;
     try {
@@ -195,5 +185,4 @@ async function searchQuestion(): Promise<void> {
         font-size: 13px;
     }
 }
-
 </style>

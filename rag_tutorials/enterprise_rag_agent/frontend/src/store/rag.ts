@@ -6,13 +6,23 @@ import type {
     RagConfigView,
     RagDocumentSummary,
     RagEvaluationLog,
-    RagKnowledgeBasesView,
     RagSearchView,
     RagStatsView
 } from '@/types/rag';
 
+const DEFAULT_BASE_URL = '/api';
+const LEGACY_BASE_URL = 'http://127.0.0.1:8000';
+
+function resolveBaseUrl(): string {
+    const savedBaseUrl = localStorage.getItem('enterprise-rag-base-url');
+    if (!savedBaseUrl || savedBaseUrl === LEGACY_BASE_URL) {
+        return DEFAULT_BASE_URL;
+    }
+    return savedBaseUrl;
+}
+
 export const useRagStore = defineStore('rag', () => {
-    const baseUrl = ref<string>(localStorage.getItem('enterprise-rag-base-url') ?? 'http://127.0.0.1:8000');
+    const baseUrl = ref<string>(resolveBaseUrl());
     const companyName = ref<string>('Acme Corp');
     const config = ref<RagConfigView>({});
     const knowledgeBases = ref<string[]>([]);
@@ -29,6 +39,7 @@ export const useRagStore = defineStore('rag', () => {
         loading.value = true;
         error.value = '';
         try {
+            baseUrl.value = baseUrl.value.trim() || DEFAULT_BASE_URL;
             ragApi.setBaseUrl(baseUrl.value);
             const [statsData, configData, kbData, docsData, answerData, evalData] = await Promise.all([
                 ragApi.getStats(),
@@ -47,7 +58,7 @@ export const useRagStore = defineStore('rag', () => {
             evaluationLogs.value = evalData.evaluation_logs ?? [];
             localStorage.setItem('enterprise-rag-base-url', baseUrl.value);
         } catch (err) {
-            error.value = err instanceof Error ? err.message : 'Âä†ËΩΩÂ§±Ë¥•';
+            error.value = err instanceof Error ? err.message : 'º”‘ÿ ß∞‹';
         } finally {
             loading.value = false;
         }

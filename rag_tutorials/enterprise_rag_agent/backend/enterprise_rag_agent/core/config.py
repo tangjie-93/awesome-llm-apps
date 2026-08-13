@@ -1,8 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 import os
+
+from dotenv import load_dotenv
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +28,7 @@ class EnterpriseRAGConfig:
 
 def load_config() -> EnterpriseRAGConfig:
     """从环境变量读取配置，并补齐一组可落地的默认值。"""
+    load_dotenv()
     llm_provider = os.getenv("ENTERPRISE_RAG_LLM_PROVIDER", "chatgpt").strip().lower() or "chatgpt"
     default_model, default_base_url = _llm_defaults(llm_provider)
     llm_base_url = os.getenv("ENTERPRISE_RAG_LLM_BASE_URL", default_base_url).strip() or None
@@ -58,4 +61,4 @@ def _llm_defaults(provider: str) -> tuple[str, str]:
     """按模型供应商返回默认模型名和兼容接口地址。"""
     if provider == "deepseek":
         return "deepseek-chat", "https://api.deepseek.com"
-    return "gpt-4o-mini", "https://api.openai.com/v1"
+    return "gpt-5.5", "https://api.openai.com/v1"
