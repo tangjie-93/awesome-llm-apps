@@ -9,7 +9,10 @@
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/dashboard">仪表盘</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/knowledge-bases">知识库</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/documents">文档</RouterLink>
-                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/ask">提问</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/ingest">导入</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/ask">问答</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/search">检索</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/evaluate">评估</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/logs">日志</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/scope">范围</RouterLink>
             </nav>

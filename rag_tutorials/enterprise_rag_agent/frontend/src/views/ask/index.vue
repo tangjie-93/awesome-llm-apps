@@ -3,7 +3,7 @@
         <header class="page__header">
             <div>
                 <h1 class="page__title">提问</h1>
-                <p class="page__subtitle">按知识库提问并查看引用</p>
+                <p class="page__subtitle">按知识库提问并查看回答与引用</p>
             </div>
         </header>
 
@@ -14,13 +14,13 @@
             </label>
             <div class="actions">
                 <button class="button button--primary" :disabled="submitting" @click="submitQuestion">提问</button>
-                <button class="button" :disabled="submitting" @click="searchQuestion">检索</button>
             </div>
         </div>
 
         <article v-if="answer" class="result">
             <div class="result__header">
                 <div class="result__score">置信度 {{ answer.confidence.toFixed(2) }}</div>
+                <div v-if="answer.clarifying_question" class="result__hint">{{ answer.clarifying_question }}</div>
             </div>
             <pre class="result__text">{{ answer.answer }}</pre>
             <div v-if="answer.citations.length" class="citations">
@@ -53,25 +53,6 @@ async function submitQuestion(): Promise<void> {
         submitting.value = false;
     }
 }
-
-async function searchQuestion(): Promise<void> {
-    submitting.value = true;
-    try {
-        const result = await store.searchQuestion(question.value);
-        answer.value = {
-            question: question.value,
-            answer: JSON.stringify(result.results, null, 2),
-            confidence: 0,
-            knowledge_bases: [],
-            citations: [],
-            evidence_snippets: [],
-            clarifying_question: null,
-            sources_consulted: 0
-        };
-    } finally {
-        submitting.value = false;
-    }
-}
 </script>
 
 <style scoped lang="less">
@@ -98,6 +79,7 @@ async function searchQuestion(): Promise<void> {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 24px;
+    max-width: 960px;
 }
 
 .field {
@@ -113,7 +95,6 @@ async function searchQuestion(): Promise<void> {
         color: #64748b;
     }
 
-    &__input,
     &__textarea {
         border: 1px solid #cbd5e1;
         border-radius: 8px;
@@ -123,9 +104,7 @@ async function searchQuestion(): Promise<void> {
 }
 
 .actions {
-    display: flex;
-    gap: 12px;
-    align-items: end;
+    grid-column: 1 / -1;
 }
 
 .button {
@@ -143,6 +122,7 @@ async function searchQuestion(): Promise<void> {
 }
 
 .result {
+    max-width: 960px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 16px;
@@ -151,6 +131,7 @@ async function searchQuestion(): Promise<void> {
     &__header {
         display: flex;
         justify-content: space-between;
+        gap: 16px;
         margin-bottom: 12px;
     }
 
@@ -158,10 +139,15 @@ async function searchQuestion(): Promise<void> {
         font-weight: 600;
     }
 
+    &__hint {
+        color: #92400e;
+    }
+
     &__text {
         margin: 0;
         white-space: pre-wrap;
         font-family: inherit;
+        line-height: 1.6;
     }
 }
 

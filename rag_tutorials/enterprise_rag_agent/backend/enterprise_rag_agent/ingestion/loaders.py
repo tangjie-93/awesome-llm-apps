@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from pathlib import Path
 from typing import Iterable
@@ -27,6 +28,7 @@ def load_sources(target: Path, default_knowledge_base: str) -> list[SourceDocume
                 title=path.stem.replace("_", " ").strip() or path.name,
                 content=content,
                 content_type=content_type,
+                content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
                 metadata={"filename": path.name, "suffix": path.suffix.lower()},
             )
         )

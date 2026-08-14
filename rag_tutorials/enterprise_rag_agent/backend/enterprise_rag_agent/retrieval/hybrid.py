@@ -7,6 +7,7 @@ from collections import Counter
 from ..core.models import ChunkRecord, RetrievedChunk
 from ..security.permissions import can_access
 from ..storage.sqlite_store import SQLiteRAGStore
+from .embeddings import EmbeddingGenerator, cosine_similarity
 
 TOKEN_PATTERN = re.compile(r"[\w\u4e00-\u9fff]+", re.UNICODE)
 
@@ -32,8 +33,9 @@ def expand_query(question: str) -> list[str]:
 
 
 class HybridRetriever:
-    def __init__(self, store: SQLiteRAGStore) -> None:
+    def __init__(self, store: SQLiteRAGStore, embedding_generator: EmbeddingGenerator) -> None:
         self.store = store
+        self.embedding_generator = embedding_generator
 
     def retrieve(
         self,
@@ -48,20 +50,23 @@ class HybridRetriever:
             return []
 
         query_counts = Counter(query_tokens)
+        query_embedding = self.embedding_generator.embed_texts([question])[0]
         candidates: list[RetrievedChunk] = []
         for chunk in self.store.load_chunks(knowledge_bases):
             if not can_access(chunk.allowed_groups, user_groups):
                 continue
             lexical_score, matched_terms = self._score_chunk(chunk, query_counts)
-            if lexical_score <= 0:
+            vector_score = max(0.0, cosine_similarity(query_embedding, chunk.embedding))
+            if lexical_score <= 0 and vector_score <= 0.2:
                 continue
             rerank_score = self._rerank(chunk, query_counts, lexical_score)
-            final_score = lexical_score * 0.65 + rerank_score * 0.35
+            final_score = lexical_score * 0.45 + vector_score * 0.35 + rerank_score * 0.20
             candidates.append(
                 RetrievedChunk(
                     chunk=chunk,
                     score=final_score,
                     lexical_score=lexical_score,
+                    vector_score=vector_score,
                     rerank_score=rerank_score,
                     matched_terms=matched_terms,
                 )

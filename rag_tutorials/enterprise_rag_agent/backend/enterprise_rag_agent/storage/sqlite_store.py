@@ -30,6 +30,7 @@ class SQLiteRAGStore:
                         path TEXT NOT NULL,
                         title TEXT NOT NULL,
                         content_type TEXT NOT NULL,
+                        content_hash TEXT NOT NULL DEFAULT '',
                         version TEXT NOT NULL,
                         allowed_groups TEXT NOT NULL,
                         metadata TEXT NOT NULL,
@@ -49,6 +50,7 @@ class SQLiteRAGStore:
                         chunk_index INTEGER NOT NULL,
                         text TEXT NOT NULL,
                         token_count INTEGER NOT NULL,
+                        embedding TEXT NOT NULL DEFAULT '[]',
                         allowed_groups TEXT NOT NULL,
                         metadata TEXT NOT NULL,
                         FOREIGN KEY(source_id) REFERENCES documents(source_id)
@@ -81,11 +83,27 @@ class SQLiteRAGStore:
                     )
                     """
                 )
+                self._ensure_column(connection, "documents", "content_hash", "TEXT NOT NULL DEFAULT ''")
+                self._ensure_column(connection, "chunks", "embedding", "TEXT NOT NULL DEFAULT '[]'")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_chunks_kb ON chunks(knowledge_base)")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source_id)")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_docs_kb ON documents(knowledge_base)")
+                connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_docs_content_hash ON documents(content_hash)"
+                )
         finally:
             connection.close()
+
+    def _ensure_column(
+        self,
+        connection: sqlite3.Connection,
+        table: str,
+        column: str,
+        definition: str,
+    ) -> None:
+        rows = connection.execute(f"PRAGMA table_info({table})").fetchall()
+        if column not in {row["name"] for row in rows}:
+            connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
     def replace_document(self, document: SourceDocument, chunks: list[ChunkRecord]) -> None:
         connection = self._connect()
@@ -96,8 +114,8 @@ class SQLiteRAGStore:
                 connection.execute(
                     """
                     INSERT INTO documents
-                    (source_id, knowledge_base, path, title, content_type, version, allowed_groups, metadata, content)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, metadata, content)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         document.source_id,
@@ -105,6 +123,7 @@ class SQLiteRAGStore:
                         document.path,
                         document.title,
                         document.content_type,
+                        document.content_hash,
                         document.version,
                         json.dumps(document.allowed_groups, ensure_ascii=False),
                         json.dumps(document.metadata, ensure_ascii=False),
@@ -114,8 +133,8 @@ class SQLiteRAGStore:
                 connection.executemany(
                     """
                     INSERT INTO chunks
-                    (chunk_id, source_id, knowledge_base, path, title, section_path, chunk_index, text, token_count, allowed_groups, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (chunk_id, source_id, knowledge_base, path, title, section_path, chunk_index, text, token_count, embedding, allowed_groups, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     [
                         (
@@ -128,6 +147,7 @@ class SQLiteRAGStore:
                             chunk.chunk_index,
                             chunk.text,
                             chunk.token_count,
+                            json.dumps(chunk.embedding),
                             json.dumps(chunk.allowed_groups, ensure_ascii=False),
                             json.dumps(chunk.metadata, ensure_ascii=False),
                         )
@@ -137,10 +157,56 @@ class SQLiteRAGStore:
         finally:
             connection.close()
 
+    def delete_document(self, source_id: str) -> bool:
+        connection = self._connect()
+        try:
+            with connection:
+                connection.execute("DELETE FROM chunks WHERE source_id = ?", (source_id,))
+                cursor = connection.execute("DELETE FROM documents WHERE source_id = ?", (source_id,))
+        finally:
+            connection.close()
+        return cursor.rowcount > 0
+
+    def prune_documents_under_path(
+        self,
+        root_path: Path,
+        keep_source_ids: set[str],
+        knowledge_base: str | None = None,
+    ) -> int:
+        root = str(root_path.resolve())
+        query = "SELECT source_id, path FROM documents"
+        params: tuple[object, ...] = ()
+        if knowledge_base:
+            query += " WHERE knowledge_base = ?"
+            params = (knowledge_base,)
+
+        connection = self._connect()
+        try:
+            rows = connection.execute(query, params).fetchall()
+            stale_source_ids = [
+                row["source_id"]
+                for row in rows
+                if row["source_id"] not in keep_source_ids and self._is_under_path(row["path"], root)
+            ]
+            with connection:
+                for source_id in stale_source_ids:
+                    connection.execute("DELETE FROM chunks WHERE source_id = ?", (source_id,))
+                    connection.execute("DELETE FROM documents WHERE source_id = ?", (source_id,))
+        finally:
+            connection.close()
+        return len(stale_source_ids)
+
+    def _is_under_path(self, value: str, root: str) -> bool:
+        try:
+            Path(value).resolve().relative_to(root)
+        except ValueError:
+            return False
+        return True
+
     def load_chunks(self, knowledge_bases: list[str] | None = None) -> list[ChunkRecord]:
         query = """
             SELECT chunk_id, source_id, knowledge_base, path, title, section_path,
-                   chunk_index, text, token_count, allowed_groups, metadata
+                   chunk_index, text, token_count, embedding, allowed_groups, metadata
             FROM chunks
         """
         params: tuple[object, ...] = ()
@@ -165,6 +231,7 @@ class SQLiteRAGStore:
                 chunk_index=row["chunk_index"],
                 text=row["text"],
                 token_count=row["token_count"],
+                embedding=json.loads(row["embedding"]),
                 allowed_groups=tuple(json.loads(row["allowed_groups"])),
                 metadata=json.loads(row["metadata"]),
             )
@@ -173,7 +240,7 @@ class SQLiteRAGStore:
 
     def list_documents(self, knowledge_base: str | None = None) -> list[dict[str, object]]:
         query = """
-            SELECT source_id, knowledge_base, path, title, content_type, version, allowed_groups, metadata
+            SELECT source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, metadata
             FROM documents
         """
         params: tuple[object, ...] = ()
@@ -193,12 +260,64 @@ class SQLiteRAGStore:
                 "path": row["path"],
                 "title": row["title"],
                 "content_type": row["content_type"],
+                "content_hash": row["content_hash"],
                 "version": row["version"],
                 "allowed_groups": json.loads(row["allowed_groups"]),
                 "metadata": json.loads(row["metadata"]),
             }
             for row in rows
         ]
+
+    def get_document(self, source_id: str) -> dict[str, object] | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT source_id, knowledge_base, path, title, content_type,
+                       content_hash, version, allowed_groups, metadata
+                FROM documents
+                WHERE source_id = ?
+                """,
+                (source_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+        return self._document_row_to_dict(row) if row else None
+
+    def find_duplicate_document(
+        self,
+        content_hash: str,
+        exclude_source_id: str,
+    ) -> dict[str, object] | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT source_id, knowledge_base, path, title, content_type,
+                       content_hash, version, allowed_groups, metadata
+                FROM documents
+                WHERE content_hash = ? AND source_id != ?
+                ORDER BY knowledge_base, path
+                LIMIT 1
+                """,
+                (content_hash, exclude_source_id),
+            ).fetchone()
+        finally:
+            connection.close()
+        return self._document_row_to_dict(row) if row else None
+
+    def _document_row_to_dict(self, row: sqlite3.Row) -> dict[str, object]:
+        return {
+            "source_id": row["source_id"],
+            "knowledge_base": row["knowledge_base"],
+            "path": row["path"],
+            "title": row["title"],
+            "content_type": row["content_type"],
+            "content_hash": row["content_hash"],
+            "version": row["version"],
+            "allowed_groups": json.loads(row["allowed_groups"]),
+            "metadata": json.loads(row["metadata"]),
+        }
 
     def list_knowledge_bases(self) -> list[str]:
         connection = self._connect()

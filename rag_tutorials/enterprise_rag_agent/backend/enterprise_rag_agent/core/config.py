@@ -22,6 +22,10 @@ class EnterpriseRAGConfig:
     llm_model: str
     llm_base_url: str | None
     llm_api_key: str | None
+    embedding_provider: str
+    embedding_model: str
+    embedding_base_url: str | None
+    embedding_api_key: str | None
     default_groups: tuple[str, ...]
     default_risk_levels: tuple[str, ...]
 
@@ -47,6 +51,10 @@ def load_config() -> EnterpriseRAGConfig:
         llm_model=os.getenv("ENTERPRISE_RAG_MODEL", default_model),
         llm_base_url=llm_base_url,
         llm_api_key=llm_api_key,
+        embedding_provider=os.getenv("ENTERPRISE_RAG_EMBEDDING_PROVIDER", "openai").strip().lower() or "openai",
+        embedding_model=os.getenv("ENTERPRISE_RAG_EMBEDDING_MODEL", "text-embedding-3-small").strip(),
+        embedding_base_url=os.getenv("ENTERPRISE_RAG_EMBEDDING_BASE_URL", llm_base_url or "").strip() or None,
+        embedding_api_key=os.getenv("ENTERPRISE_RAG_EMBEDDING_API_KEY", llm_api_key or "").strip() or None,
         default_groups=("public", "security", "hr", "it", "ops"),
         default_risk_levels=("low", "medium", "high"),
     )

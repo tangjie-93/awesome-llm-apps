@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 from pathlib import Path
@@ -37,8 +37,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title='Enterprise RAG Agent', version='1.0.0')
     api = FastAPI(title='Enterprise RAG Agent API', version='1.0.0')
-
-    # 添加 CORS 中间件
+     
     api.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
@@ -126,7 +125,16 @@ def create_app() -> FastAPI:
 
 
 def _resolve_path(value: str) -> Path:
-    return Path(value)
+    path = Path(value)
+    if path.exists():
+        return path
+
+    repo_root = Path(__file__).resolve().parents[3]
+    candidate = repo_root / value
+    if candidate.exists():
+        return candidate
+
+    return path
 
 
 def _cors_origins() -> list[str]:

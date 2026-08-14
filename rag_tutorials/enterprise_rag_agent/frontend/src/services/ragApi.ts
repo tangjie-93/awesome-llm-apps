@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from 'axios';
+﻿import axios, { type AxiosInstance } from 'axios';
 import type {
     AnswerView,
     RagConfigView,
@@ -6,7 +6,8 @@ import type {
     RagKnowledgeBasesView,
     RagLogsView,
     RagSearchView,
-    RagStatsView
+    RagStatsView,
+    RagEvaluationResultView
 } from '@/types/rag';
 
 class RagApi {
@@ -85,7 +86,7 @@ class RagApi {
         });
     }
 
-    public async evaluate(question: string, expectedAnswer: string | null, actualAnswer: string): Promise<Record<string, unknown>> {
+    public async evaluate(question: string, expectedAnswer: string | null, actualAnswer: string): Promise<RagEvaluationResultView> {
         return this.request('/evaluate', {
             method: 'POST',
             data: {

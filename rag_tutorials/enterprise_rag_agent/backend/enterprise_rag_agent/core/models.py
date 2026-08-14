@@ -13,6 +13,7 @@ class SourceDocument:
     title: str
     content: str
     content_type: str
+    content_hash: str
     version: str = "1"
     allowed_groups: tuple[str, ...] = ("public",)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -30,6 +31,7 @@ class ChunkRecord:
     chunk_index: int
     text: str
     token_count: int
+    embedding: list[float] = field(default_factory=list)
     allowed_groups: tuple[str, ...] = ("public",)
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -40,6 +42,7 @@ class RetrievedChunk:
     chunk: ChunkRecord
     score: float
     lexical_score: float
+    vector_score: float
     rerank_score: float
     matched_terms: list[str] = field(default_factory=list)
 
@@ -55,6 +58,9 @@ class IngestResult:
     """文档接入完成后的汇总结果。"""
     documents_indexed: int
     chunks_indexed: int
+    documents_skipped: int
+    documents_removed: int
+    duplicate_paths: list[str]
     knowledge_bases: list[str]
     paths: list[str]
 

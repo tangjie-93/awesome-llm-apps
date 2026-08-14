@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+﻿import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
     {
@@ -21,9 +21,24 @@ const routes = [
         component: () => import('@/views/documents/index.vue')
     },
     {
+        path: '/ingest',
+        name: 'Ingest',
+        component: () => import('@/views/ingest/index.vue')
+    },
+    {
         path: '/ask',
         name: 'Ask',
         component: () => import('@/views/ask/index.vue')
+    },
+    {
+        path: '/search',
+        name: 'Search',
+        component: () => import('@/views/search/index.vue')
+    },
+    {
+        path: '/evaluate',
+        name: 'Evaluate',
+        component: () => import('@/views/evaluate/index.vue')
     },
     {
         path: '/logs',

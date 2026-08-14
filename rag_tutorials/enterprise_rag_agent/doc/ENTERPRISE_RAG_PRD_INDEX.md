@@ -8,19 +8,26 @@
 这里不再维护一份大而全的 PRD。
 项目按阶段拆分，每个阶段一份独立 PRD，便于边做边改。
 
-## 文档列表
+## 总览文档
 
-- [阶段 0 PRD](./ENTERPRISE_RAG_PRD_PHASE_0.md)
-- [阶段 1 PRD](./ENTERPRISE_RAG_PRD_PHASE_1.md)
-- [阶段 2 PRD](./ENTERPRISE_RAG_PRD_PHASE_2.md)
-- [阶段 3 PRD](./ENTERPRISE_RAG_PRD_PHASE_3.md)
-- [阶段 4 PRD](./ENTERPRISE_RAG_PRD_PHASE_4.md)
-- [阶段 0 边界清单](./ENTERPRISE_RAG_PHASE_0_SCOPE.md)
-- [阶段 0 业务范围清单](./ENTERPRISE_RAG_PHASE_0_BUSINESS_SCOPE.md)
-- [阶段 0 权限规则说明](./ENTERPRISE_RAG_PHASE_0_PERMISSION_RULES.md)
-- [阶段 0 配置约定](./ENTERPRISE_RAG_PHASE_0_CONFIG_CONVENTIONS.md)
-- [阶段 0 前端只读展示需求](./ENTERPRISE_RAG_PHASE_0_FRONTEND_READONLY.md)
+- [需求完成进度](./ENTERPRISE_RAG_PROGRESS.md)
 - [需求迭代记录](./ENTERPRISE_RAG_REQUIREMENTS_LOG.md)
+
+## 阶段文档
+
+- [阶段 0 PRD](./iterations/phase-0/ENTERPRISE_RAG_PRD_PHASE_0.md)
+- [阶段 1 PRD](./iterations/phase-1/ENTERPRISE_RAG_PRD_PHASE_1.md)
+- [阶段 2 PRD](./iterations/phase-2/ENTERPRISE_RAG_PRD_PHASE_2.md)
+- [阶段 3 PRD](./iterations/phase-3/ENTERPRISE_RAG_PRD_PHASE_3.md)
+- [阶段 4 PRD](./iterations/phase-4/ENTERPRISE_RAG_PRD_PHASE_4.md)
+
+## 阶段 0 支撑文档
+
+- [阶段 0 边界清单](./iterations/phase-0/ENTERPRISE_RAG_PHASE_0_SCOPE.md)
+- [阶段 0 业务范围清单](./iterations/phase-0/ENTERPRISE_RAG_PHASE_0_BUSINESS_SCOPE.md)
+- [阶段 0 权限规则说明](./iterations/phase-0/ENTERPRISE_RAG_PHASE_0_PERMISSION_RULES.md)
+- [阶段 0 配置约定](./iterations/phase-0/ENTERPRISE_RAG_PHASE_0_CONFIG_CONVENTIONS.md)
+- [阶段 0 前端只读展示需求](./iterations/phase-0/ENTERPRISE_RAG_PHASE_0_FRONTEND_READONLY.md)
 
 ## 迭代原则
 

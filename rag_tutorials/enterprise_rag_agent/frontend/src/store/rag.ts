@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+ï»¿import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { ragApi } from '@/services/ragApi';
 import type {
@@ -6,6 +6,7 @@ import type {
     RagConfigView,
     RagDocumentSummary,
     RagEvaluationLog,
+    RagEvaluationResultView,
     RagSearchView,
     RagStatsView
 } from '@/types/rag';
@@ -58,7 +59,7 @@ export const useRagStore = defineStore('rag', () => {
             evaluationLogs.value = evalData.evaluation_logs ?? [];
             localStorage.setItem('enterprise-rag-base-url', baseUrl.value);
         } catch (err) {
-            error.value = err instanceof Error ? err.message : '¼ÓÔØÊ§°Ü';
+            error.value = err instanceof Error ? err.message : 'åŠ è½½å¤±è´¥';
         } finally {
             loading.value = false;
         }
@@ -76,7 +77,7 @@ export const useRagStore = defineStore('rag', () => {
         return ragApi.search(question, knowledgeBase, userGroups, topK);
     }
 
-    async function evaluateAnswer(question: string, expectedAnswer: string | null, actualAnswer: string): Promise<Record<string, unknown>> {
+    async function evaluateAnswer(question: string, expectedAnswer: string | null, actualAnswer: string): Promise<RagEvaluationResultView> {
         return ragApi.evaluate(question, expectedAnswer, actualAnswer);
     }
 
