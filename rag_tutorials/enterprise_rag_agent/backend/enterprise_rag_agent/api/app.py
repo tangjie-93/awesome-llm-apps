@@ -4,12 +4,14 @@ import os
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from starlette.responses import JSONResponse
 
 from ..application.service import EnterpriseRAGService
 from ..core.config import load_config
+from ..retrieval.embeddings import EmbeddingServiceUnavailable
 
 
 class IngestRequest(BaseModel):
@@ -37,6 +39,13 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title='Enterprise RAG Agent', version='1.0.0')
     api = FastAPI(title='Enterprise RAG Agent API', version='1.0.0')
+
+    @api.exception_handler(EmbeddingServiceUnavailable)
+    async def embedding_service_unavailable(
+        request: Request,
+        exc: EmbeddingServiceUnavailable,
+    ) -> JSONResponse:
+        return JSONResponse(status_code=503, content={'detail': str(exc)})
      
     api.add_middleware(
         CORSMiddleware,

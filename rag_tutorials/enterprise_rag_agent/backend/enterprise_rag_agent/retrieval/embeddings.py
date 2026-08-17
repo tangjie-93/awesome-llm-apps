@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import re
+import time
 from typing import Protocol
 
 EMBEDDING_DIMENSIONS = 128
 TOKEN_PATTERN = re.compile(r"[\w\u4e00-\u9fff]+", re.UNICODE)
+OPENAI_EMBEDDING_MAX_ATTEMPTS = 3
+OPENAI_EMBEDDING_RETRY_DELAY_SECONDS = 0.5
+logger = logging.getLogger(__name__)
+
+
+class EmbeddingServiceUnavailable(RuntimeError):
+    pass
 
 
 class EmbeddingGenerator(Protocol):
@@ -24,6 +33,7 @@ class OpenAIEmbeddingGenerator:
         self.model = model
         self.api_key = api_key
         self.base_url = base_url
+        self.fallback = LocalHashingEmbeddingGenerator()
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not self.api_key:
@@ -32,14 +42,37 @@ class OpenAIEmbeddingGenerator:
             return []
 
         try:
-            from openai import OpenAI
+            from openai import APIConnectionError, APIStatusError, OpenAI
         except ImportError as exc:
             raise RuntimeError("openai package is not installed") from exc
 
         client = OpenAI(api_key=self.api_key, base_url=self.base_url)
-        response = client.embeddings.create(model=self.model, input=texts)
+        for attempt in range(OPENAI_EMBEDDING_MAX_ATTEMPTS):
+            try:
+                response = client.embeddings.create(model=self.model, input=texts)
+                break
+            except APIStatusError as exc:
+                if exc.status_code != 503:
+                    raise
+                if attempt == OPENAI_EMBEDDING_MAX_ATTEMPTS - 1:
+                    return self._fallback(texts, exc)
+                time.sleep(OPENAI_EMBEDDING_RETRY_DELAY_SECONDS * (2**attempt))
+            except APIConnectionError as exc:
+                if attempt == OPENAI_EMBEDDING_MAX_ATTEMPTS - 1:
+                    return self._fallback(texts, exc)
+                time.sleep(OPENAI_EMBEDDING_RETRY_DELAY_SECONDS * (2**attempt))
+        else:
+            return self._fallback(texts)
+
         items = sorted(response.data, key=lambda item: item.index)
         return [list(item.embedding) for item in items]
+
+    def _fallback(self, texts: list[str], cause: Exception | None = None) -> list[list[float]]:
+        logger.warning(
+            "Embedding service unavailable; using local hashing embeddings%s",
+            f": {cause}" if cause else "",
+        )
+        return self.fallback.embed_texts(texts)
 
 
 def create_embedding_generator(

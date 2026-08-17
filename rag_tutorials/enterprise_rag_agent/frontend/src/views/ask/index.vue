@@ -13,7 +13,15 @@
                 <textarea v-model="question" class="field__textarea" rows="4"></textarea>
             </label>
             <div class="actions">
-                <button class="button button--primary" :disabled="submitting" @click="submitQuestion">提问</button>
+                <button
+                    class="button button--primary"
+                    :aria-busy="submitting"
+                    :disabled="submitting"
+                    @click="submitQuestion"
+                >
+                    <LoaderCircle v-if="submitting" class="button__spinner" :size="16" aria-hidden="true" />
+                    {{ submitting ? '生成中...' : '提问' }}
+                </button>
             </div>
         </div>
 
@@ -40,6 +48,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { LoaderCircle } from 'lucide-vue-next';
 import { useRagStore } from '@/store/rag';
 import type { AnswerView } from '@/types/rag';
 
@@ -142,6 +151,12 @@ async function submitQuestion(): Promise<void> {
         background: #1d4ed8;
         color: #fff;
     }
+
+    &__spinner {
+        margin-right: 6px;
+        vertical-align: -3px;
+        animation: spin 0.8s linear infinite;
+    }
 }
 
 .alert,
@@ -217,6 +232,12 @@ async function submitQuestion(): Promise<void> {
         margin-top: 4px;
         color: #64748b;
         font-size: 13px;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 }
 </style>

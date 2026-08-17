@@ -25,7 +25,15 @@
                 <input v-model.number="topK" class="field__input" type="number" min="1" max="20" />
             </label>
             <div class="actions">
-                <button class="button button--primary" :disabled="submitting" @click="submitSearch">检索</button>
+                <button
+                    class="button button--primary"
+                    :aria-busy="submitting"
+                    :disabled="submitting"
+                    @click="submitSearch"
+                >
+                    <LoaderCircle v-if="submitting" class="button__spinner" :size="16" aria-hidden="true" />
+                    {{ submitting ? '检索中...' : '检索' }}
+                </button>
             </div>
         </div>
 
@@ -57,6 +65,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { LoaderCircle } from 'lucide-vue-next';
 import { useRagStore } from '@/store/rag';
 import type { RagSearchItemView } from '@/types/rag';
 
@@ -174,6 +183,12 @@ async function submitSearch(): Promise<void> {
         background: #1d4ed8;
         color: #fff;
     }
+
+    &__spinner {
+        margin-right: 6px;
+        vertical-align: -3px;
+        animation: spin 0.8s linear infinite;
+    }
 }
 
 .alert {
@@ -245,6 +260,12 @@ async function submitSearch(): Promise<void> {
         font-size: 18px;
         font-weight: 700;
         color: #1d4ed8;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 }
 </style>
