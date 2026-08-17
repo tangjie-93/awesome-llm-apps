@@ -86,6 +86,16 @@ export interface RagDocumentsView {
     documents: RagDocumentSummary[];
 }
 
+export interface RagIngestResultView {
+    documents_indexed: number;
+    chunks_indexed: number;
+    documents_skipped: number;
+    documents_removed: number;
+    duplicate_paths: string[];
+    knowledge_bases: string[];
+    paths: string[];
+}
+
 export interface RagKnowledgeBasesView {
     knowledge_bases: string[];
 }
@@ -105,10 +115,12 @@ export interface RagDocumentSummary {
     path: string;
     title: string;
     content_type: string;
+    content_hash: string;
     version: string;
     allowed_groups: string[];
     risk_level: string;
     metadata: Record<string, unknown>;
+    indexed_at: string;
 }
 
 export interface RagAnswerLog {

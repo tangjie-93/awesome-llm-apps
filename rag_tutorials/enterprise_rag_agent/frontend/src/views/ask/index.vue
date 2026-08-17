@@ -17,17 +17,20 @@
             </div>
         </div>
 
+        <div v-if="message" class="alert" :class="{ 'alert--error': hasError }">{{ message }}</div>
+
         <article v-if="answer" class="result">
             <div class="result__header">
                 <div class="result__score">置信度 {{ answer.confidence.toFixed(2) }}</div>
                 <div v-if="answer.clarifying_question" class="result__hint">{{ answer.clarifying_question }}</div>
             </div>
             <pre class="result__text">{{ answer.answer }}</pre>
+            <div v-if="!answer.citations.length" class="empty">未返回引用来源，当前回答不能作为已验证结论。</div>
             <div v-if="answer.citations.length" class="citations">
                 <h2 class="section-title">引用来源</h2>
                 <div v-for="citation in answer.citations" :key="citation.source + String(citation.chunk_index)" class="citation">
                     <div class="citation__title">{{ citation.knowledge_base }} / {{ citation.title }}</div>
-                    <div class="citation__meta">{{ citation.section_path }} 段 chunk {{ citation.chunk_index }}</div>
+                    <div class="citation__meta">{{ citation.section_path }} 段 chunk {{ citation.chunk_index }} / {{ citation.risk_level }}</div>
                     <div class="citation__terms">{{ citation.matched_terms.join(', ') }}</div>
                 </div>
             </div>
@@ -44,11 +47,31 @@ const store = useRagStore();
 const question = ref<string>('How fast should we acknowledge the incident?');
 const answer = ref<AnswerView | null>(null);
 const submitting = ref<boolean>(false);
+const message = ref<string>('');
+const hasError = ref<boolean>(false);
 
+/**
+ * 提交问答请求；成功时展示答案和引用，失败或空问题时展示明确提示。
+ */
 async function submitQuestion(): Promise<void> {
+    if (!question.value.trim()) {
+        message.value = '请输入问题';
+        hasError.value = true;
+        answer.value = null;
+        return;
+    }
     submitting.value = true;
+    message.value = '';
+    hasError.value = false;
     try {
-        answer.value = await store.askQuestion(question.value);
+        answer.value = await store.askQuestion(question.value.trim());
+        if (!answer.value.citations.length) {
+            message.value = '未检索到可引用证据';
+        }
+    } catch (error) {
+        message.value = error instanceof Error ? error.message : '提问失败';
+        hasError.value = true;
+        answer.value = null;
     } finally {
         submitting.value = false;
     }
@@ -119,6 +142,31 @@ async function submitQuestion(): Promise<void> {
         background: #1d4ed8;
         color: #fff;
     }
+}
+
+.alert,
+.empty {
+    margin-bottom: 16px;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.alert {
+    max-width: 960px;
+    background: #eff6ff;
+    color: #1d4ed8;
+
+    &--error {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+}
+
+.empty {
+    margin-top: 14px;
+    border: 1px dashed #cbd5e1;
+    background: #f8fafc;
+    color: #64748b;
 }
 
 .result {

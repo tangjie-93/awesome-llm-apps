@@ -65,6 +65,10 @@ class EnterpriseRAGServiceTest(unittest.TestCase):
             self.assertGreaterEqual(ingest_result.chunks_indexed, 2)
             self.assertEqual(ingest_result.documents_skipped, 0)
             self.assertEqual(ingest_result.documents_removed, 0)
+            document_summaries = service.list_documents()
+            self.assertTrue(all(document["content_hash"] for document in document_summaries))
+            self.assertTrue(all(document["risk_level"] in {"high", "medium"} for document in document_summaries))
+            self.assertTrue(all("indexed_at" in document for document in document_summaries))
 
             answer = service.agent.answer("How fast should we acknowledge the incident?")
             self.assertGreater(answer.confidence, 0)

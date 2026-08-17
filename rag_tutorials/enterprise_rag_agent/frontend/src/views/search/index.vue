@@ -29,14 +29,17 @@
             </div>
         </div>
 
-        <div v-if="message" class="alert">{{ message }}</div>
+        <div v-if="message" class="alert" :class="{ 'alert--error': hasError }">{{ message }}</div>
+        <div v-if="hasSearched && !submitting && !results.length && !hasError" class="empty">
+            未检索到候选片段。请确认知识库、权限组或问题关键词。
+        </div>
 
         <div v-if="results.length" class="results">
             <article v-for="item in results" :key="item.chunk.chunk_id" class="result-card">
                 <div class="result-card__header">
                     <div>
                         <div class="result-card__title">{{ item.chunk.knowledge_base }} / {{ item.chunk.title }}</div>
-                        <div class="result-card__meta">{{ item.chunk.section_path }} · chunk {{ item.chunk.chunk_index }} · {{ item.chunk.path }}</div>
+                        <div class="result-card__meta">{{ item.chunk.section_path }} · chunk {{ item.chunk.chunk_index }} · {{ item.chunk.risk_level }} · {{ item.chunk.path }}</div>
                     </div>
                     <div class="result-card__score">{{ item.score.toFixed(3) }}</div>
                 </div>
@@ -65,17 +68,30 @@ const topK = ref<number>(5);
 const submitting = ref<boolean>(false);
 const message = ref<string>('');
 const results = ref<RagSearchItemView[]>([]);
+const hasSearched = ref<boolean>(false);
+const hasError = ref<boolean>(false);
 
+/**
+ * 提交检索请求；成功时展示候选片段和打分，失败或无输入时展示明确提示。
+ */
 async function submitSearch(): Promise<void> {
+    if (!question.value.trim()) {
+        message.value = '请输入检索问题';
+        hasError.value = true;
+        hasSearched.value = true;
+        results.value = [];
+        return;
+    }
     submitting.value = true;
     message.value = '';
+    hasError.value = false;
     try {
         const userGroups = userGroupsText.value
             .split(',')
             .map((group) => group.trim())
             .filter((group) => group.length > 0);
         const response = await store.searchQuestion(
-            question.value,
+            question.value.trim(),
             knowledgeBase.value.trim() || undefined,
             userGroups.length > 0 ? userGroups : undefined,
             topK.value
@@ -84,8 +100,10 @@ async function submitSearch(): Promise<void> {
         message.value = `返回 ${response.results.length} 条结果`;
     } catch (error) {
         message.value = error instanceof Error ? error.message : '检索失败';
+        hasError.value = true;
         results.value = [];
     } finally {
+        hasSearched.value = true;
         submitting.value = false;
     }
 }
@@ -164,6 +182,20 @@ async function submitSearch(): Promise<void> {
     border-radius: 8px;
     background: #eff6ff;
     color: #1d4ed8;
+
+    &--error {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+}
+
+.empty {
+    margin-bottom: 16px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    color: #64748b;
 }
 
 .results {

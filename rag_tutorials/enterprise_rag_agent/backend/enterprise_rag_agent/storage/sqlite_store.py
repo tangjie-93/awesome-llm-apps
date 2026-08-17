@@ -35,7 +35,8 @@ class SQLiteRAGStore:
                         allowed_groups TEXT NOT NULL,
                         risk_level TEXT NOT NULL DEFAULT 'low',
                         metadata TEXT NOT NULL,
-                        content TEXT NOT NULL
+                        content TEXT NOT NULL,
+                        indexed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                     """
                 )
@@ -87,6 +88,7 @@ class SQLiteRAGStore:
                 )
                 self._ensure_column(connection, "documents", "content_hash", "TEXT NOT NULL DEFAULT ''")
                 self._ensure_column(connection, "documents", "risk_level", "TEXT NOT NULL DEFAULT 'low'")
+                self._ensure_column(connection, "documents", "indexed_at", "TEXT NOT NULL DEFAULT ''")
                 self._ensure_column(connection, "chunks", "embedding", "TEXT NOT NULL DEFAULT '[]'")
                 self._ensure_column(connection, "chunks", "risk_level", "TEXT NOT NULL DEFAULT 'low'")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_chunks_kb ON chunks(knowledge_base)")
@@ -247,7 +249,7 @@ class SQLiteRAGStore:
 
     def list_documents(self, knowledge_base: str | None = None) -> list[dict[str, object]]:
         query = """
-            SELECT source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata
+            SELECT source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata, indexed_at
             FROM documents
         """
         params: tuple[object, ...] = ()
@@ -272,6 +274,7 @@ class SQLiteRAGStore:
                 "allowed_groups": json.loads(row["allowed_groups"]),
                 "risk_level": row["risk_level"],
                 "metadata": json.loads(row["metadata"]),
+                "indexed_at": row["indexed_at"],
             }
             for row in rows
         ]
@@ -282,7 +285,7 @@ class SQLiteRAGStore:
             row = connection.execute(
                 """
                 SELECT source_id, knowledge_base, path, title, content_type,
-                       content_hash, version, allowed_groups, risk_level, metadata
+                       content_hash, version, allowed_groups, risk_level, metadata, indexed_at
                 FROM documents
                 WHERE source_id = ?
                 """,
@@ -302,7 +305,7 @@ class SQLiteRAGStore:
             row = connection.execute(
                 """
                 SELECT source_id, knowledge_base, path, title, content_type,
-                       content_hash, version, allowed_groups, risk_level, metadata
+                       content_hash, version, allowed_groups, risk_level, metadata, indexed_at
                 FROM documents
                 WHERE content_hash = ? AND source_id != ?
                 ORDER BY knowledge_base, path
@@ -326,6 +329,7 @@ class SQLiteRAGStore:
             "allowed_groups": json.loads(row["allowed_groups"]),
             "risk_level": row["risk_level"],
             "metadata": json.loads(row["metadata"]),
+            "indexed_at": row["indexed_at"],
         }
 
     def list_knowledge_bases(self) -> list[str]:

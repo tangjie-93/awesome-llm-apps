@@ -3,6 +3,7 @@ import type {
     AnswerView,
     RagConfigView,
     RagDocumentsView,
+    RagIngestResultView,
     RagKnowledgeBasesView,
     RagLogsView,
     RagScopeView,
@@ -59,7 +60,10 @@ class RagApi {
         return this.request('/evaluation-logs');
     }
 
-    public async ingest(path: string, knowledgeBase?: string, allowedGroups?: string[]): Promise<Record<string, unknown>> {
+    /**
+     * 提交文档导入请求；成功时返回索引、跳过、清理和重复路径明细，失败时抛出请求错误。
+     */
+    public async ingest(path: string, knowledgeBase?: string, allowedGroups?: string[]): Promise<RagIngestResultView> {
         return this.request('/ingest', {
             method: 'POST',
             data: {

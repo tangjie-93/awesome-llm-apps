@@ -7,6 +7,7 @@ import type {
     RagDocumentSummary,
     RagEvaluationLog,
     RagEvaluationResultView,
+    RagIngestResultView,
     RagScopeView,
     RagSearchView,
     RagStatsView
@@ -72,7 +73,10 @@ export const useRagStore = defineStore('rag', () => {
         }
     }
 
-    async function ingestPath(path: string, knowledgeBase?: string, allowedGroups?: string[]): Promise<Record<string, unknown>> {
+    /**
+     * 导入本地文件或目录；成功时返回导入明细，失败时向调用方抛出错误。
+     */
+    async function ingestPath(path: string, knowledgeBase?: string, allowedGroups?: string[]): Promise<RagIngestResultView> {
         return ragApi.ingest(path, knowledgeBase, allowedGroups);
     }
 
