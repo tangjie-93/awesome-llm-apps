@@ -42,6 +42,19 @@
                     <div class="citation__terms">{{ citation.matched_terms.join(', ') }}</div>
                 </div>
             </div>
+            <div v-if="answer.evidence_snippets.length" class="evidence">
+                <h2 class="section-title">证据片段</h2>
+                <article
+                    v-for="snippet in answer.evidence_snippets"
+                    :key="snippet.source + snippet.section_path"
+                    class="evidence__item"
+                >
+                    <div class="evidence__meta">
+                        {{ snippet.knowledge_base }} / {{ snippet.section_path }} / {{ snippet.risk_level }}
+                    </div>
+                    <p class="evidence__text">{{ snippet.snippet }}</p>
+                </article>
+            </div>
         </article>
     </section>
 </template>
@@ -232,6 +245,24 @@ async function submitQuestion(): Promise<void> {
         margin-top: 4px;
         color: #64748b;
         font-size: 13px;
+    }
+}
+
+.evidence {
+    &__item {
+        padding: 12px 0;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    &__meta {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    &__text {
+        margin: 8px 0 0;
+        line-height: 1.6;
+        white-space: pre-wrap;
     }
 }
 

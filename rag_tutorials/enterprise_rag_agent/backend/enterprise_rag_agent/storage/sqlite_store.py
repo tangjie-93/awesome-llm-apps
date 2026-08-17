@@ -86,6 +86,20 @@ class SQLiteRAGStore:
                     )
                     """
                 )
+                connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS operation_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        operation TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        path TEXT,
+                        knowledge_base TEXT,
+                        allowed_groups TEXT NOT NULL,
+                        detail TEXT NOT NULL,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
                 self._ensure_column(connection, "documents", "content_hash", "TEXT NOT NULL DEFAULT ''")
                 self._ensure_column(connection, "documents", "risk_level", "TEXT NOT NULL DEFAULT 'low'")
                 self._ensure_column(connection, "documents", "indexed_at", "TEXT NOT NULL DEFAULT ''")
@@ -349,6 +363,7 @@ class SQLiteRAGStore:
             chunks = connection.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
             answer_logs = connection.execute("SELECT COUNT(*) FROM answer_logs").fetchone()[0]
             evaluation_logs = connection.execute("SELECT COUNT(*) FROM evaluation_logs").fetchone()[0]
+            operation_logs = connection.execute("SELECT COUNT(*) FROM operation_logs").fetchone()[0]
         finally:
             connection.close()
         return {
@@ -356,6 +371,7 @@ class SQLiteRAGStore:
             "chunks": chunks,
             "answer_logs": answer_logs,
             "evaluation_logs": evaluation_logs,
+            "operation_logs": operation_logs,
         }
 
     def log_answer(
@@ -395,6 +411,35 @@ class SQLiteRAGStore:
                     VALUES (?, ?, ?, ?, ?)
                     """,
                     (question, expected_answer, actual_answer, score, notes),
+                )
+        finally:
+            connection.close()
+
+    def log_operation(
+        self,
+        operation: str,
+        status: str,
+        path: str | None,
+        knowledge_base: str | None,
+        allowed_groups: list[str] | None,
+        detail: dict[str, object],
+    ) -> None:
+        connection = self._connect()
+        try:
+            with connection:
+                connection.execute(
+                    """
+                    INSERT INTO operation_logs (operation, status, path, knowledge_base, allowed_groups, detail)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        operation,
+                        status,
+                        path,
+                        knowledge_base,
+                        json.dumps(allowed_groups or [], ensure_ascii=False),
+                        json.dumps(detail, ensure_ascii=False),
+                    ),
                 )
         finally:
             connection.close()
@@ -444,6 +489,32 @@ class SQLiteRAGStore:
                 "actual_answer": row["actual_answer"],
                 "score": row["score"],
                 "notes": row["notes"],
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+
+    def list_operation_logs(self) -> list[dict[str, object]]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT id, operation, status, path, knowledge_base, allowed_groups, detail, created_at
+                FROM operation_logs
+                ORDER BY id DESC
+                """
+            ).fetchall()
+        finally:
+            connection.close()
+        return [
+            {
+                "id": row["id"],
+                "operation": row["operation"],
+                "status": row["status"],
+                "path": row["path"],
+                "knowledge_base": row["knowledge_base"],
+                "allowed_groups": json.loads(row["allowed_groups"]),
+                "detail": json.loads(row["detail"]),
                 "created_at": row["created_at"],
             }
             for row in rows

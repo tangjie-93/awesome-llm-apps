@@ -8,6 +8,7 @@ import type {
     RagEvaluationLog,
     RagEvaluationResultView,
     RagIngestResultView,
+    RagOperationLog,
     RagScopeView,
     RagSearchView,
     RagStatsView
@@ -33,6 +34,7 @@ export const useRagStore = defineStore('rag', () => {
     const scope = ref<RagScopeView | null>(null);
     const answerLogs = ref<RagAnswerLog[]>([]);
     const evaluationLogs = ref<RagEvaluationLog[]>([]);
+    const operationLogs = ref<RagOperationLog[]>([]);
     const stats = ref<RagStatsView>({});
     const loading = ref<boolean>(false);
     const error = ref<string>('');
@@ -48,14 +50,15 @@ export const useRagStore = defineStore('rag', () => {
         try {
             baseUrl.value = baseUrl.value.trim() || DEFAULT_BASE_URL;
             ragApi.setBaseUrl(baseUrl.value);
-            const [statsData, configData, scopeData, kbData, docsData, answerData, evalData] = await Promise.all([
+            const [statsData, configData, scopeData, kbData, docsData, answerData, evalData, operationData] = await Promise.all([
                 ragApi.getStats(),
                 ragApi.getConfig(),
                 ragApi.getScope(),
                 ragApi.getKnowledgeBases(),
                 ragApi.getDocuments(),
                 ragApi.getAnswerLogs(),
-                ragApi.getEvaluationLogs()
+                ragApi.getEvaluationLogs(),
+                ragApi.getOperationLogs()
             ]);
             stats.value = statsData;
             companyName.value = String(statsData.company_name ?? companyName.value);
@@ -65,6 +68,7 @@ export const useRagStore = defineStore('rag', () => {
             documents.value = docsData.documents ?? [];
             answerLogs.value = answerData.answer_logs ?? [];
             evaluationLogs.value = evalData.evaluation_logs ?? [];
+            operationLogs.value = operationData.operation_logs ?? [];
             localStorage.setItem('enterprise-rag-base-url', baseUrl.value);
         } catch (err) {
             error.value = err instanceof Error ? err.message : '加载失败';
@@ -99,6 +103,7 @@ export const useRagStore = defineStore('rag', () => {
         documents,
         answerLogs,
         evaluationLogs,
+        operationLogs,
         stats,
         config,
         scope,

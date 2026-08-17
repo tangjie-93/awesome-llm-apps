@@ -121,6 +121,9 @@ class EnterpriseRAGService:
     def list_evaluation_logs(self) -> list[dict[str, object]]:
         return self.store.list_evaluation_logs()
 
+    def list_operation_logs(self) -> list[dict[str, object]]:
+        return self.store.list_operation_logs()
+
     def evaluate_answer(self, question: str, expected_answer: str | None, actual_answer: str) -> dict[str, object]:
         from ..evaluation.scorer import score_answer
 

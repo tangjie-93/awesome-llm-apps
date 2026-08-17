@@ -15,9 +15,17 @@ export interface AnswerView {
     confidence: number;
     knowledge_bases: string[];
     citations: RetrievedChunkView[];
-    evidence_snippets: Array<Record<string, unknown>>;
+    evidence_snippets: AnswerEvidenceSnippet[];
     clarifying_question: string | null;
     sources_consulted: number;
+}
+
+export interface AnswerEvidenceSnippet {
+    knowledge_base: string;
+    source: string;
+    section_path: string;
+    risk_level: string;
+    snippet: string;
 }
 
 export interface RagChunkView {
@@ -103,6 +111,7 @@ export interface RagKnowledgeBasesView {
 export interface RagLogsView {
     answer_logs?: RagAnswerLog[];
     evaluation_logs?: RagEvaluationLog[];
+    operation_logs?: RagOperationLog[];
 }
 
 export interface RagSearchView {
@@ -140,6 +149,17 @@ export interface RagEvaluationLog {
     actual_answer: string;
     score: number;
     notes: string;
+    created_at: string;
+}
+
+export interface RagOperationLog {
+    id: number;
+    operation: string;
+    status: string;
+    path: string | null;
+    knowledge_base: string | null;
+    allowed_groups: string[];
+    detail: Record<string, unknown>;
     created_at: string;
 }
 

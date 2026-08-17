@@ -60,6 +60,10 @@ class RagApi {
         return this.request('/evaluation-logs');
     }
 
+    public async getOperationLogs(): Promise<RagLogsView> {
+        return this.request('/operation-logs');
+    }
+
     /**
      * 提交文档导入请求；成功时返回索引、跳过、清理和重复路径明细，失败时抛出请求错误。
      */

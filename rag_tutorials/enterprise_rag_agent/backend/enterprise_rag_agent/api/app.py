@@ -103,12 +103,41 @@ def create_app() -> FastAPI:
     def ingest(payload: IngestRequest) -> dict[str, Any]:
         target = _resolve_path(payload.path)
         if not target.exists():
+            service.store.log_operation(
+                "ingest",
+                "failed",
+                payload.path,
+                payload.knowledge_base,
+                payload.allowed_groups,
+                {"error": f"Path not found: {payload.path}"},
+            )
             raise HTTPException(status_code=404, detail=f'Path not found: {payload.path}')
-        return service.ingest_path(
-            target,
-            knowledge_base=payload.knowledge_base,
-            allowed_groups=payload.allowed_groups,
-        ).to_dict()
+        try:
+            result = service.ingest_path(
+                target,
+                knowledge_base=payload.knowledge_base,
+                allowed_groups=payload.allowed_groups,
+            )
+        except Exception as exc:
+            service.store.log_operation(
+                "ingest",
+                "failed",
+                str(target),
+                payload.knowledge_base,
+                payload.allowed_groups,
+                {"error": str(exc)},
+            )
+            raise
+        result_payload = result.to_dict()
+        service.store.log_operation(
+            "ingest",
+            "succeeded",
+            str(target),
+            payload.knowledge_base,
+            payload.allowed_groups,
+            result_payload,
+        )
+        return result_payload
 
     @api.post('/search')
     def search(payload: AskRequest) -> dict[str, Any]:
@@ -140,6 +169,10 @@ def create_app() -> FastAPI:
     @api.get('/evaluation-logs')
     def evaluation_logs() -> dict[str, Any]:
         return {'evaluation_logs': service.list_evaluation_logs()}
+
+    @api.get('/operation-logs')
+    def operation_logs() -> dict[str, Any]:
+        return {'operation_logs': service.list_operation_logs()}
 
     app.mount('/api', api)
     return app

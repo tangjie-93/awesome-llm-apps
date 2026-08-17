@@ -12,15 +12,33 @@
                 <h2 class="panel__title">回答日志</h2>
                 <div v-for="log in store.answerLogs" :key="String(log.id)" class="log">
                     <div class="log__title">{{ String(log.question) }}</div>
-                    <div class="log__meta">置信度 {{ String(log.confidence) }}</div>
+                    <div class="log__meta">
+                        置信度 {{ String(log.confidence) }} · {{ log.created_at }} ·
+                        {{ String(log.metadata.knowledge_base ?? '全部知识库') }}
+                    </div>
                 </div>
+                <div v-if="!store.answerLogs.length" class="empty">暂无回答日志。</div>
             </article>
             <article class="panel">
                 <h2 class="panel__title">评估日志</h2>
                 <div v-for="log in store.evaluationLogs" :key="String(log.id)" class="log">
                     <div class="log__title">{{ String(log.question) }}</div>
-                    <div class="log__meta">得分 {{ String(log.score) }}</div>
+                    <div class="log__meta">得分 {{ String(log.score) }} · {{ log.created_at }}</div>
                 </div>
+                <div v-if="!store.evaluationLogs.length" class="empty">暂无评估日志。</div>
+            </article>
+            <article class="panel">
+                <h2 class="panel__title">导入日志</h2>
+                <div v-for="log in store.operationLogs" :key="String(log.id)" class="log">
+                    <div class="log__title">{{ log.status === 'succeeded' ? '导入完成' : '导入失败' }}</div>
+                    <div class="log__meta">{{ log.path || '-' }} · {{ log.created_at }}</div>
+                    <div class="log__meta">
+                        新增 {{ String(log.detail.documents_indexed ?? 0) }} ·
+                        跳过 {{ String(log.detail.documents_skipped ?? 0) }} ·
+                        清理 {{ String(log.detail.documents_removed ?? 0) }}
+                    </div>
+                </div>
+                <div v-if="!store.operationLogs.length" class="empty">暂无导入日志。</div>
             </article>
         </div>
     </section>
@@ -58,7 +76,7 @@ onMounted(() => {
 
 .logs {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
 }
 
@@ -87,5 +105,11 @@ onMounted(() => {
         color: #64748b;
         font-size: 13px;
     }
+}
+
+.empty {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
 }
 </style>
