@@ -43,6 +43,21 @@ class EnterpriseRAGServiceTest(unittest.TestCase):
                 embedding_api_key=None,
                 default_groups=("public", "security", "hr", "it", "ops"),
                 default_risk_levels=("low", "medium", "high"),
+                risk_by_group={"public": "low", "security": "high", "hr": "medium", "it": "medium", "ops": "high"},
+                business_domains=(
+                    {"code": "security", "description": "安全制度、事件响应、访问控制"},
+                    {"code": "hr", "description": "入职、培训、员工手册"},
+                    {"code": "it", "description": "备份、运维、核心 IT 标准"},
+                ),
+                supported_document_types=("Markdown", "Text", "FAQ"),
+                excluded_scopes=("多租户隔离", "细粒度段权限", "自动执行动作", "多模态输入", "知识图谱"),
+                permission_summary=(
+                    "文档默认归属 public。",
+                    "敏感文档必须显式指定权限组。",
+                    "检索结果必须先过滤权限，再进入最终回答。",
+                    "high 风险内容可生成候选答案，但必须人工复核和审批后才可对外使用。",
+                ),
+                high_risk_policy="允许模型生成答案候选，但必须人工复核和审批后才可对外使用。",
             )
             service = EnterpriseRAGService(config)
             ingest_result = service.ingest_path(kb_root)
@@ -100,6 +115,9 @@ class EnterpriseRAGServiceTest(unittest.TestCase):
             chunks = service.store.load_chunks(["security"])
             self.assertTrue(chunks)
             self.assertTrue(all(chunk.embedding for chunk in chunks))
+            self.assertTrue(all(chunk.risk_level == "high" for chunk in chunks))
+            logged_answer = service.list_answer_logs()[0]
+            self.assertTrue(logged_answer["metadata"]["requires_human_review"])
 
 
 if __name__ == "__main__":

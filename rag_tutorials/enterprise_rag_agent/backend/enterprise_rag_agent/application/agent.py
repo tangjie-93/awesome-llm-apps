@@ -103,6 +103,7 @@ class EnterpriseRAGAgent:
                     "title": item.chunk.title,
                     "section_path": item.chunk.section_path,
                     "chunk_index": item.chunk.chunk_index,
+                    "risk_level": item.chunk.risk_level,
                     "score": round(item.score, 4),
                     "matched_terms": item.matched_terms,
                 }
@@ -115,6 +116,7 @@ class EnterpriseRAGAgent:
                 "knowledge_base": item.chunk.knowledge_base,
                 "source": item.chunk.path,
                 "section_path": item.chunk.section_path,
+                "risk_level": item.chunk.risk_level,
                 "snippet": item.chunk.text[:320],
             }
             for item in retrieved[:3]
@@ -129,5 +131,10 @@ class EnterpriseRAGAgent:
             result.answer,
             result.confidence,
             result.citations,
-            {"knowledge_base": knowledge_base, "user_groups": list(user_groups or [])},
+            {
+                "knowledge_base": knowledge_base,
+                "user_groups": list(user_groups or []),
+                "requires_human_review": any(citation.get("risk_level") == "high" for citation in result.citations),
+                "high_risk_policy": self.service.config.high_risk_policy,
+            },
         )

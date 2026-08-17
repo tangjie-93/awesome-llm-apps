@@ -134,6 +134,8 @@ class EnterpriseRAGService:
         knowledge_base: str | None,
         allowed_groups: list[str] | None,
     ) -> SourceDocument:
+        final_groups = normalize_groups(allowed_groups) if allowed_groups else document.allowed_groups
+        risk_level = self._infer_risk_level(final_groups, knowledge_base or document.knowledge_base)
         return SourceDocument(
             source_id=document.source_id,
             knowledge_base=knowledge_base or document.knowledge_base,
@@ -143,8 +145,9 @@ class EnterpriseRAGService:
             content_type=document.content_type,
             content_hash=document.content_hash,
             version=document.version,
-            allowed_groups=normalize_groups(allowed_groups) if allowed_groups else document.allowed_groups,
-            metadata=document.metadata,
+            allowed_groups=final_groups,
+            risk_level=risk_level,
+            metadata={**document.metadata, "risk_level": risk_level},
         )
 
     def _build_chunks(self, document: SourceDocument) -> list[ChunkRecord]:
@@ -174,11 +177,22 @@ class EnterpriseRAGService:
                     token_count=len(part.split()),
                     embedding=embedding,
                     allowed_groups=document.allowed_groups,
+                    risk_level=document.risk_level,
                     metadata={
                         "version": document.version,
                         "section_index": section_index,
                         "content_type": document.content_type,
+                        "risk_level": document.risk_level,
                     },
                 )
             )
         return records
+
+    def _infer_risk_level(self, allowed_groups: tuple[str, ...], knowledge_base: str) -> str:
+        """根据权限组和知识库推断阶段 0 文档风险等级。"""
+        candidates = [self.config.risk_by_group.get(group, "") for group in allowed_groups]
+        candidates.append(self.config.risk_by_group.get(knowledge_base, ""))
+        for risk_level in ("high", "medium", "low"):
+            if risk_level in candidates:
+                return risk_level
+        return "low"

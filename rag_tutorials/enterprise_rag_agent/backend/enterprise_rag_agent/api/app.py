@@ -61,6 +61,7 @@ def create_app() -> FastAPI:
             'default_knowledge_base': app_config.default_knowledge_base,
             'default_groups': list(app_config.default_groups),
             'default_risk_levels': list(app_config.default_risk_levels),
+            'risk_by_group': app_config.risk_by_group,
             'chunk_size': app_config.chunk_size,
             'chunk_overlap': app_config.chunk_overlap,
             'top_k': app_config.top_k,
@@ -68,6 +69,17 @@ def create_app() -> FastAPI:
             'enable_llm': app_config.enable_llm,
             'llm_provider': app_config.llm_provider,
             'llm_model': app_config.llm_model,
+        }
+
+    @api.get('/scope')
+    def scope_view() -> dict[str, Any]:
+        return {
+            'business_domains': list(app_config.business_domains),
+            'supported_document_types': list(app_config.supported_document_types),
+            'excluded_scopes': list(app_config.excluded_scopes),
+            'permission_summary': list(app_config.permission_summary),
+            'risk_by_group': app_config.risk_by_group,
+            'high_risk_policy': app_config.high_risk_policy,
         }
 
     @api.get('/knowledge-bases')

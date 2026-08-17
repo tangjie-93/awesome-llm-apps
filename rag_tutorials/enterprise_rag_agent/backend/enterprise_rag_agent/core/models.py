@@ -16,6 +16,7 @@ class SourceDocument:
     content_hash: str
     version: str = "1"
     allowed_groups: tuple[str, ...] = ("public",)
+    risk_level: str = "low"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -33,6 +34,7 @@ class ChunkRecord:
     token_count: int
     embedding: list[float] = field(default_factory=list)
     allowed_groups: tuple[str, ...] = ("public",)
+    risk_level: str = "low"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

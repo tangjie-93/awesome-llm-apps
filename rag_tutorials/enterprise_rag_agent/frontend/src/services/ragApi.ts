@@ -5,6 +5,7 @@ import type {
     RagDocumentsView,
     RagKnowledgeBasesView,
     RagLogsView,
+    RagScopeView,
     RagSearchView,
     RagStatsView,
     RagEvaluationResultView
@@ -33,6 +34,13 @@ class RagApi {
 
     public async getConfig(): Promise<RagConfigView> {
         return this.request('/config');
+    }
+
+    /**
+     * 获取阶段 0 只读范围配置；成功时返回业务域、权限和风险边界，失败时抛出请求错误。
+     */
+    public async getScope(): Promise<RagScopeView> {
+        return this.request('/scope');
     }
 
     public async getKnowledgeBases(): Promise<RagKnowledgeBasesView> {

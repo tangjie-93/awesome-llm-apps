@@ -7,6 +7,7 @@ import type {
     RagDocumentSummary,
     RagEvaluationLog,
     RagEvaluationResultView,
+    RagScopeView,
     RagSearchView,
     RagStatsView
 } from '@/types/rag';
@@ -28,6 +29,7 @@ export const useRagStore = defineStore('rag', () => {
     const config = ref<RagConfigView>({});
     const knowledgeBases = ref<string[]>([]);
     const documents = ref<RagDocumentSummary[]>([]);
+    const scope = ref<RagScopeView | null>(null);
     const answerLogs = ref<RagAnswerLog[]>([]);
     const evaluationLogs = ref<RagEvaluationLog[]>([]);
     const stats = ref<RagStatsView>({});
@@ -36,15 +38,19 @@ export const useRagStore = defineStore('rag', () => {
 
     const hasKnowledgeBases = computed<boolean>(() => knowledgeBases.value.length > 0);
 
+    /**
+     * 同步仪表盘和阶段 0 范围数据；成功时刷新本地状态，失败时写入 error。
+     */
     async function syncDashboard(): Promise<void> {
         loading.value = true;
         error.value = '';
         try {
             baseUrl.value = baseUrl.value.trim() || DEFAULT_BASE_URL;
             ragApi.setBaseUrl(baseUrl.value);
-            const [statsData, configData, kbData, docsData, answerData, evalData] = await Promise.all([
+            const [statsData, configData, scopeData, kbData, docsData, answerData, evalData] = await Promise.all([
                 ragApi.getStats(),
                 ragApi.getConfig(),
+                ragApi.getScope(),
                 ragApi.getKnowledgeBases(),
                 ragApi.getDocuments(),
                 ragApi.getAnswerLogs(),
@@ -53,6 +59,7 @@ export const useRagStore = defineStore('rag', () => {
             stats.value = statsData;
             companyName.value = String(statsData.company_name ?? companyName.value);
             config.value = configData;
+            scope.value = scopeData;
             knowledgeBases.value = kbData.knowledge_bases ?? [];
             documents.value = docsData.documents ?? [];
             answerLogs.value = answerData.answer_logs ?? [];
@@ -90,6 +97,7 @@ export const useRagStore = defineStore('rag', () => {
         evaluationLogs,
         stats,
         config,
+        scope,
         loading,
         error,
         hasKnowledgeBases,

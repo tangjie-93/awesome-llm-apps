@@ -88,7 +88,7 @@
                 <h2 class="scope-card__title">样本文档</h2>
                 <ul class="scope-bullets">
                     <li v-for="doc in store.documents" :key="String(doc.source_id)">
-                        {{ doc.knowledge_base }} / {{ doc.title }} / {{ doc.allowed_groups.join(', ') }}
+                        {{ doc.knowledge_base }} / {{ doc.title }} / {{ doc.allowed_groups.join(', ') }} / {{ doc.risk_level }}
                     </li>
                 </ul>
             </article>
@@ -96,40 +96,54 @@
             <article class="scope-card scope-card--wide">
                 <h2 class="scope-card__title">业务范围</h2>
                 <ul class="scope-bullets">
-                    <li>security：安全制度、事件响应、访问控制</li>
-                    <li>hr：入职、培训、员工手册</li>
-                    <li>it：备份、运维、核心 IT 标准</li>
+                    <li v-for="domain in businessDomains" :key="domain.code">
+                        {{ domain.code }}：{{ domain.description }}
+                    </li>
                 </ul>
             </article>
 
             <article class="scope-card scope-card--wide">
                 <h2 class="scope-card__title">不在范围内</h2>
                 <ul class="scope-bullets">
-                    <li>多租户隔离</li>
-                    <li>细粒度段权限</li>
-                    <li>自动执行动作</li>
-                    <li>多模态输入</li>
-                    <li>知识图谱</li>
+                    <li v-for="item in excludedScopes" :key="item">{{ item }}</li>
                 </ul>
             </article>
 
             <article class="scope-card scope-card--wide">
                 <h2 class="scope-card__title">权限说明</h2>
-                <p class="scope-copy">
-                    文档默认是 <strong>公开</strong>。敏感文档必须显式分配权限组。
-                    检索结果会先过滤再回答。<strong>high</strong> 风险内容可以生成候选答案，但必须人工复核并批准。
-                </p>
+                <ul class="scope-bullets">
+                    <li v-for="rule in permissionSummary" :key="rule">{{ rule }}</li>
+                </ul>
+            </article>
+
+            <article class="scope-card scope-card--wide">
+                <h2 class="scope-card__title">风险映射</h2>
+                <dl class="scope-list">
+                    <div v-for="[group, riskLevel] in riskEntries" :key="group">
+                        <dt>{{ group }}</dt>
+                        <dd>{{ riskLevel }}</dd>
+                    </div>
+                </dl>
+                <p class="scope-copy">{{ store.scope?.high_risk_policy }}</p>
             </article>
         </div>
     </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
 
+const businessDomains = computed(() => store.scope?.business_domains ?? []);
+const excludedScopes = computed(() => store.scope?.excluded_scopes ?? []);
+const permissionSummary = computed(() => store.scope?.permission_summary ?? []);
+const riskEntries = computed(() => Object.entries(store.scope?.risk_by_group ?? {}));
+
+/**
+ * 刷新阶段 0 只读范围数据；成功时同步配置、范围、知识库和文档，失败信息由 store 记录。
+ */
 async function refreshScope(): Promise<void> {
     await store.syncDashboard();
 }

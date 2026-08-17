@@ -20,6 +20,12 @@
 - `ENTERPRISE_RAG_LLM_PROVIDER`
 - `ENTERPRISE_RAG_MODEL`
 - `ENTERPRISE_RAG_LLM_BASE_URL`
+- `ENTERPRISE_RAG_DEFAULT_GROUPS`
+- `ENTERPRISE_RAG_RISK_LEVELS`
+- `ENTERPRISE_RAG_RISK_BY_GROUP`
+- `ENTERPRISE_RAG_BUSINESS_DOMAINS`
+- `ENTERPRISE_RAG_DOCUMENT_TYPES`
+- `ENTERPRISE_RAG_EXCLUDED_SCOPES`
 
 ## 阶段 0 推荐值
 
@@ -27,6 +33,16 @@
 - 默认文档权限组：`public`
 - 默认业务组：`security`、`hr`、`it`、`ops`
 - 默认风险映射：`low`、`medium`、`high`
+- 默认组风险映射：`public:low`、`security:high`、`hr:medium`、`it:medium`、`ops:high`
+
+## 阶段 0 可覆盖配置格式
+
+- `ENTERPRISE_RAG_DEFAULT_GROUPS`：逗号分隔，例如 `public,security,hr,it,ops`
+- `ENTERPRISE_RAG_RISK_LEVELS`：逗号分隔，例如 `low,medium,high`
+- `ENTERPRISE_RAG_RISK_BY_GROUP`：逗号分隔的 `group:risk`，例如 `public:low,security:high,hr:medium`
+- `ENTERPRISE_RAG_BUSINESS_DOMAINS`：逗号分隔的 `code:description`，例如 `security:安全制度,hr:入职培训`
+- `ENTERPRISE_RAG_DOCUMENT_TYPES`：逗号分隔，例如 `Markdown,Text,FAQ`
+- `ENTERPRISE_RAG_EXCLUDED_SCOPES`：逗号分隔，例如 `多租户隔离,自动执行动作`
 
 ## 约束规则
 
@@ -47,4 +63,3 @@
 - 复杂配置中心接入
 - 动态租户配置下发
 - 在线灰度配置管理
-

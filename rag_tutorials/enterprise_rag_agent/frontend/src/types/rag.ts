@@ -4,6 +4,7 @@
     title: string;
     section_path: string;
     chunk_index: number;
+    risk_level: string;
     score: number;
     matched_terms: string[];
 }
@@ -30,6 +31,7 @@ export interface RagChunkView {
     text: string;
     token_count: number;
     allowed_groups: string[];
+    risk_level: string;
     metadata: Record<string, unknown>;
 }
 
@@ -56,6 +58,7 @@ export interface RagConfigView {
     default_knowledge_base?: string;
     default_groups?: string[];
     default_risk_levels?: string[];
+    risk_by_group?: Record<string, string>;
     chunk_size?: number;
     chunk_overlap?: number;
     top_k?: number;
@@ -63,6 +66,20 @@ export interface RagConfigView {
     enable_llm?: boolean;
     llm_provider?: string;
     llm_model?: string;
+}
+
+export interface RagBusinessDomainView {
+    code: string;
+    description: string;
+}
+
+export interface RagScopeView {
+    business_domains: RagBusinessDomainView[];
+    supported_document_types: string[];
+    excluded_scopes: string[];
+    permission_summary: string[];
+    risk_by_group: Record<string, string>;
+    high_risk_policy: string;
 }
 
 export interface RagDocumentsView {
@@ -90,6 +107,7 @@ export interface RagDocumentSummary {
     content_type: string;
     version: string;
     allowed_groups: string[];
+    risk_level: string;
     metadata: Record<string, unknown>;
 }
 

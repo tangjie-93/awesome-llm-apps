@@ -33,6 +33,7 @@ class SQLiteRAGStore:
                         content_hash TEXT NOT NULL DEFAULT '',
                         version TEXT NOT NULL,
                         allowed_groups TEXT NOT NULL,
+                        risk_level TEXT NOT NULL DEFAULT 'low',
                         metadata TEXT NOT NULL,
                         content TEXT NOT NULL
                     )
@@ -52,6 +53,7 @@ class SQLiteRAGStore:
                         token_count INTEGER NOT NULL,
                         embedding TEXT NOT NULL DEFAULT '[]',
                         allowed_groups TEXT NOT NULL,
+                        risk_level TEXT NOT NULL DEFAULT 'low',
                         metadata TEXT NOT NULL,
                         FOREIGN KEY(source_id) REFERENCES documents(source_id)
                     )
@@ -84,7 +86,9 @@ class SQLiteRAGStore:
                     """
                 )
                 self._ensure_column(connection, "documents", "content_hash", "TEXT NOT NULL DEFAULT ''")
+                self._ensure_column(connection, "documents", "risk_level", "TEXT NOT NULL DEFAULT 'low'")
                 self._ensure_column(connection, "chunks", "embedding", "TEXT NOT NULL DEFAULT '[]'")
+                self._ensure_column(connection, "chunks", "risk_level", "TEXT NOT NULL DEFAULT 'low'")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_chunks_kb ON chunks(knowledge_base)")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source_id)")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_docs_kb ON documents(knowledge_base)")
@@ -114,8 +118,8 @@ class SQLiteRAGStore:
                 connection.execute(
                     """
                     INSERT INTO documents
-                    (source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, metadata, content)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata, content)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         document.source_id,
@@ -126,6 +130,7 @@ class SQLiteRAGStore:
                         document.content_hash,
                         document.version,
                         json.dumps(document.allowed_groups, ensure_ascii=False),
+                        document.risk_level,
                         json.dumps(document.metadata, ensure_ascii=False),
                         document.content,
                     ),
@@ -133,8 +138,8 @@ class SQLiteRAGStore:
                 connection.executemany(
                     """
                     INSERT INTO chunks
-                    (chunk_id, source_id, knowledge_base, path, title, section_path, chunk_index, text, token_count, embedding, allowed_groups, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (chunk_id, source_id, knowledge_base, path, title, section_path, chunk_index, text, token_count, embedding, allowed_groups, risk_level, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     [
                         (
@@ -149,6 +154,7 @@ class SQLiteRAGStore:
                             chunk.token_count,
                             json.dumps(chunk.embedding),
                             json.dumps(chunk.allowed_groups, ensure_ascii=False),
+                            chunk.risk_level,
                             json.dumps(chunk.metadata, ensure_ascii=False),
                         )
                         for chunk in chunks
@@ -206,7 +212,7 @@ class SQLiteRAGStore:
     def load_chunks(self, knowledge_bases: list[str] | None = None) -> list[ChunkRecord]:
         query = """
             SELECT chunk_id, source_id, knowledge_base, path, title, section_path,
-                   chunk_index, text, token_count, embedding, allowed_groups, metadata
+                   chunk_index, text, token_count, embedding, allowed_groups, risk_level, metadata
             FROM chunks
         """
         params: tuple[object, ...] = ()
@@ -233,6 +239,7 @@ class SQLiteRAGStore:
                 token_count=row["token_count"],
                 embedding=json.loads(row["embedding"]),
                 allowed_groups=tuple(json.loads(row["allowed_groups"])),
+                risk_level=row["risk_level"],
                 metadata=json.loads(row["metadata"]),
             )
             for row in rows
@@ -240,7 +247,7 @@ class SQLiteRAGStore:
 
     def list_documents(self, knowledge_base: str | None = None) -> list[dict[str, object]]:
         query = """
-            SELECT source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, metadata
+            SELECT source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata
             FROM documents
         """
         params: tuple[object, ...] = ()
@@ -263,6 +270,7 @@ class SQLiteRAGStore:
                 "content_hash": row["content_hash"],
                 "version": row["version"],
                 "allowed_groups": json.loads(row["allowed_groups"]),
+                "risk_level": row["risk_level"],
                 "metadata": json.loads(row["metadata"]),
             }
             for row in rows
@@ -274,7 +282,7 @@ class SQLiteRAGStore:
             row = connection.execute(
                 """
                 SELECT source_id, knowledge_base, path, title, content_type,
-                       content_hash, version, allowed_groups, metadata
+                       content_hash, version, allowed_groups, risk_level, metadata
                 FROM documents
                 WHERE source_id = ?
                 """,
@@ -294,7 +302,7 @@ class SQLiteRAGStore:
             row = connection.execute(
                 """
                 SELECT source_id, knowledge_base, path, title, content_type,
-                       content_hash, version, allowed_groups, metadata
+                       content_hash, version, allowed_groups, risk_level, metadata
                 FROM documents
                 WHERE content_hash = ? AND source_id != ?
                 ORDER BY knowledge_base, path
@@ -316,6 +324,7 @@ class SQLiteRAGStore:
             "content_hash": row["content_hash"],
             "version": row["version"],
             "allowed_groups": json.loads(row["allowed_groups"]),
+            "risk_level": row["risk_level"],
             "metadata": json.loads(row["metadata"]),
         }
 
