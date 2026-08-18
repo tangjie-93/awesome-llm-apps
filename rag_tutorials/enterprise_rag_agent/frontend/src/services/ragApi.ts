@@ -9,11 +9,22 @@ import type {
     RagScopeView,
     RagSearchView,
     RagStatsView,
-    RagEvaluationResultView
+    RagEvaluationResultView,
+    RagRetrievalEvaluationView,
+    RagOperationReplayView,
+    RagAuditLogsView,
+    RagAuditDeleteView,
+    RagUsageView,
+    RagUserView,
+    RagRoleView
+    ,RagDiagnosticsView
+    ,RagFeedbackView
+    ,RagWebSearchView
 } from '@/types/rag';
 
 class RagApi {
     private client: AxiosInstance;
+    private accessToken = '';
 
     public constructor(baseUrl: string) {
         this.client = axios.create({
@@ -27,6 +38,11 @@ class RagApi {
             baseURL: baseUrl,
             timeout: 30000
         });
+    }
+
+    /** 设置当前会话 access token；token 仅保存在内存中。 */
+    public setAccessToken(token: string): void {
+        this.accessToken = token.trim();
     }
 
     public async getStats(): Promise<RagStatsView> {
@@ -62,6 +78,80 @@ class RagApi {
 
     public async getOperationLogs(): Promise<RagLogsView> {
         return this.request('/operation-logs');
+    }
+
+    /** 回放指定的导入操作；成功时返回本次重新索引结果，失败时抛出请求错误。 */
+    public async replayOperation(operationId: number): Promise<RagOperationReplayView> {
+        return this.request(`/operation-logs/${operationId}/replay`, { method: 'POST' });
+    }
+
+    public async getAuditLogs(): Promise<RagAuditLogsView> {
+        return this.request('/admin/audit-logs');
+    }
+
+    public async exportAuditLogs(): Promise<Blob> {
+        const response = await this.client.request<Blob>({
+            url: '/admin/audit-logs/export',
+            responseType: 'blob',
+            headers: this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : undefined
+        });
+        return response.data;
+    }
+
+    public async deleteAuditLogs(before?: string): Promise<RagAuditDeleteView> {
+        return this.request('/admin/audit-logs', { method: 'DELETE', params: before ? { before } : undefined });
+    }
+
+    public async purgeAuditLogs(): Promise<RagAuditDeleteView> {
+        return this.request('/admin/audit-logs/purge', { method: 'POST' });
+    }
+
+    public async getUsage(): Promise<{ usage: RagUsageView; rerank_provider: string }> {
+        return this.request('/admin/usage');
+    }
+
+    public async getDiagnostics(): Promise<RagDiagnosticsView> {
+        return this.request('/diagnostics');
+    }
+
+    public async webSearch(question: string, limit: number = 3): Promise<RagWebSearchView> {
+        return this.request('/web-search', { method: 'POST', data: { question, limit } });
+    }
+
+    public async submitFeedback(rating: number, comment: string = ''): Promise<{ feedback: RagFeedbackView }> {
+        return this.request('/feedback', { method: 'POST', data: { rating, comment } });
+    }
+
+    public async getUsers(): Promise<{ users: RagUserView[] }> {
+        return this.request('/admin/users');
+    }
+
+    public async createUser(payload: Omit<RagUserView, 'id' | 'roles' | 'metadata' | 'created_at' | 'updated_at' | 'last_seen_at'> & { role_ids: number[] }): Promise<{ user: RagUserView }> {
+        return this.request('/admin/users', { method: 'POST', data: payload });
+    }
+
+    public async updateUser(userId: number, payload: Omit<RagUserView, 'id' | 'external_id' | 'roles' | 'metadata' | 'created_at' | 'updated_at' | 'last_seen_at'> & { role_ids: number[] }): Promise<{ user: RagUserView }> {
+        return this.request(`/admin/users/${userId}`, { method: 'PUT', data: payload });
+    }
+
+    public async deleteUser(userId: number): Promise<{ deleted: boolean }> {
+        return this.request(`/admin/users/${userId}`, { method: 'DELETE' });
+    }
+
+    public async getRoles(): Promise<{ roles: RagRoleView[] }> {
+        return this.request('/admin/roles');
+    }
+
+    public async createRole(payload: Pick<RagRoleView, 'name' | 'description' | 'permissions'>): Promise<{ role: RagRoleView }> {
+        return this.request('/admin/roles', { method: 'POST', data: payload });
+    }
+
+    public async updateRole(roleId: number, payload: Pick<RagRoleView, 'name' | 'description' | 'permissions'>): Promise<{ role: RagRoleView }> {
+        return this.request(`/admin/roles/${roleId}`, { method: 'PUT', data: payload });
+    }
+
+    public async deleteRole(roleId: number): Promise<{ deleted: boolean }> {
+        return this.request(`/admin/roles/${roleId}`, { method: 'DELETE' });
     }
 
     /**
@@ -113,10 +203,19 @@ class RagApi {
         });
     }
 
+    /** 运行内置离线召回样例，成功时返回可比较的命中率和 MRR。 */
+    public async evaluateRetrieval(): Promise<RagRetrievalEvaluationView> {
+        return this.request('/evaluate-retrieval', { method: 'POST', data: {} });
+    }
+
     private async request<T>(path: string, config?: Parameters<AxiosInstance['request']>[0]): Promise<T> {
         const response = await this.client.request({
             url: path,
-            ...config
+            ...config,
+            headers: {
+                ...(config?.headers ?? {}),
+                ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {})
+            }
         });
         return response.data as T;
     }

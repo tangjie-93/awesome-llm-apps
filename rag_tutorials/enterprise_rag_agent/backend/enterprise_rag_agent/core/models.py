@@ -47,6 +47,7 @@ class RetrievedChunk:
     vector_score: float
     rerank_score: float
     matched_terms: list[str] = field(default_factory=list)
+    rerank_reasons: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """把检索结果展开为可序列化字典。"""
@@ -80,6 +81,8 @@ class AnswerResult:
     knowledge_bases: list[str] = field(default_factory=list)
     citations: list[dict[str, Any]] = field(default_factory=list)
     evidence_snippets: list[dict[str, Any]] = field(default_factory=list)
+    external_sources: list[dict[str, str]] = field(default_factory=list)
+    tool_trace: list[str] = field(default_factory=list)
     clarifying_question: str | None = None
     sources_consulted: int = 0
 

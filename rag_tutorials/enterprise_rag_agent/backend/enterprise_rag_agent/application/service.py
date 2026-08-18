@@ -10,7 +10,8 @@ from ..ingestion.loaders import load_sources
 from ..retrieval.embeddings import create_embedding_generator
 from ..retrieval.hybrid import HybridRetriever
 from ..retrieval.router import KnowledgeBaseRouter
-from ..security.permissions import normalize_groups
+from ..retrieval.web_fallback import search_web
+from ..security.permissions import can_access, normalize_groups
 from ..storage.sqlite_store import SQLiteRAGStore
 from .agent import EnterpriseRAGAgent
 
@@ -26,7 +27,13 @@ class EnterpriseRAGService:
             config.embedding_api_key,
             config.embedding_base_url,
         )
-        self.retriever = HybridRetriever(self.store, self.embedding_generator)
+        self.retriever = HybridRetriever(
+            self.store,
+            self.embedding_generator,
+            rerank_provider=config.rerank_provider,
+            rerank_url=config.rerank_url,
+            rerank_api_key=config.rerank_api_key,
+        )
         self.agent = EnterpriseRAGAgent(self)
 
     def ingest_path(
@@ -97,13 +104,18 @@ class EnterpriseRAGService:
         top_k: int | None = None,
     ) -> list[RetrievedChunk]:
         routed = self.router.route(question, requested_kb=knowledge_base, limit=3)
-        return self.retriever.retrieve(
+        retrieved = self.retriever.retrieve(
             question,
             top_k=top_k or self.config.top_k,
             knowledge_bases=routed,
             user_groups=user_groups,
             rerank_top_k=self.config.rerank_top_k,
         )
+        return [
+            item
+            for item in retrieved
+            if can_access(item.chunk.allowed_groups, user_groups)
+        ]
 
     def stats(self) -> dict[str, object]:
         stats = self.store.stats()
@@ -130,6 +142,62 @@ class EnterpriseRAGService:
         score, notes = score_answer(expected_answer, actual_answer)
         self.store.log_evaluation(question, expected_answer, actual_answer, score, notes)
         return {"question": question, "expected_answer": expected_answer, "actual_answer": actual_answer, "score": score, "notes": notes}
+
+    def evaluate_retrieval(self, cases: list[dict[str, object]] | None = None) -> dict[str, object]:
+        """运行稳定的召回样例，返回命中率、MRR 和每条样例的解释结果。"""
+        from ..evaluation.benchmark import DEFAULT_RETRIEVAL_CASES, RetrievalCase
+
+        selected = [
+            RetrievalCase(
+                question=str(item["question"]),
+                expected_terms=tuple(str(term) for term in item.get("expected_terms", [])),
+                expected_sources=tuple(str(source) for source in item.get("expected_sources", [])),
+            )
+            for item in (cases or [])
+        ] or list(DEFAULT_RETRIEVAL_CASES)
+        results: list[dict[str, object]] = []
+        reciprocal_ranks: list[float] = []
+        for case in selected:
+            retrieved = self.search(case.question, top_k=self.config.top_k)
+            matched = [
+                item for item in retrieved
+                if any(term.lower() in item.chunk.text.lower() for term in case.expected_terms)
+                or any(source.lower() in item.chunk.path.lower() for source in case.expected_sources)
+            ]
+            rank = next((index + 1 for index, item in enumerate(retrieved) if item in matched), 0)
+            reciprocal_ranks.append(1 / rank if rank else 0.0)
+            results.append({
+                "question": case.question,
+                "expected_terms": list(case.expected_terms),
+                "expected_sources": list(case.expected_sources),
+                "hit": bool(matched),
+                "rank": rank,
+                "results": [item.to_dict() for item in retrieved],
+            })
+        hits = sum(bool(item["hit"]) for item in results)
+        total = len(results)
+        return {
+            "total": total,
+            "hit_rate": round(hits / total, 4) if total else 0.0,
+            "mrr": round(sum(reciprocal_ranks) / total, 4) if total else 0.0,
+            "results": results,
+        }
+
+    def web_search(self, question: str, limit: int = 3) -> list[dict[str, str]]:
+        """通过受控的外部检索 provider 补充低置信度回答。"""
+        return search_web(question, self.config, limit)
+
+    def diagnostics(self) -> dict[str, object]:
+        """汇总索引、低置信度回答和反馈数据，供运行诊断页面使用。"""
+        stats = self.stats()
+        return {
+            "documents": stats["documents"],
+            "chunks": stats["chunks"],
+            "knowledge_bases": stats["knowledge_bases"],
+            "low_confidence_answers": self.store.count_low_confidence_answers(self.config.low_confidence_threshold),
+            "feedback": self.store.feedback_summary(),
+            "web_fallback_enabled": self.config.web_fallback_enabled,
+        }
 
     def _apply_overrides(
         self,

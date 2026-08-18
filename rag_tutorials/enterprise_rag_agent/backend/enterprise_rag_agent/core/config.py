@@ -34,6 +34,26 @@ class EnterpriseRAGConfig:
     excluded_scopes: tuple[str, ...]
     permission_summary: tuple[str, ...]
     high_risk_policy: str
+    context_max_chars: int = 6000
+    low_confidence_threshold: float = 0.35
+    auth_mode: str = "off"
+    jwt_issuer: str | None = None
+    jwt_audience: str | None = None
+    jwt_jwks_url: str = ""
+    jwt_algorithm: str = "RS256"
+    jwt_groups_claim: str = "groups"
+    jwt_roles_claim: str = "roles"
+    admin_groups: tuple[str, ...] = ("rag-admin",)
+    dev_user_id: str = "local-admin"
+    dev_user_groups: tuple[str, ...] = ("public", "security", "hr", "it", "ops")
+    audit_retention_days: int = 30
+    rerank_provider: str = "heuristic"
+    rerank_url: str | None = None
+    rerank_api_key: str | None = None
+    web_fallback_enabled: bool = False
+    web_fallback_url: str | None = None
+    web_fallback_api_key: str | None = None
+    web_fallback_timeout_seconds: int = 8
 
 
 def load_config() -> EnterpriseRAGConfig:
@@ -77,6 +97,26 @@ def load_config() -> EnterpriseRAGConfig:
             "high 风险内容可生成候选答案，但必须人工复核和审批后才可对外使用。",
         ),
         high_risk_policy="允许模型生成答案候选，但必须人工复核和审批后才可对外使用。",
+        context_max_chars=int(os.getenv("ENTERPRISE_RAG_CONTEXT_MAX_CHARS", "6000")),
+        low_confidence_threshold=float(os.getenv("ENTERPRISE_RAG_LOW_CONFIDENCE_THRESHOLD", "0.35")),
+        auth_mode=os.getenv("ENTERPRISE_RAG_AUTH_MODE", "off").strip().lower(),
+        jwt_issuer=os.getenv("ENTERPRISE_RAG_JWT_ISSUER", "").strip() or None,
+        jwt_audience=os.getenv("ENTERPRISE_RAG_JWT_AUDIENCE", "").strip() or None,
+        jwt_jwks_url=os.getenv("ENTERPRISE_RAG_JWT_JWKS_URL", "").strip(),
+        jwt_algorithm=os.getenv("ENTERPRISE_RAG_JWT_ALGORITHM", "RS256").strip(),
+        jwt_groups_claim=os.getenv("ENTERPRISE_RAG_JWT_GROUPS_CLAIM", "groups").strip(),
+        jwt_roles_claim=os.getenv("ENTERPRISE_RAG_JWT_ROLES_CLAIM", "roles").strip(),
+        admin_groups=_read_csv("ENTERPRISE_RAG_ADMIN_GROUPS", ("rag-admin",)),
+        dev_user_id=os.getenv("ENTERPRISE_RAG_DEV_USER_ID", "local-admin").strip(),
+        dev_user_groups=_read_csv("ENTERPRISE_RAG_DEV_USER_GROUPS", ("public", "security", "hr", "it", "ops")),
+        audit_retention_days=int(os.getenv("ENTERPRISE_RAG_AUDIT_RETENTION_DAYS", "30")),
+        rerank_provider=os.getenv("ENTERPRISE_RAG_RERANK_PROVIDER", "heuristic").strip().lower(),
+        rerank_url=os.getenv("ENTERPRISE_RAG_RERANK_URL", "").strip() or None,
+        rerank_api_key=os.getenv("ENTERPRISE_RAG_RERANK_API_KEY", "").strip() or None,
+        web_fallback_enabled=_read_bool("ENTERPRISE_RAG_WEB_FALLBACK_ENABLED", "false"),
+        web_fallback_url=os.getenv("ENTERPRISE_RAG_WEB_FALLBACK_URL", "").strip() or None,
+        web_fallback_api_key=os.getenv("ENTERPRISE_RAG_WEB_FALLBACK_API_KEY", "").strip() or None,
+        web_fallback_timeout_seconds=int(os.getenv("ENTERPRISE_RAG_WEB_FALLBACK_TIMEOUT_SECONDS", "8")),
     )
 
 

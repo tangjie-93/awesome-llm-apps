@@ -58,6 +58,9 @@ class EnterpriseRAGServiceTest(unittest.TestCase):
                     "high 风险内容可生成候选答案，但必须人工复核和审批后才可对外使用。",
                 ),
                 high_risk_policy="允许模型生成答案候选，但必须人工复核和审批后才可对外使用。",
+                rerank_provider="http",
+                rerank_url="http://127.0.0.1:9/rerank",
+                rerank_api_key=None,
             )
             service = EnterpriseRAGService(config)
             ingest_result = service.ingest_path(kb_root)
@@ -73,6 +76,17 @@ class EnterpriseRAGServiceTest(unittest.TestCase):
             answer = service.agent.answer("How fast should we acknowledge the incident?")
             self.assertGreater(answer.confidence, 0)
             self.assertTrue(answer.citations)
+
+            service.ingest_path(
+                kb_root / "security" / "incident.md",
+                knowledge_base="security",
+                allowed_groups=["security"],
+            )
+            denied_results = service.search(
+                "How fast should we acknowledge the incident?",
+                user_groups=["hr"],
+            )
+            self.assertFalse(denied_results)
 
             obsolete_path = kb_root / "security" / "obsolete.md"
             obsolete_path.write_text(

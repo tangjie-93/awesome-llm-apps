@@ -37,22 +37,47 @@
                         跳过 {{ String(log.detail.documents_skipped ?? 0) }} ·
                         清理 {{ String(log.detail.documents_removed ?? 0) }}
                     </div>
+                    <button
+                        v-if="log.operation === 'ingest' && log.path"
+                        class="log__replay"
+                        :disabled="replayingId === log.id"
+                        @click="replay(log.id)"
+                    >
+                        {{ replayingId === log.id ? '回放中...' : '回放' }}
+                    </button>
                 </div>
                 <div v-if="!store.operationLogs.length" class="empty">暂无导入日志。</div>
             </article>
         </div>
+        <div v-if="message" class="alert">{{ message }}</div>
     </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
+const replayingId = ref<number | null>(null);
+const message = ref<string>('');
 
 onMounted(() => {
     void store.syncDashboard();
 });
+
+/** 回放一次已记录的导入操作，并向用户反馈结果或失败原因。 */
+async function replay(operationId: number): Promise<void> {
+    replayingId.value = operationId;
+    message.value = '';
+    try {
+        const result = await store.replayOperation(operationId);
+        message.value = `回放完成：新增 ${result.documents_indexed}，跳过 ${result.documents_skipped}`;
+    } catch (error) {
+        message.value = error instanceof Error ? error.message : '回放失败';
+    } finally {
+        replayingId.value = null;
+    }
+}
 </script>
 
 <style scoped lang="less">
@@ -105,6 +130,30 @@ onMounted(() => {
         color: #64748b;
         font-size: 13px;
     }
+
+    &__replay {
+        margin-top: 8px;
+        border: 1px solid #93c5fd;
+        border-radius: 6px;
+        padding: 5px 8px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        cursor: pointer;
+
+        &:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+    }
+}
+
+.alert {
+    margin-top: 16px;
+    padding: 10px 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #1d4ed8;
 }
 
 .empty {

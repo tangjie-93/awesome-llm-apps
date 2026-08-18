@@ -42,13 +42,37 @@
                 </div>
             </dl>
         </article>
+
+        <article class="result result--retrieval">
+            <div class="result__header">
+                <div>
+                    <h2 class="result__title">召回基准</h2>
+                    <p class="result__hint">运行内置样例，比较命中率和 MRR。</p>
+                </div>
+                <button class="button" :disabled="retrievalSubmitting" @click="runRetrievalEvaluation">
+                    {{ retrievalSubmitting ? '评估中...' : '运行召回评估' }}
+                </button>
+            </div>
+            <div v-if="retrievalResult" class="result__metrics">
+                <span>样例 {{ retrievalResult.total }}</span>
+                <span>命中率 {{ (retrievalResult.hit_rate * 100).toFixed(1) }}%</span>
+                <span>MRR {{ retrievalResult.mrr.toFixed(3) }}</span>
+            </div>
+            <div v-if="retrievalResult" class="result__cases">
+                <div v-for="item in retrievalResult.results" :key="item.question" class="result__case">
+                    <strong>{{ item.hit ? '命中' : '未命中' }}</strong>
+                    <span>{{ item.question }}</span>
+                    <span>排名 {{ item.rank || '-' }}</span>
+                </div>
+            </div>
+        </article>
     </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRagStore } from '@/store/rag';
-import type { RagEvaluationResultView } from '@/types/rag';
+import type { RagEvaluationResultView, RagRetrievalEvaluationView } from '@/types/rag';
 
 const store = useRagStore();
 const question = ref<string>('How fast should we acknowledge the incident?');
@@ -57,6 +81,8 @@ const actualAnswer = ref<string>('Respond as quickly as possible.');
 const submitting = ref<boolean>(false);
 const message = ref<string>('');
 const result = ref<RagEvaluationResultView | null>(null);
+const retrievalSubmitting = ref<boolean>(false);
+const retrievalResult = ref<RagRetrievalEvaluationView | null>(null);
 
 async function submitEvaluation(): Promise<void> {
     submitting.value = true;
@@ -69,6 +95,19 @@ async function submitEvaluation(): Promise<void> {
         message.value = error instanceof Error ? error.message : '评估失败';
     } finally {
         submitting.value = false;
+    }
+}
+
+/** 运行内置召回评估并展示可比较的命中率与 MRR。 */
+async function runRetrievalEvaluation(): Promise<void> {
+    retrievalSubmitting.value = true;
+    message.value = '';
+    try {
+        retrievalResult.value = await store.evaluateRetrieval();
+    } catch (error) {
+        message.value = error instanceof Error ? error.message : '召回评估失败';
+    } finally {
+        retrievalSubmitting.value = false;
     }
 }
 </script>
@@ -155,7 +194,45 @@ async function submitEvaluation(): Promise<void> {
     background: #fff;
 
     &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
         margin-bottom: 12px;
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 17px;
+    }
+
+    &__hint {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    &__metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 14px;
+        color: #1d4ed8;
+        font-weight: 600;
+    }
+
+    &__cases {
+        display: grid;
+        gap: 8px;
+    }
+
+    &__case {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr) 64px;
+        gap: 10px;
+        padding-top: 8px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 13px;
     }
 
     &__score {

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 import re
+import json
+from urllib import request as urlrequest
 from collections import Counter
 
 from ..core.models import ChunkRecord, RetrievedChunk
@@ -33,9 +35,19 @@ def expand_query(question: str) -> list[str]:
 
 
 class HybridRetriever:
-    def __init__(self, store: SQLiteRAGStore, embedding_generator: EmbeddingGenerator) -> None:
+    def __init__(
+        self,
+        store: SQLiteRAGStore,
+        embedding_generator: EmbeddingGenerator,
+        rerank_provider: str = "heuristic",
+        rerank_url: str | None = None,
+        rerank_api_key: str | None = None,
+    ) -> None:
         self.store = store
         self.embedding_generator = embedding_generator
+        self.rerank_provider = rerank_provider
+        self.rerank_url = rerank_url
+        self.rerank_api_key = rerank_api_key
 
     def retrieve(
         self,
@@ -59,7 +71,7 @@ class HybridRetriever:
             vector_score = max(0.0, cosine_similarity(query_embedding, chunk.embedding))
             if lexical_score <= 0 and vector_score <= 0.2:
                 continue
-            rerank_score = self._rerank(chunk, query_counts, lexical_score)
+            rerank_score, rerank_reasons = self._rerank(chunk, query_counts, lexical_score)
             final_score = lexical_score * 0.45 + vector_score * 0.35 + rerank_score * 0.20
             candidates.append(
                 RetrievedChunk(
@@ -69,11 +81,36 @@ class HybridRetriever:
                     vector_score=vector_score,
                     rerank_score=rerank_score,
                     matched_terms=matched_terms,
+                    rerank_reasons=rerank_reasons,
                 )
             )
 
+        if self.rerank_provider == "http" and self.rerank_url:
+            self._apply_external_rerank(question, candidates[:rerank_top_k])
         candidates.sort(key=lambda item: item.score, reverse=True)
         return candidates[: max(top_k, rerank_top_k)][:top_k]
+
+    def _apply_external_rerank(self, question: str, candidates: list[RetrievedChunk]) -> None:
+        """调用可配置 HTTP rerank 服务，失败时保留本地启发式排序。"""
+        payload = json.dumps(
+            {"query": question, "documents": [item.chunk.text for item in candidates]}
+        ).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        if self.rerank_api_key:
+            headers["Authorization"] = f"Bearer {self.rerank_api_key}"
+        try:
+            http_request = urlrequest.Request(self.rerank_url, data=payload, headers=headers, method="POST")
+            with urlrequest.urlopen(http_request, timeout=8) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            scores = result.get("scores", [])
+            if len(scores) != len(candidates):
+                return
+            for item, score in zip(candidates, scores, strict=True):
+                item.rerank_score = float(score)
+                item.score = item.lexical_score * 0.45 + item.vector_score * 0.35 + item.rerank_score * 0.20
+                item.rerank_reasons = [*item.rerank_reasons, "外部 HTTP rerank"]
+        except (OSError, ValueError, TypeError, KeyError):
+            return
 
     def _score_chunk(self, chunk: ChunkRecord, query_counts: Counter[str]) -> tuple[float, list[str]]:
         chunk_tokens = tokenize(chunk.text)
@@ -94,11 +131,23 @@ class HybridRetriever:
         score = density + title_boost + section_boost + phrase_boost
         return score, matched_terms
 
-    def _rerank(self, chunk: ChunkRecord, query_counts: Counter[str], lexical_score: float) -> float:
+    def _rerank(
+        self,
+        chunk: ChunkRecord,
+        query_counts: Counter[str],
+        lexical_score: float,
+    ) -> tuple[float, list[str]]:
         chunk_tokens = set(tokenize(chunk.text))
         heading_tokens = set(tokenize(chunk.section_path))
         query_terms = set(query_counts.keys())
         overlap_ratio = len(chunk_tokens & query_terms) / max(1, len(query_terms))
         heading_ratio = len(heading_tokens & query_terms) / max(1, len(query_terms))
         compactness = min(1.0, 2000 / max(200, len(chunk.text)))
-        return lexical_score + overlap_ratio * 0.6 + heading_ratio * 0.4 + compactness * 0.1
+        reasons: list[str] = []
+        if overlap_ratio > 0:
+            reasons.append(f"内容覆盖 {overlap_ratio:.0%}")
+        if heading_ratio > 0:
+            reasons.append(f"标题/章节命中 {heading_ratio:.0%}")
+        if compactness >= 0.9:
+            reasons.append("片段长度适中")
+        return lexical_score + overlap_ratio * 0.6 + heading_ratio * 0.4 + compactness * 0.1, reasons

@@ -55,6 +55,28 @@
                     <p class="evidence__text">{{ snippet.snippet }}</p>
                 </article>
             </div>
+            <div v-if="answer.external_sources.length" class="external-sources">
+                <h2 class="section-title">外部补充来源</h2>
+                <a
+                    v-for="source in answer.external_sources"
+                    :key="source.url"
+                    class="external-sources__item"
+                    :href="source.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <strong>{{ source.title }}</strong>
+                    <span>{{ source.snippet }}</span>
+                </a>
+            </div>
+            <div v-if="answer.tool_trace.length" class="tool-trace">
+                调用链：{{ answer.tool_trace.join(' → ') }}
+            </div>
+            <div class="feedback">
+                <span>这次回答是否有帮助？</span>
+                <button class="feedback__button" :disabled="feedbackSubmitting" @click="submitFeedback(5)">有帮助</button>
+                <button class="feedback__button" :disabled="feedbackSubmitting" @click="submitFeedback(1)">需改进</button>
+            </div>
         </article>
     </section>
 </template>
@@ -71,6 +93,7 @@ const answer = ref<AnswerView | null>(null);
 const submitting = ref<boolean>(false);
 const message = ref<string>('');
 const hasError = ref<boolean>(false);
+const feedbackSubmitting = ref<boolean>(false);
 
 /**
  * 提交问答请求；成功时展示答案和引用，失败或空问题时展示明确提示。
@@ -96,6 +119,21 @@ async function submitQuestion(): Promise<void> {
         answer.value = null;
     } finally {
         submitting.value = false;
+    }
+}
+
+/** 提交当前回答的简化人工反馈，并将状态反馈给用户。 */
+async function submitFeedback(rating: number): Promise<void> {
+    feedbackSubmitting.value = true;
+    try {
+        await store.submitFeedback(rating);
+        message.value = '感谢反馈，已记录到质量改进闭环。';
+        hasError.value = false;
+    } catch (error) {
+        message.value = error instanceof Error ? error.message : '反馈提交失败';
+        hasError.value = true;
+    } finally {
+        feedbackSubmitting.value = false;
     }
 }
 </script>
@@ -263,6 +301,54 @@ async function submitQuestion(): Promise<void> {
         margin: 8px 0 0;
         line-height: 1.6;
         white-space: pre-wrap;
+    }
+}
+
+.external-sources {
+    display: grid;
+    gap: 8px;
+
+    &__item {
+        display: grid;
+        gap: 4px;
+        border-top: 1px solid #e2e8f0;
+        padding: 12px 0;
+        color: #0f172a;
+        text-decoration: none;
+
+        span {
+            color: #64748b;
+            line-height: 1.5;
+        }
+    }
+}
+
+.tool-trace {
+    margin-top: 16px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.feedback {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    color: #475569;
+    font-size: 13px;
+
+    &__button {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 6px 9px;
+        background: #fff;
+        cursor: pointer;
+
+        &:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
     }
 }
 

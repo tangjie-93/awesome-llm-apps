@@ -16,6 +16,8 @@ export interface AnswerView {
     knowledge_bases: string[];
     citations: RetrievedChunkView[];
     evidence_snippets: AnswerEvidenceSnippet[];
+    external_sources: RagWebSearchResultView[];
+    tool_trace: string[];
     clarifying_question: string | null;
     sources_consulted: number;
 }
@@ -59,6 +61,13 @@ export interface RagStatsView {
     company_name?: string;
     db_path?: string;
     knowledge_bases?: string[];
+    usage?: RagUsageView;
+}
+
+export interface RagUsageView {
+    requests: number;
+    tokens: number;
+    model_calls: number;
 }
 
 export interface RagConfigView {
@@ -74,6 +83,40 @@ export interface RagConfigView {
     enable_llm?: boolean;
     llm_provider?: string;
     llm_model?: string;
+    auth_mode?: string;
+    web_fallback_enabled?: boolean;
+}
+
+export interface RagWebSearchResultView {
+    title: string;
+    url: string;
+    snippet: string;
+}
+
+export interface RagWebSearchView {
+    results: RagWebSearchResultView[];
+    enabled: boolean;
+}
+
+export interface RagFeedbackView {
+    id: number;
+    actor_id: string;
+    answer_log_id: number | null;
+    rating: number;
+    comment: string;
+    created_at: string;
+}
+
+export interface RagDiagnosticsView {
+    documents: number;
+    chunks: number;
+    knowledge_bases: string[];
+    low_confidence_answers: number;
+    feedback: {
+        count: number;
+        average_rating: number;
+    };
+    web_fallback_enabled: boolean;
 }
 
 export interface RagBusinessDomainView {
@@ -163,10 +206,78 @@ export interface RagOperationLog {
     created_at: string;
 }
 
+export interface RagOperationReplayView {
+    documents_indexed: number;
+    chunks_indexed: number;
+    documents_skipped: number;
+    documents_removed: number;
+    duplicate_paths: string[];
+    knowledge_bases: string[];
+    paths: string[];
+}
+
 export interface RagEvaluationResultView {
     question: string;
     expected_answer: string | null;
     actual_answer: string;
     score: number;
     notes: string;
+}
+
+export interface RagRetrievalEvaluationView {
+    total: number;
+    hit_rate: number;
+    mrr: number;
+    results: RagRetrievalEvaluationCaseView[];
+}
+
+export interface RagRetrievalEvaluationCaseView {
+    question: string;
+    expected_terms: string[];
+    expected_sources: string[];
+    hit: boolean;
+    rank: number;
+    results: RagSearchItemView[];
+}
+
+export interface RagAuditLogView {
+    id: number;
+    actor_id: string;
+    action: string;
+    resource: string;
+    detail: Record<string, unknown>;
+    created_at: string;
+}
+
+export interface RagAuditLogsView {
+    audit_logs: RagAuditLogView[];
+}
+
+export interface RagAuditDeleteView {
+    deleted: number;
+    retention_days?: number;
+}
+
+export interface RagUserView {
+    id: number;
+    external_id: string;
+    display_name: string;
+    email: string | null;
+    groups: string[];
+    roles: string[];
+    is_active: boolean;
+    metadata: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+    last_seen_at: string;
+}
+
+export interface RagRoleView {
+    id: number;
+    name: string;
+    description: string;
+    permissions: string[];
+    is_system: boolean;
+    created_at: string;
+    updated_at: string;
 }

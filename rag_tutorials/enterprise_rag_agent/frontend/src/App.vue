@@ -15,6 +15,10 @@
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/evaluate">评估</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/logs">日志</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/scope">范围</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/admin">管理</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/users">用户</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/roles">角色</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/diagnostics">诊断</RouterLink>
             </nav>
         </header>
         <main class="app-shell__main">
