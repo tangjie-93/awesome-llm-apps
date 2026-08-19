@@ -25,7 +25,7 @@ class ApiConfigTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload["business_domains"])
-        self.assertIn("多租户隔离", payload["excluded_scopes"])
+        self.assertIn("视觉模型嵌入", payload["excluded_scopes"])
         self.assertEqual(payload["risk_by_group"]["ops"], "high")
 
     def test_config_env_overrides_phase_zero_lists(self) -> None:

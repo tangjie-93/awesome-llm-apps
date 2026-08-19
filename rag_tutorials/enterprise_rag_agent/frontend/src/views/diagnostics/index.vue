@@ -39,6 +39,29 @@
         <section class="diagnostics-page__section">
             <div class="diagnostics-page__section-header">
                 <div>
+                    <h2 class="diagnostics-page__section-title">人工处置</h2>
+                    <p class="diagnostics-page__hint">仅支持经过审批令牌确认的失败导入回放，执行结果会写入操作日志和审计日志。</p>
+                </div>
+            </div>
+            <div class="diagnostics-page__action-grid">
+                <label>
+                    <span>失败导入操作 ID</span>
+                    <input v-model.number="operationId" type="number" min="1" placeholder="例如 12" />
+                </label>
+                <label>
+                    <span>审批令牌</span>
+                    <input v-model.trim="approvalToken" type="password" autocomplete="off" placeholder="服务端配置的审批令牌" />
+                </label>
+                <button class="diagnostics-page__button diagnostics-page__button--primary" :disabled="actionLoading" @click="executeAction">
+                    {{ actionLoading ? '执行中...' : '回放失败导入' }}
+                </button>
+            </div>
+            <p v-if="actionMessage" class="diagnostics-page__message">{{ actionMessage }}</p>
+        </section>
+
+        <section class="diagnostics-page__section">
+            <div class="diagnostics-page__section-header">
+                <div>
                     <h2 class="diagnostics-page__section-title">外部检索</h2>
                     <p class="diagnostics-page__hint">
                         {{ store.diagnostics?.web_fallback_enabled ? '已启用受控 Web fallback。' : '当前未启用 Web fallback。' }}
@@ -72,6 +95,10 @@ const results = ref<RagWebSearchResultView[]>([]);
 const message = ref('');
 const loading = ref(false);
 const searching = ref(false);
+const operationId = ref<number | null>(null);
+const approvalToken = ref('');
+const actionLoading = ref(false);
+const actionMessage = ref('');
 const metrics = computed(() => [
     { label: '文档', value: store.diagnostics?.documents ?? 0 },
     { label: '切块', value: store.diagnostics?.chunks ?? 0 },
@@ -122,6 +149,28 @@ async function searchWeb(): Promise<void> {
         message.value = error instanceof Error ? error.message : '外部检索失败';
     } finally {
         searching.value = false;
+    }
+}
+
+async function executeAction(): Promise<void> {
+    if (!operationId.value || !approvalToken.value) {
+        actionMessage.value = '请输入失败导入操作 ID 和审批令牌';
+        return;
+    }
+    actionLoading.value = true;
+    actionMessage.value = '';
+    try {
+        const response = await store.executeDiagnosticAction(
+            'replay_failed_ingest',
+            operationId.value,
+            approvalToken.value
+        );
+        actionMessage.value = `处置完成，新增 ${response.result.documents_indexed} 个文档，跳过 ${response.result.documents_skipped} 个文档`;
+        await store.syncDashboard();
+    } catch (error) {
+        actionMessage.value = error instanceof Error ? error.message : '诊断处置失败';
+    } finally {
+        actionLoading.value = false;
     }
 }
 
@@ -194,6 +243,30 @@ onMounted(() => {
     &__section-title {
         margin: 0;
         font-size: 16px;
+    }
+
+    &__action-grid {
+        display: grid;
+        grid-template-columns: minmax(180px, 0.5fr) minmax(260px, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+
+        label {
+            display: grid;
+            gap: 6px;
+            color: #475569;
+            font-size: 13px;
+        }
+
+        input {
+            box-sizing: border-box;
+            min-height: 38px;
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: #0f172a;
+        }
     }
 
     &__suggestions {
@@ -302,6 +375,10 @@ onMounted(() => {
         &__search-row {
             align-items: stretch;
             flex-direction: column;
+        }
+
+        &__action-grid {
+            grid-template-columns: 1fr;
         }
     }
 }

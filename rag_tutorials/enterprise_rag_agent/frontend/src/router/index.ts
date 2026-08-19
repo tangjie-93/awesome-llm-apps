@@ -69,6 +69,11 @@ const routes = [
         path: '/diagnostics',
         name: 'Diagnostics',
         component: () => import('@/views/diagnostics/index.vue')
+    },
+    {
+        path: '/knowledge-graph',
+        name: 'KnowledgeGraph',
+        component: () => import('@/views/knowledge-graph/index.vue')
     }
 ];
 

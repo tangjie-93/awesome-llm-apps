@@ -19,6 +19,7 @@
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/users">用户</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/roles">角色</RouterLink>
                 <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/diagnostics">诊断</RouterLink>
+                <RouterLink class="app-shell__link" active-class="app-shell__link--active" to="/knowledge-graph">知识图谱</RouterLink>
             </nav>
         </header>
         <main class="app-shell__main">

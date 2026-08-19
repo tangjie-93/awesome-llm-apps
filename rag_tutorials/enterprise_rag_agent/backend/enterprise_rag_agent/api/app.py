@@ -52,6 +52,19 @@ class WebSearchRequest(BaseModel):
     limit: int = Field(default=3, ge=1, le=10)
 
 
+class KnowledgeGraphQueryRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    knowledge_base: str | None = None
+    max_hops: int = Field(default=2, ge=1, le=3)
+    limit: int = Field(default=50, ge=1, le=100)
+
+
+class DiagnosticActionRequest(BaseModel):
+    action: str = Field(min_length=1, max_length=100)
+    operation_id: int = Field(ge=1)
+    approval_token: str = Field(min_length=1, max_length=500)
+
+
 class UserCreateRequest(BaseModel):
     external_id: str = Field(min_length=1, max_length=200)
     display_name: str = Field(min_length=1, max_length=200)
@@ -356,6 +369,43 @@ def create_app() -> FastAPI:
         )
         return {"results": results, "enabled": app_config.web_fallback_enabled}
 
+    @api.get('/knowledge-graph')
+    def knowledge_graph(request: Request, knowledge_base: str | None = None) -> dict[str, Any]:
+        context = auth_context(request)
+        result = service.knowledge_graph(
+            knowledge_base=knowledge_base,
+            user_groups=list(context.groups),
+            tenant_id=context.tenant_id,
+        )
+        service.store.log_audit(
+            context.user_id,
+            "knowledge_graph_read",
+            knowledge_base or "all",
+            {"entity_count": result["entity_count"], "relation_count": result["relation_count"]},
+            context.tenant_id,
+        )
+        return result
+
+    @api.post('/knowledge-graph/query')
+    def query_knowledge_graph(payload: KnowledgeGraphQueryRequest, request: Request) -> dict[str, Any]:
+        context = auth_context(request)
+        result = service.query_knowledge_graph(
+            payload.question,
+            knowledge_base=payload.knowledge_base,
+            user_groups=list(context.groups),
+            max_hops=payload.max_hops,
+            limit=payload.limit,
+            tenant_id=context.tenant_id,
+        )
+        service.store.log_audit(
+            context.user_id,
+            "knowledge_graph_query",
+            payload.knowledge_base or "all",
+            {"question": payload.question, "path_count": len(result["paths"]), "max_hops": payload.max_hops},
+            context.tenant_id,
+        )
+        return result
+
     @api.get('/diagnostics')
     def diagnostics(request: Request) -> dict[str, Any]:
         context = auth_context(request)
@@ -363,16 +413,47 @@ def create_app() -> FastAPI:
         service.store.log_audit(context.user_id, "diagnostics_read", "system", {}, context.tenant_id)
         return result
 
+    @api.post('/diagnostics/actions/execute')
+    def execute_diagnostic_action(payload: DiagnosticActionRequest, request: Request) -> dict[str, Any]:
+        context = require_permission(request, "run_ingest")
+        _require_audit_approval(payload.approval_token, app_config)
+        if payload.action != "replay_failed_ingest":
+            raise HTTPException(status_code=400, detail="Unsupported diagnostic action")
+        operation = service.store.get_operation_log(payload.operation_id, context.tenant_id)
+        if not operation:
+            raise HTTPException(status_code=404, detail=f"Operation log not found: {payload.operation_id}")
+        if operation["operation"] != "ingest" or operation["status"] != "failed":
+            raise HTTPException(status_code=400, detail="Diagnostic replay requires a failed ingest operation")
+        service.store.log_audit(
+            context.user_id,
+            "diagnostic_action_requested",
+            str(payload.operation_id),
+            {"action": payload.action},
+            context.tenant_id,
+        )
+        result = replay_operation(payload.operation_id, request)
+        service.store.log_audit(
+            context.user_id,
+            "diagnostic_action_completed",
+            str(payload.operation_id),
+            {"action": payload.action, "status": "succeeded"},
+            context.tenant_id,
+        )
+        return {"action": payload.action, "operation_id": payload.operation_id, "result": result}
+
     @api.post('/feedback')
     def feedback(payload: FeedbackRequest, request: Request) -> dict[str, Any]:
         context = auth_context(request)
-        result = service.store.log_feedback(
-            context.user_id,
-            payload.answer_log_id,
-            payload.rating,
-            payload.comment.strip(),
-            tenant_id=context.tenant_id,
-        )
+        try:
+            result = service.store.log_feedback(
+                context.user_id,
+                payload.answer_log_id,
+                payload.rating,
+                payload.comment.strip(),
+                tenant_id=context.tenant_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
         service.store.log_audit(context.user_id, "feedback_submit", str(payload.answer_log_id or ""), {"rating": payload.rating}, context.tenant_id)
         return {"feedback": result}
 

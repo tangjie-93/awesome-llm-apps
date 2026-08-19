@@ -28,6 +28,7 @@ class ApiRagFlowTest(unittest.TestCase):
                     "ENTERPRISE_RAG_ENABLE_LLM": "false",
                     "ENTERPRISE_RAG_EMBEDDING_PROVIDER": "local",
                     "ENTERPRISE_RAG_EMBEDDING_MODEL": "local-hashing",
+                    "ENTERPRISE_RAG_AUDIT_APPROVAL_TOKEN": "approved-by-security",
                 },
             ):
                 client = TestClient(create_app())
@@ -50,6 +51,16 @@ class ApiRagFlowTest(unittest.TestCase):
                 documents = client.get("/api/documents")
                 self.assertEqual(documents.status_code, 200)
                 self.assertEqual(documents.json()["documents"][0]["knowledge_base"], "security")
+                graph = client.get("/api/knowledge-graph")
+                self.assertEqual(graph.status_code, 200)
+                self.assertGreater(graph.json()["entity_count"], 0)
+                graph_query = client.post(
+                    "/api/knowledge-graph/query",
+                    json={"question": "Incident Response", "max_hops": 2},
+                )
+                self.assertEqual(graph_query.status_code, 200)
+                self.assertEqual(graph_query.json()["max_hops"], 2)
+                self.assertIn("paths", graph_query.json())
 
                 search = client.post(
                     "/api/search",
@@ -66,6 +77,12 @@ class ApiRagFlowTest(unittest.TestCase):
                 self.assertTrue(answer.json()["citations"])
                 self.assertTrue(answer.json()["evidence_snippets"])
                 self.assertTrue(answer.json()["tool_trace"])
+
+                cross_tenant_feedback = client.post(
+                    "/api/feedback",
+                    json={"answer_log_id": 999999, "rating": 5, "comment": "Should not attach"},
+                )
+                self.assertEqual(cross_tenant_feedback.status_code, 404)
 
                 feedback = client.post("/api/feedback", json={"rating": 5, "comment": "Helpful"})
                 self.assertEqual(feedback.status_code, 200)
@@ -120,6 +137,33 @@ class ApiRagFlowTest(unittest.TestCase):
                 self.assertEqual(failed_ingest.status_code, 404)
                 failed_log = client.get("/api/operation-logs").json()["operation_logs"][0]
                 self.assertEqual(failed_log["status"], "failed")
+
+                repaired_path = tmp_path / "missing"
+                repaired_path.mkdir()
+                (repaired_path / "recovered.md").write_text(
+                    "# Recovery\nThe ingestion path is available again.",
+                    encoding="utf-8",
+                )
+                invalid_action = client.post(
+                    "/api/diagnostics/actions/execute",
+                    json={
+                        "action": "replay_failed_ingest",
+                        "operation_id": failed_log["id"],
+                        "approval_token": "wrong",
+                    },
+                )
+                self.assertEqual(invalid_action.status_code, 403)
+                diagnostic_action = client.post(
+                    "/api/diagnostics/actions/execute",
+                    json={
+                        "action": "replay_failed_ingest",
+                        "operation_id": failed_log["id"],
+                        "approval_token": "approved-by-security",
+                    },
+                )
+                self.assertEqual(diagnostic_action.status_code, 200)
+                self.assertEqual(diagnostic_action.json()["action"], "replay_failed_ingest")
+                self.assertEqual(diagnostic_action.json()["result"]["documents_indexed"], 1)
 
                 missing_replay = client.post("/api/operation-logs/999/replay")
                 self.assertEqual(missing_replay.status_code, 404)

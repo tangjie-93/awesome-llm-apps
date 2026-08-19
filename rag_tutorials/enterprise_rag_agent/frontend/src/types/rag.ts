@@ -99,6 +99,54 @@ export interface RagWebSearchView {
     enabled: boolean;
 }
 
+export interface RagKnowledgeGraphEntityView {
+    name: string;
+    chunk_count: number;
+}
+
+export interface RagKnowledgeGraphRelationView {
+    source: string;
+    target: string;
+    type: string;
+    weight: number;
+}
+
+export interface RagKnowledgeGraphView {
+    entities: RagKnowledgeGraphEntityView[];
+    relations: RagKnowledgeGraphRelationView[];
+    entity_count: number;
+    relation_count: number;
+}
+
+export interface RagKnowledgeGraphQueryEntityView {
+    name: string;
+    key: string;
+    seed: boolean;
+}
+
+export interface RagKnowledgeGraphQueryRelationView {
+    source: string;
+    target: string;
+    type: string;
+    chunk_id: string;
+}
+
+export interface RagKnowledgeGraphPathView {
+    entities: string[];
+    relations: string[];
+    hops: number;
+    chunk_ids: string[];
+}
+
+export interface RagKnowledgeGraphQueryView {
+    query: string;
+    max_hops: number;
+    entities: RagKnowledgeGraphQueryEntityView[];
+    relations: RagKnowledgeGraphQueryRelationView[];
+    paths: RagKnowledgeGraphPathView[];
+    chunks: Array<{ chunk_id: string }>;
+}
+
 export interface RagFeedbackView {
     id: number;
     actor_id: string;
@@ -267,6 +315,12 @@ export interface RagAuditLogsView {
 export interface RagAuditDeleteView {
     deleted: number;
     retention_days?: number;
+}
+
+export interface RagDiagnosticActionResultView {
+    action: string;
+    operation_id: number;
+    result: RagOperationReplayView;
 }
 
 export interface RagUserView {

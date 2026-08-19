@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ..core.models import ChunkRecord, SourceDocument
+from ..retrieval.knowledge_graph import build_graph_records, extract_entities, normalize_entity
 
 
 class SQLiteRAGStore:
@@ -188,6 +189,33 @@ class SQLiteRAGStore:
                     )
                     """
                 )
+                connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS graph_mentions (
+                        tenant_id TEXT NOT NULL,
+                        source_id TEXT NOT NULL,
+                        chunk_id TEXT NOT NULL,
+                        entity TEXT NOT NULL,
+                        entity_key TEXT NOT NULL,
+                        PRIMARY KEY (tenant_id, chunk_id, entity_key)
+                    )
+                    """
+                )
+                connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS graph_relations (
+                        tenant_id TEXT NOT NULL,
+                        source_id TEXT NOT NULL,
+                        chunk_id TEXT NOT NULL,
+                        source_entity TEXT NOT NULL,
+                        source_key TEXT NOT NULL,
+                        target_entity TEXT NOT NULL,
+                        target_key TEXT NOT NULL,
+                        relation_type TEXT NOT NULL DEFAULT 'co_occurs',
+                        PRIMARY KEY (tenant_id, chunk_id, source_key, target_key, relation_type)
+                    )
+                    """
+                )
                 default_roles = (
                     ("admin", "系统管理员", ["manage_users", "manage_roles", "manage_audit"]),
                     ("editor", "知识库编辑者", ["manage_documents", "run_ingest"]),
@@ -222,6 +250,15 @@ class SQLiteRAGStore:
                 connection.execute(
                     "CREATE INDEX IF NOT EXISTS idx_docs_content_hash ON documents(content_hash)"
                 )
+                connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_graph_mentions_entity ON graph_mentions(tenant_id, entity_key)"
+                )
+                connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_graph_relations_source ON graph_relations(tenant_id, source_key)"
+                )
+                connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_graph_relations_target ON graph_relations(tenant_id, target_key)"
+                )
         finally:
             connection.close()
 
@@ -240,6 +277,8 @@ class SQLiteRAGStore:
         connection = self._connect()
         try:
             with connection:
+                connection.execute("DELETE FROM graph_mentions WHERE source_id = ?", (document.source_id,))
+                connection.execute("DELETE FROM graph_relations WHERE source_id = ?", (document.source_id,))
                 connection.execute("DELETE FROM chunks WHERE source_id = ?", (document.source_id,))
                 connection.execute("DELETE FROM documents WHERE source_id = ?", (document.source_id,))
                 connection.execute(
@@ -289,6 +328,36 @@ class SQLiteRAGStore:
                         for chunk in chunks
                     ],
                 )
+                mentions, relations = build_graph_records(chunks)
+                connection.executemany(
+                    """
+                    INSERT OR IGNORE INTO graph_mentions (tenant_id, source_id, chunk_id, entity, entity_key)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (document.tenant_id, document.source_id, chunk_id, entity, normalize_entity(entity))
+                        for chunk_id, entity in mentions
+                    ],
+                )
+                connection.executemany(
+                    """
+                    INSERT OR IGNORE INTO graph_relations
+                    (tenant_id, source_id, chunk_id, source_entity, source_key, target_entity, target_key, relation_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'co_occurs')
+                    """,
+                    [
+                        (
+                            document.tenant_id,
+                            document.source_id,
+                            chunk_id,
+                            source_entity,
+                            normalize_entity(source_entity),
+                            target_entity,
+                            normalize_entity(target_entity),
+                        )
+                        for chunk_id, source_entity, target_entity in relations
+                    ],
+                )
         finally:
             connection.close()
 
@@ -296,6 +365,8 @@ class SQLiteRAGStore:
         connection = self._connect()
         try:
             with connection:
+                connection.execute("DELETE FROM graph_mentions WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
+                connection.execute("DELETE FROM graph_relations WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
                 connection.execute("DELETE FROM chunks WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
                 cursor = connection.execute("DELETE FROM documents WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
         finally:
@@ -326,6 +397,8 @@ class SQLiteRAGStore:
             ]
             with connection:
                 for source_id in stale_source_ids:
+                    connection.execute("DELETE FROM graph_mentions WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
+                    connection.execute("DELETE FROM graph_relations WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
                     connection.execute("DELETE FROM chunks WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
                     connection.execute("DELETE FROM documents WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
         finally:
@@ -382,6 +455,194 @@ class SQLiteRAGStore:
             )
             for row in rows
         ]
+
+    def graph_candidates(
+        self,
+        question: str,
+        knowledge_bases: list[str] | None = None,
+        tenant_id: str = "default",
+        allowed_chunk_ids: set[str] | None = None,
+    ) -> tuple[list[ChunkRecord], list[str]]:
+        """按问题实体和关联关系返回图谱候选切块及命中的实体名称。"""
+        result = self.graph_query(
+            question,
+            knowledge_bases,
+            tenant_id,
+            max_hops=2,
+            limit=50,
+            allowed_chunk_ids=allowed_chunk_ids,
+        )
+        chunk_ids = {str(item["chunk_id"]) for item in result["chunks"]}
+        chunks = [chunk for chunk in self.load_chunks(knowledge_bases, tenant_id) if chunk.chunk_id in chunk_ids]
+        return chunks, [str(item["name"]) for item in result["entities"]]
+
+    def graph_query(
+        self,
+        question: str,
+        knowledge_bases: list[str] | None = None,
+        tenant_id: str = "default",
+        max_hops: int = 2,
+        limit: int = 50,
+        allowed_chunk_ids: set[str] | None = None,
+    ) -> dict[str, object]:
+        """执行受权限范围约束的实体多跳查询，并返回可解释的路径。"""
+        max_hops = min(max(max_hops, 1), 3)
+        limit = min(max(limit, 1), 100)
+        seed_keys = {normalize_entity(entity) for entity in extract_entities(question)}
+        if not seed_keys:
+            return {"entities": [], "relations": [], "paths": [], "chunks": []}
+
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT source_entity, source_key, target_entity, target_key, relation_type, chunk_id
+                FROM graph_relations
+                WHERE tenant_id = ?
+                """,
+                (tenant_id,),
+            ).fetchall()
+        finally:
+            connection.close()
+
+        visible_ids = allowed_chunk_ids
+        if visible_ids is None:
+            visible_ids = {
+                chunk.chunk_id
+                for chunk in self.load_chunks(knowledge_bases, tenant_id)
+            }
+        if knowledge_bases:
+            visible_ids = {
+                chunk.chunk_id
+                for chunk in self.load_chunks(knowledge_bases, tenant_id)
+                if chunk.chunk_id in visible_ids
+            }
+
+        adjacency: dict[str, list[dict[str, object]]] = {}
+        for row in rows:
+            if str(row["chunk_id"]) not in visible_ids:
+                continue
+            edge = {
+                "source": row["source_entity"],
+                "target": row["target_entity"],
+                "source_key": row["source_key"],
+                "target_key": row["target_key"],
+                "type": row["relation_type"],
+                "chunk_id": row["chunk_id"],
+            }
+            adjacency.setdefault(str(row["source_key"]), []).append(edge)
+            adjacency.setdefault(str(row["target_key"]), []).append({
+                **edge,
+                "source": row["target_entity"],
+                "target": row["source_entity"],
+                "source_key": row["target_key"],
+                "target_key": row["source_key"],
+            })
+
+        entity_names: dict[str, str] = {}
+        for key in seed_keys:
+            entity_names[key] = key
+        discovered_edges: dict[tuple[str, str, str], dict[str, object]] = {}
+        paths: list[dict[str, object]] = []
+        frontier = [(key, [key], []) for key in seed_keys]
+        visited_states = {(key, 0) for key in seed_keys}
+        while frontier and len(paths) < limit:
+            current, entity_path, edge_path = frontier.pop(0)
+            depth = len(edge_path)
+            if depth >= max_hops:
+                continue
+            for edge in adjacency.get(current, []):
+                target_key = str(edge["target_key"])
+                entity_names[current] = str(edge["source"])
+                entity_names[target_key] = str(edge["target"])
+                edge_key = (str(edge["source_key"]), target_key, str(edge["type"]))
+                discovered_edges.setdefault(edge_key, edge)
+                next_path = entity_path + [target_key]
+                next_edges = edge_path + [edge]
+                paths.append({
+                    "entities": [entity_names.get(key, key) for key in next_path],
+                    "relations": [item["type"] for item in next_edges],
+                    "hops": depth + 1,
+                    "chunk_ids": [item["chunk_id"] for item in next_edges],
+                })
+                state = (target_key, depth + 1)
+                if target_key not in entity_path and state not in visited_states:
+                    visited_states.add(state)
+                    frontier.append((target_key, next_path, next_edges))
+
+        chunk_ids = sorted({str(edge["chunk_id"]) for edge in discovered_edges.values()})
+        return {
+            "entities": [
+                {"name": entity_names[key], "key": key, "seed": key in seed_keys}
+                for key in sorted(entity_names)
+            ][:limit],
+            "relations": [
+                {
+                    "source": edge["source"],
+                    "target": edge["target"],
+                    "type": edge["type"],
+                    "chunk_id": edge["chunk_id"],
+                }
+                for edge in list(discovered_edges.values())[:limit]
+            ],
+            "paths": paths[:limit],
+            "chunks": [{"chunk_id": chunk_id} for chunk_id in chunk_ids[:limit]],
+        }
+
+    def graph_overview(
+        self,
+        knowledge_bases: list[str] | None = None,
+        tenant_id: str = "default",
+        limit: int = 100,
+        allowed_chunk_ids: set[str] | None = None,
+    ) -> dict[str, object]:
+        """汇总租户的轻量图谱节点、共现关系和切块数量，供只读管理界面展示。"""
+        if allowed_chunk_ids is None:
+            allowed_chunk_ids = {chunk.chunk_id for chunk in self.load_chunks(knowledge_bases, tenant_id)}
+        if not allowed_chunk_ids:
+            return {"entities": [], "relations": [], "entity_count": 0, "relation_count": 0}
+
+        placeholders = ",".join("?" for _ in allowed_chunk_ids)
+        connection = self._connect()
+        try:
+            entity_rows = connection.execute(
+                f"""
+                SELECT entity, COUNT(DISTINCT chunk_id) AS chunk_count
+                FROM graph_mentions
+                WHERE tenant_id = ? AND chunk_id IN ({placeholders})
+                GROUP BY entity_key
+                ORDER BY chunk_count DESC, entity
+                LIMIT ?
+                """,
+                (tenant_id, *allowed_chunk_ids, limit),
+            ).fetchall()
+            relation_rows = connection.execute(
+                f"""
+                SELECT source_entity, target_entity, relation_type, COUNT(*) AS weight
+                FROM graph_relations
+                WHERE tenant_id = ? AND chunk_id IN ({placeholders})
+                GROUP BY source_key, target_key, relation_type
+                ORDER BY weight DESC, source_entity, target_entity
+                LIMIT ?
+                """,
+                (tenant_id, *allowed_chunk_ids, limit),
+            ).fetchall()
+        finally:
+            connection.close()
+        return {
+            "entities": [{"name": row["entity"], "chunk_count": row["chunk_count"]} for row in entity_rows],
+            "relations": [
+                {
+                    "source": row["source_entity"],
+                    "target": row["target_entity"],
+                    "type": row["relation_type"],
+                    "weight": row["weight"],
+                }
+                for row in relation_rows
+            ],
+            "entity_count": len(entity_rows),
+            "relation_count": len(relation_rows),
+        }
 
     def list_documents(
         self,
@@ -871,6 +1132,13 @@ class SQLiteRAGStore:
         connection = self._connect()
         try:
             with connection:
+                if answer_log_id is not None:
+                    answer_log = connection.execute(
+                        "SELECT id FROM answer_logs WHERE id = ? AND tenant_id = ?",
+                        (answer_log_id, tenant_id),
+                    ).fetchone()
+                    if answer_log is None:
+                        raise ValueError("Answer log does not belong to the current tenant")
                 cursor = connection.execute(
                     "INSERT INTO feedback (tenant_id, actor_id, answer_log_id, rating, comment) VALUES (?, ?, ?, ?, ?)",
                     (tenant_id, actor_id, answer_log_id, rating, comment),

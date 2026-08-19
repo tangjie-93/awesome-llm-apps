@@ -115,11 +115,39 @@ class EnterpriseRAGService:
             rerank_top_k=self.config.rerank_top_k,
             tenant_id=tenant_id,
         )
-        return [
+        visible = [
             item
             for item in retrieved
             if can_access(item.chunk.allowed_groups, user_groups)
         ]
+        visible_chunk_ids = {
+            chunk.chunk_id
+            for chunk in self.store.load_chunks(routed, tenant_id)
+            if can_access(chunk.allowed_groups, user_groups)
+        }
+        graph_chunks, graph_entities = self.store.graph_candidates(
+            question,
+            routed,
+            tenant_id,
+            allowed_chunk_ids=visible_chunk_ids,
+        )
+        existing_ids = {item.chunk.chunk_id for item in visible}
+        for chunk in graph_chunks:
+            if chunk.chunk_id in existing_ids or not can_access(chunk.allowed_groups, user_groups):
+                continue
+            visible.append(
+                RetrievedChunk(
+                    chunk=chunk,
+                    score=0.4,
+                    lexical_score=0.0,
+                    vector_score=0.0,
+                    rerank_score=0.4,
+                    matched_terms=graph_entities,
+                    rerank_reasons=["轻量知识图谱多跳关联"],
+                )
+            )
+        visible.sort(key=lambda item: item.score, reverse=True)
+        return visible[: top_k or self.config.top_k]
 
     def stats(self, tenant_id: str = "default") -> dict[str, object]:
         stats = self.store.stats_for_tenant(tenant_id)
@@ -190,6 +218,56 @@ class EnterpriseRAGService:
     def web_search(self, question: str, limit: int = 3) -> list[dict[str, str]]:
         """通过受控的外部检索 provider 补充低置信度回答。"""
         return search_web(question, self.config, limit)
+
+    def knowledge_graph(
+        self,
+        knowledge_base: str | None = None,
+        user_groups: list[str] | None = None,
+        tenant_id: str = "default",
+    ) -> dict[str, object]:
+        """返回通过当前权限过滤后的轻量知识图谱只读视图。"""
+        knowledge_bases = [knowledge_base] if knowledge_base else None
+        visible_chunk_ids = {
+            chunk.chunk_id
+            for chunk in self.store.load_chunks(knowledge_bases, tenant_id)
+            if can_access(chunk.allowed_groups, user_groups)
+        }
+        overview = self.store.graph_overview(
+            knowledge_bases,
+            tenant_id,
+            allowed_chunk_ids=visible_chunk_ids,
+        )
+        if not visible_chunk_ids:
+            return {"entities": [], "relations": [], "entity_count": 0, "relation_count": 0}
+        return overview
+
+    def query_knowledge_graph(
+        self,
+        question: str,
+        knowledge_base: str | None = None,
+        user_groups: list[str] | None = None,
+        max_hops: int = 2,
+        limit: int = 50,
+        tenant_id: str = "default",
+    ) -> dict[str, object]:
+        """执行当前用户可见范围内的图谱多跳查询。"""
+        knowledge_bases = [knowledge_base] if knowledge_base else None
+        visible_chunk_ids = {
+            chunk.chunk_id
+            for chunk in self.store.load_chunks(knowledge_bases, tenant_id)
+            if can_access(chunk.allowed_groups, user_groups)
+        }
+        result = self.store.graph_query(
+            question,
+            knowledge_bases,
+            tenant_id,
+            max_hops=max_hops,
+            limit=limit,
+            allowed_chunk_ids=visible_chunk_ids,
+        )
+        result["query"] = question
+        result["max_hops"] = min(max(max_hops, 1), 3)
+        return result
 
     def diagnostics(self, tenant_id: str = "default") -> dict[str, object]:
         """汇总租户诊断指标，并生成只读、可解释的运行建议。"""

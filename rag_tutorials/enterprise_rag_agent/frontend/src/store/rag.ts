@@ -21,6 +21,7 @@ import type {
     ,RagRoleView
     ,RagDiagnosticsView
     ,RagWebSearchView
+    ,RagDiagnosticActionResultView
 } from '@/types/rag';
 
 const DEFAULT_BASE_URL = '/api';
@@ -158,6 +159,15 @@ export const useRagStore = defineStore('rag', () => {
         diagnostics.value = await ragApi.getDiagnostics();
     }
 
+    /** 执行已审批的诊断处置动作。 */
+    async function executeDiagnosticAction(
+        action: string,
+        operationId: number,
+        approvalToken: string
+    ): Promise<RagDiagnosticActionResultView> {
+        return ragApi.executeDiagnosticAction(action, operationId, approvalToken);
+    }
+
     /** 调用受控的外部检索 provider。 */
     async function searchWeb(question: string, limit: number = 3): Promise<RagWebSearchView> {
         return ragApi.webSearch(question, limit);
@@ -244,6 +254,7 @@ export const useRagStore = defineStore('rag', () => {
         purgeAuditLogs,
         getUsage,
         syncDiagnostics,
+        executeDiagnosticAction,
         searchWeb,
         submitFeedback,
         syncUserDirectory,

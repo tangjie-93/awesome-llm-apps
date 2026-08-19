@@ -20,6 +20,9 @@ import type {
     ,RagDiagnosticsView
     ,RagFeedbackView
     ,RagWebSearchView
+    ,RagKnowledgeGraphView
+    ,RagKnowledgeGraphQueryView
+    ,RagDiagnosticActionResultView
 } from '@/types/rag';
 
 class RagApi {
@@ -116,6 +119,36 @@ class RagApi {
 
     public async getDiagnostics(): Promise<RagDiagnosticsView> {
         return this.request('/diagnostics');
+    }
+
+    public async executeDiagnosticAction(
+        action: string,
+        operationId: number,
+        approvalToken: string
+    ): Promise<RagDiagnosticActionResultView> {
+        return this.request('/diagnostics/actions/execute', {
+            method: 'POST',
+            data: { action, operation_id: operationId, approval_token: approvalToken }
+        });
+    }
+
+    /** 获取当前用户可见的轻量知识图谱节点和关系。 */
+    public async getKnowledgeGraph(knowledgeBase?: string): Promise<RagKnowledgeGraphView> {
+        return this.request('/knowledge-graph', {
+            params: knowledgeBase ? { knowledge_base: knowledgeBase } : undefined
+        });
+    }
+
+    public async queryKnowledgeGraph(
+        question: string,
+        knowledgeBase?: string,
+        maxHops: number = 2,
+        limit: number = 50
+    ): Promise<RagKnowledgeGraphQueryView> {
+        return this.request('/knowledge-graph/query', {
+            method: 'POST',
+            data: { question, knowledge_base: knowledgeBase, max_hops: maxHops, limit }
+        });
     }
 
     public async webSearch(question: string, limit: number = 3): Promise<RagWebSearchView> {

@@ -4,12 +4,13 @@ import csv
 import hashlib
 import json
 from pathlib import Path
+import struct
 from typing import Iterable
 from uuid import NAMESPACE_URL, uuid5
 
 from ..core.models import SourceDocument
 
-SUPPORTED_SUFFIXES = {".md", ".txt", ".json", ".csv", ".pdf"}
+SUPPORTED_SUFFIXES = {".md", ".txt", ".json", ".csv", ".pdf", ".png", ".jpg", ".jpeg"}
 
 
 def load_sources(
@@ -33,7 +34,7 @@ def load_sources(
                 title=path.stem.replace("_", " ").strip() or path.name,
                 content=content,
                 content_type=content_type,
-                content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                content_hash=_content_hash(path, content, content_type),
                 metadata={"filename": path.name, "suffix": path.suffix.lower()},
             )
         )
@@ -73,7 +74,15 @@ def _read_file(path: Path) -> tuple[str, str]:
         return _flatten_csv(path).strip(), "csv"
     if suffix == ".pdf":
         return _read_pdf(path).strip(), "pdf"
+    if suffix in {".png", ".jpg", ".jpeg"}:
+        return _read_image(path), "image"
     return "", "text"
+
+
+def _content_hash(path: Path, content: str, content_type: str) -> str:
+    if content_type == "image":
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
 def _flatten_json(value: object, prefix: str = "") -> str:
@@ -112,3 +121,52 @@ def _read_pdf(path: Path) -> str:
     for page in reader.pages:
         pages.append(page.extract_text() or "")
     return "\n\n".join(part for part in pages if part.strip())
+
+
+def _read_image(path: Path) -> str:
+    """生成图片的可检索文本，优先使用同名人工说明文件，避免依赖外部视觉服务。"""
+    width, height = _image_dimensions(path)
+    filename = path.stem.replace("_", " ").replace("-", " ").strip()
+    captions: list[str] = []
+    for suffix in (".caption.txt", ".caption.md", ".txt", ".md"):
+        sidecar = path.with_name(f"{path.stem}{suffix}")
+        if sidecar.exists() and sidecar != path:
+            caption = sidecar.read_text(encoding="utf-8", errors="ignore").strip()
+            if caption:
+                captions.append(caption)
+            break
+    description = "\n".join(captions) or "未提供人工图片说明。"
+    return (
+        f"图片文件：{path.name}\n"
+        f"图片名称：{filename}\n"
+        f"图片尺寸：{width} x {height}\n"
+        f"图片说明：{description}"
+    )
+
+
+def _image_dimensions(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+    if data.startswith(b"\x89PNG\r\n\x1a\n") and len(data) >= 24:
+        return struct.unpack(">II", data[16:24])
+    if data.startswith(b"\xff\xd8"):
+        index = 2
+        while index + 9 < len(data):
+            if data[index] != 0xFF:
+                index += 1
+                continue
+            marker = data[index + 1]
+            index += 2
+            if marker in {0xD8, 0xD9}:
+                continue
+            if index + 2 > len(data):
+                break
+            length = int.from_bytes(data[index:index + 2], "big")
+            if length < 2 or index + length > len(data):
+                break
+            if marker in {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}:
+                return (
+                    int.from_bytes(data[index + 5:index + 7], "big"),
+                    int.from_bytes(data[index + 3:index + 5], "big"),
+                )
+            index += length
+    return 0, 0

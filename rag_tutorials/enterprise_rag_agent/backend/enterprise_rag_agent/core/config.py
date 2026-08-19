@@ -88,10 +88,10 @@ def load_config() -> EnterpriseRAGConfig:
         default_risk_levels=_read_csv("ENTERPRISE_RAG_RISK_LEVELS", ("low", "medium", "high")),
         risk_by_group=_read_risk_map(),
         business_domains=_read_business_domains(),
-        supported_document_types=_read_csv("ENTERPRISE_RAG_DOCUMENT_TYPES", ("Markdown", "Text", "FAQ")),
+        supported_document_types=_read_csv("ENTERPRISE_RAG_DOCUMENT_TYPES", ("Markdown", "Text", "JSON", "CSV", "PDF", "Image")),
         excluded_scopes=_read_csv(
             "ENTERPRISE_RAG_EXCLUDED_SCOPES",
-            ("多租户隔离", "细粒度段权限", "自动执行动作", "多模态输入", "知识图谱"),
+            ("细粒度段权限", "视觉模型嵌入", "自动模型调优"),
         ),
         permission_summary=(
             "文档默认归属 public。",
