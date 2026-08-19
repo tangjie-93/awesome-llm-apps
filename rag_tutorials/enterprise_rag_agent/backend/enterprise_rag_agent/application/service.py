@@ -41,8 +41,9 @@ class EnterpriseRAGService:
         target: Path,
         knowledge_base: str | None = None,
         allowed_groups: list[str] | None = None,
+        tenant_id: str = "default",
     ) -> IngestResult:
-        documents = load_sources(target, self.config.default_knowledge_base)
+        documents = load_sources(target, self.config.default_knowledge_base, tenant_id=tenant_id)
         final_kbs: list[str] = []
         total_chunks = 0
         skipped = 0
@@ -53,12 +54,12 @@ class EnterpriseRAGService:
 
         for document in documents:
             doc = self._apply_overrides(document, knowledge_base, allowed_groups)
-            current = self.store.get_document(doc.source_id)
-            duplicate = self.store.find_duplicate_document(doc.content_hash, doc.source_id)
+            current = self.store.get_document(doc.source_id, tenant_id=tenant_id)
+            duplicate = self.store.find_duplicate_document(doc.content_hash, doc.source_id, tenant_id=tenant_id)
             if duplicate:
                 skipped += 1
                 duplicate_paths.append(doc.path)
-                if self.store.delete_document(doc.source_id):
+                if self.store.delete_document(doc.source_id, tenant_id=tenant_id):
                     removed += 1
                 continue
 
@@ -84,6 +85,7 @@ class EnterpriseRAGService:
                 target,
                 active_source_ids,
                 knowledge_base=knowledge_base,
+                tenant_id=tenant_id,
             )
 
         return IngestResult(
@@ -102,14 +104,16 @@ class EnterpriseRAGService:
         knowledge_base: str | None = None,
         user_groups: list[str] | None = None,
         top_k: int | None = None,
+        tenant_id: str = "default",
     ) -> list[RetrievedChunk]:
-        routed = self.router.route(question, requested_kb=knowledge_base, limit=3)
+        routed = self.router.route(question, requested_kb=knowledge_base, limit=3, tenant_id=tenant_id)
         retrieved = self.retriever.retrieve(
             question,
             top_k=top_k or self.config.top_k,
             knowledge_bases=routed,
             user_groups=user_groups,
             rerank_top_k=self.config.rerank_top_k,
+            tenant_id=tenant_id,
         )
         return [
             item
@@ -117,24 +121,24 @@ class EnterpriseRAGService:
             if can_access(item.chunk.allowed_groups, user_groups)
         ]
 
-    def stats(self) -> dict[str, object]:
-        stats = self.store.stats()
-        stats["knowledge_bases"] = self.store.list_knowledge_bases()
+    def stats(self, tenant_id: str = "default") -> dict[str, object]:
+        stats = self.store.stats_for_tenant(tenant_id)
+        stats["knowledge_bases"] = self.store.list_knowledge_bases(tenant_id=tenant_id)
         stats["company_name"] = self.config.company_name
         stats["db_path"] = str(self.config.db_path)
         return stats
 
-    def list_documents(self, knowledge_base: str | None = None) -> list[dict[str, object]]:
-        return self.store.list_documents(knowledge_base)
+    def list_documents(self, knowledge_base: str | None = None, tenant_id: str = "default") -> list[dict[str, object]]:
+        return self.store.list_documents(knowledge_base, tenant_id=tenant_id)
 
-    def list_answer_logs(self) -> list[dict[str, object]]:
-        return self.store.list_answer_logs()
+    def list_answer_logs(self, tenant_id: str = "default") -> list[dict[str, object]]:
+        return self.store.list_answer_logs(tenant_id=tenant_id)
 
-    def list_evaluation_logs(self) -> list[dict[str, object]]:
-        return self.store.list_evaluation_logs()
+    def list_evaluation_logs(self, tenant_id: str = "default") -> list[dict[str, object]]:
+        return self.store.list_evaluation_logs(tenant_id=tenant_id)
 
-    def list_operation_logs(self) -> list[dict[str, object]]:
-        return self.store.list_operation_logs()
+    def list_operation_logs(self, tenant_id: str = "default") -> list[dict[str, object]]:
+        return self.store.list_operation_logs(tenant_id=tenant_id)
 
     def evaluate_answer(self, question: str, expected_answer: str | None, actual_answer: str) -> dict[str, object]:
         from ..evaluation.scorer import score_answer
@@ -187,17 +191,79 @@ class EnterpriseRAGService:
         """通过受控的外部检索 provider 补充低置信度回答。"""
         return search_web(question, self.config, limit)
 
-    def diagnostics(self) -> dict[str, object]:
-        """汇总索引、低置信度回答和反馈数据，供运行诊断页面使用。"""
-        stats = self.stats()
+    def diagnostics(self, tenant_id: str = "default") -> dict[str, object]:
+        """汇总租户诊断指标，并生成只读、可解释的运行建议。"""
+        stats = self.stats(tenant_id)
+        low_confidence_answers = self.store.count_low_confidence_answers(
+            self.config.low_confidence_threshold,
+            tenant_id,
+        )
+        feedback = self.store.feedback_summary(tenant_id)
         return {
             "documents": stats["documents"],
             "chunks": stats["chunks"],
             "knowledge_bases": stats["knowledge_bases"],
-            "low_confidence_answers": self.store.count_low_confidence_answers(self.config.low_confidence_threshold),
-            "feedback": self.store.feedback_summary(),
+            "low_confidence_answers": low_confidence_answers,
+            "feedback": feedback,
             "web_fallback_enabled": self.config.web_fallback_enabled,
+            "suggestions": self._build_diagnostic_suggestions(
+                chunks=int(stats["chunks"]),
+                low_confidence_answers=low_confidence_answers,
+                negative_feedback=int(feedback["negative_count"]),
+                web_fallback_enabled=self.config.web_fallback_enabled,
+            ),
         }
+
+    def _build_diagnostic_suggestions(
+        self,
+        chunks: int,
+        low_confidence_answers: int,
+        negative_feedback: int,
+        web_fallback_enabled: bool,
+    ) -> list[dict[str, str]]:
+        """根据运行指标生成稳定的只读诊断建议，不触发自动调参或自动改写数据。"""
+        suggestions: list[dict[str, str]] = []
+        if chunks == 0:
+            suggestions.append({
+                "code": "empty_index",
+                "severity": "critical",
+                "title": "知识库没有可检索切块",
+                "detail": "当前租户没有已索引切块，问答无法获得本地知识库证据。",
+                "action": "先导入文档并确认切块数量大于 0，再进行问答验证。",
+            })
+        if low_confidence_answers > 0:
+            suggestions.append({
+                "code": "low_confidence_answers",
+                "severity": "warning",
+                "title": "存在低置信度回答",
+                "detail": f"当前租户有 {low_confidence_answers} 条回答低于置信度阈值。",
+                "action": "检查文档切块质量、召回结果和问题改写记录。",
+            })
+        if negative_feedback > 0:
+            suggestions.append({
+                "code": "negative_feedback",
+                "severity": "warning",
+                "title": "存在负向反馈",
+                "detail": f"当前租户有 {negative_feedback} 条评分不高于 2 分的反馈。",
+                "action": "回放对应问答并核对证据，不自动调整排序或模型参数。",
+            })
+        if not web_fallback_enabled:
+            suggestions.append({
+                "code": "web_fallback_disabled",
+                "severity": "info",
+                "title": "Web 回退未启用",
+                "detail": "当前问答只使用本地知识库，未配置受控的外部检索补充。",
+                "action": "仅在完成外部服务配置、访问控制和审计评估后启用。",
+            })
+        if not suggestions:
+            suggestions.append({
+                "code": "healthy",
+                "severity": "info",
+                "title": "当前没有发现明显诊断信号",
+                "detail": "索引、置信度和反馈指标暂未触发预设诊断规则。",
+                "action": "继续观察线上反馈和低置信度回答趋势。",
+            })
+        return suggestions
 
     def _apply_overrides(
         self,
@@ -215,6 +281,7 @@ class EnterpriseRAGService:
             content=document.content,
             content_type=document.content_type,
             content_hash=document.content_hash,
+            tenant_id=document.tenant_id,
             version=document.version,
             allowed_groups=final_groups,
             risk_level=risk_level,
@@ -239,6 +306,7 @@ class EnterpriseRAGService:
                 ChunkRecord(
                     chunk_id=chunk_id,
                     source_id=document.source_id,
+                    tenant_id=document.tenant_id,
                     knowledge_base=document.knowledge_base,
                     path=document.path,
                     title=document.title,

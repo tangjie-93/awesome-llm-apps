@@ -56,6 +56,7 @@ class HybridRetriever:
         knowledge_bases: list[str] | None = None,
         user_groups: list[str] | None = None,
         rerank_top_k: int = 12,
+        tenant_id: str = "default",
     ) -> list[RetrievedChunk]:
         query_tokens = expand_query(question)
         if not query_tokens:
@@ -64,7 +65,7 @@ class HybridRetriever:
         query_counts = Counter(query_tokens)
         query_embedding = self.embedding_generator.embed_texts([question])[0]
         candidates: list[RetrievedChunk] = []
-        for chunk in self.store.load_chunks(knowledge_bases):
+        for chunk in self.store.load_chunks(knowledge_bases, tenant_id=tenant_id):
             if not can_access(chunk.allowed_groups, user_groups):
                 continue
             lexical_score, matched_terms = self._score_chunk(chunk, query_counts)

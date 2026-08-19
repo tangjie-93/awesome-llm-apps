@@ -18,6 +18,7 @@ class AuthContext:
     display_name: str
     email: str | None
     groups: tuple[str, ...]
+    tenant_id: str
     is_admin: bool
     claims: dict[str, Any]
 
@@ -30,6 +31,7 @@ def authenticate_request(request: Request, config: EnterpriseRAGConfig) -> AuthC
             "Local Admin",
             None,
             config.dev_user_groups,
+            config.default_tenant_id,
             True,
             {"sub": config.dev_user_id},
         )
@@ -58,7 +60,10 @@ def authenticate_request(request: Request, config: EnterpriseRAGConfig) -> AuthC
     admin = bool(set(groups) & set(config.admin_groups) or "admin" in roles)
     display_name = str(claims.get("name") or claims.get("preferred_username") or claims["sub"])
     email = str(claims["email"]) if claims.get("email") else None
-    return AuthContext(str(claims["sub"]), display_name, email, tuple(groups), admin, claims)
+    tenant_id = str(claims.get(config.jwt_tenant_claim) or config.default_tenant_id).strip()
+    if not tenant_id:
+        raise HTTPException(status_code=401, detail="Tenant claim required")
+    return AuthContext(str(claims["sub"]), display_name, email, tuple(groups), tenant_id, admin, claims)
 
 
 def require_admin(context: AuthContext) -> None:

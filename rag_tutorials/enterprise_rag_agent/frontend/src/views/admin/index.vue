@@ -19,6 +19,14 @@
                 <button class="admin-page__button" @click="clearToken">清除</button>
             </div>
             <p class="admin-page__hint">token 仅保存在当前浏览器内存中，刷新页面后需要重新输入。</p>
+            <input
+                v-model="approvalToken"
+                class="admin-page__token-input"
+                type="password"
+                autocomplete="off"
+                placeholder="审计清理审批令牌"
+            />
+            <p class="admin-page__hint">清理或删除审计日志需要服务端配置的审批令牌。</p>
         </section>
 
         <section class="admin-page__metrics">
@@ -36,10 +44,10 @@
                 </div>
                 <div class="admin-page__actions">
                     <button class="admin-page__button" :disabled="loading" @click="refresh">刷新</button>
-                    <button class="admin-page__button" :disabled="loading" @click="exportLogs">导出 CSV</button>
-                    <button class="admin-page__button admin-page__button--danger" :disabled="loading" @click="purgeLogs">
-                        清理 30 天前日志
-                    </button>
+                <button class="admin-page__button" :disabled="loading" @click="exportLogs">导出 CSV</button>
+                <button class="admin-page__button admin-page__button--danger" :disabled="loading" @click="purgeLogs">
+                    清理 30 天前日志
+                </button>
                 </div>
             </div>
             <div v-if="message" class="admin-page__message">{{ message }}</div>
@@ -64,6 +72,7 @@ import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
 const tokenInput = ref('');
+const approvalToken = ref('');
 const rerankProvider = ref('heuristic');
 const message = ref('');
 const loading = ref(false);
@@ -121,8 +130,12 @@ async function exportLogs(): Promise<void> {
 
 /** 触发后端按 30 天保留策略清理审计日志。 */
 async function purgeLogs(): Promise<void> {
+    if (!approvalToken.value.trim()) {
+        message.value = '请输入审计清理审批令牌';
+        return;
+    }
     try {
-        const result = await store.purgeAuditLogs();
+        const result = await store.purgeAuditLogs(approvalToken.value.trim());
         message.value = `已清理 ${result.deleted} 条审计日志`;
         await store.syncAuditLogs();
     } catch (error) {

@@ -26,6 +26,7 @@ class AuthAdminTest(unittest.TestCase):
                     "groups": ["rag-admin"],
                     "iss": "https://issuer.example.com",
                     "aud": "enterprise-rag",
+                    "tenant_id": "tenant-a",
                     "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
                 },
                 private_key,
@@ -38,6 +39,7 @@ class AuthAdminTest(unittest.TestCase):
                     "groups": ["security"],
                     "iss": "https://issuer.example.com",
                     "aud": "enterprise-rag",
+                    "tenant_id": "tenant-a",
                     "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
                 },
                 private_key,
@@ -63,6 +65,7 @@ class AuthAdminTest(unittest.TestCase):
                     "ENTERPRISE_RAG_JWT_ISSUER": "https://issuer.example.com",
                     "ENTERPRISE_RAG_JWT_AUDIENCE": "enterprise-rag",
                     "ENTERPRISE_RAG_ADMIN_GROUPS": "rag-admin",
+                    "ENTERPRISE_RAG_AUDIT_APPROVAL_TOKEN": "approved-by-security",
                 },
             ):
                 with patch("enterprise_rag_agent.security.auth.PyJWKClient", FakeJwkClient):
@@ -77,6 +80,10 @@ class AuthAdminTest(unittest.TestCase):
                     request = client.get("/api/config", headers={"Authorization": f"Bearer {token}"})
                     self.assertEqual(request.status_code, 200)
                     self.assertEqual(request.json()["auth_mode"], "jwt")
+
+                    session = client.get("/api/session", headers={"Authorization": f"Bearer {token}"})
+                    self.assertEqual(session.status_code, 200)
+                    self.assertEqual(session.json()["tenant_id"], "tenant-a")
 
                     audit_logs = client.get("/api/admin/audit-logs", headers={"Authorization": f"Bearer {token}"})
                     self.assertEqual(audit_logs.status_code, 200)
@@ -106,7 +113,19 @@ class AuthAdminTest(unittest.TestCase):
                     )
                     self.assertEqual(auditor_users.status_code, 403)
 
-                    purge = client.post("/api/admin/audit-logs/purge", headers={"Authorization": f"Bearer {token}"})
+                    missing_approval = client.post("/api/admin/audit-logs/purge", headers={"Authorization": f"Bearer {token}"})
+                    self.assertEqual(missing_approval.status_code, 422)
+                    invalid_approval = client.post(
+                        "/api/admin/audit-logs/purge",
+                        headers={"Authorization": f"Bearer {token}"},
+                        json={"approval_token": "wrong"},
+                    )
+                    self.assertEqual(invalid_approval.status_code, 403)
+                    purge = client.post(
+                        "/api/admin/audit-logs/purge",
+                        headers={"Authorization": f"Bearer {token}"},
+                        json={"approval_token": "approved-by-security"},
+                    )
                     self.assertEqual(purge.status_code, 200)
 
 

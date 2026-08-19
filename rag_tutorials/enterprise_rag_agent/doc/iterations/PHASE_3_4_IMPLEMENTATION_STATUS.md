@@ -1,38 +1,41 @@
-# Phase 3/4 Implementation Status
+# 第 3/4 阶段实现状态
 
-> Updated: 2026-08-18
+> 更新日期：2026-08-19
 
-## Phase 3: Enterprise Capabilities
+## 第 3 阶段：企业能力
 
-Completed:
+已完成：
 
-- JWT/OIDC request authentication and configurable identity claims.
-- Role-derived API permissions. `admin` bypasses permission checks; `auditor` can read audit data but cannot manage users.
-- Separate permissions for ingestion, audit read/manage, user management, and role management.
-- Session identity endpoint, audit export/retention, usage counters, ingest replay, user and role administration.
+- JWT/OIDC 请求认证和可配置的身份声明，包括租户声明映射。
+- 租户数据字段、租户级文档/切块/日志/用量隔离，以及按租户路由检索结果。
+- 基于角色推导的 API 权限。`admin` 可绕过权限检查；`auditor` 可以读取审计数据，但不能管理用户。
+- 为数据接入、审计读取/管理、用户管理和角色管理分别配置独立权限。
+- 会话身份接口、审计导出/保留、使用计数、接入重放，以及用户和角色管理。
+- 审计删除和清理需要服务端配置的独立审批令牌，并记录操作审计。
 
-Remaining:
+剩余：
 
-- Production identity-provider onboarding and deployment-specific claim mapping.
-- Tenant data model and tenant-level isolation.
-- Organization-specific approval rules for destructive audit and administration actions.
+- 生产环境身份提供方接入，以及按部署环境定制的租户和声明映射。
+- 用户、角色和管理写操作的完整租户级数据策略仍需在生产身份源接入后确认。
+- 组织级审批规则当前以服务端审批令牌实现，完整审批流仍待接入。
 
-## Phase 4: Advanced Capabilities
+## 第 4 阶段：高级能力
 
-Completed in this iteration:
+本次迭代已完成：
 
-- Existing multi-knowledge-base routing is surfaced in the answer tool trace.
-- Configurable Web fallback service. It is disabled by default and only calls the configured provider URL.
-- Runtime diagnostics for index size, low-confidence answers, Web fallback state, and feedback statistics.
-- Human feedback API and question-answer page controls.
+- 现有的多知识库路由已在回答工具追踪中展示。
+- 可配置的 Web 回退服务。默认关闭，只会调用已配置的提供方 URL。
+- 运行时诊断能力，包括索引大小、低置信度回答、Web 回退状态和反馈统计。
+- 只读的自动诊断建议，根据空索引、低置信度回答、负向反馈和 Web 回退状态生成可解释建议。
+- 人工反馈 API 和问答页控制项。
 
-Remaining:
+剩余：
 
-- Dedicated knowledge graph storage, graph retrieval, and multi-hop reasoning.
-- Image/document multimodal embedding and retrieval pipeline.
-- Automated diagnosis actions and feedback-driven ranking/model optimization.
+- 专用知识图谱存储、图检索和多跳推理。
+- 图像/文档多模态嵌入与检索流水线。
+- 自动执行诊断动作，以及基于反馈的排序/模型自动优化。
 
-## Verification
+## 验证
 
 - Backend: `python -m unittest discover -s tests`
 - Frontend: `npm.cmd run build`

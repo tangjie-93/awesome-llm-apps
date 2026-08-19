@@ -18,8 +18,15 @@ class EnterpriseRAGAgent:
         knowledge_base: str | None = None,
         user_groups: list[str] | None = None,
         top_k: int | None = None,
+        tenant_id: str = "default",
     ) -> AnswerResult:
-        retrieved = self.service.search(question, knowledge_base=knowledge_base, user_groups=user_groups, top_k=top_k)
+        retrieved = self.service.search(
+            question,
+            knowledge_base=knowledge_base,
+            user_groups=user_groups,
+            top_k=top_k,
+            tenant_id=tenant_id,
+        )
         if not retrieved:
             external_sources = self.service.web_search(question)
             if external_sources:
@@ -32,7 +39,7 @@ class EnterpriseRAGAgent:
                     tool_trace=["knowledge_base_route", "retrieval", "web_fallback"],
                     sources_consulted=len(external_sources),
                 )
-                self._log_answer(result, knowledge_base, user_groups)
+                self._log_answer(result, knowledge_base, user_groups, tenant_id)
                 return result
             result = AnswerResult(
                 question=question,
@@ -41,13 +48,13 @@ class EnterpriseRAGAgent:
                 clarifying_question="你想查哪个知识库、制度域或业务流程？",
                 tool_trace=["knowledge_base_route", "retrieval"],
             )
-            self._log_answer(result, knowledge_base, user_groups)
+            self._log_answer(result, knowledge_base, user_groups, tenant_id)
             return result
 
         confidence = min(1.0, retrieved[0].score / 4.0)
         if confidence < self.service.config.low_confidence_threshold:
             result = self._low_confidence_result(question, retrieved, confidence)
-            self._log_answer(result, knowledge_base, user_groups)
+            self._log_answer(result, knowledge_base, user_groups, tenant_id)
             return result
 
         answer = self._compose_answer(question, retrieved)
@@ -61,7 +68,7 @@ class EnterpriseRAGAgent:
             tool_trace=["knowledge_base_route", "retrieval", "answer_composition"],
             sources_consulted=len(retrieved),
         )
-        self._log_answer(result, knowledge_base, user_groups)
+        self._log_answer(result, knowledge_base, user_groups, tenant_id)
         return result
 
     def _compose_answer(self, question: str, retrieved: list[RetrievedChunk]) -> str:
@@ -172,16 +179,24 @@ class EnterpriseRAGAgent:
     def _citation_label(self, item: RetrievedChunk) -> str:
         return f"{item.chunk.knowledge_base} / {item.chunk.title} / {item.chunk.section_path} / chunk {item.chunk.chunk_index}"
 
-    def _log_answer(self, result: AnswerResult, knowledge_base: str | None, user_groups: Sequence[str] | None) -> None:
+    def _log_answer(
+        self,
+        result: AnswerResult,
+        knowledge_base: str | None,
+        user_groups: Sequence[str] | None,
+        tenant_id: str,
+    ) -> None:
         self.service.store.log_answer(
             result.question,
             result.answer,
             result.confidence,
             result.citations,
             {
+                "tenant_id": tenant_id,
                 "knowledge_base": knowledge_base,
                 "user_groups": list(user_groups or []),
                 "requires_human_review": any(citation.get("risk_level") == "high" for citation in result.citations),
                 "high_risk_policy": self.service.config.high_risk_policy,
             },
+            tenant_id=tenant_id,
         )

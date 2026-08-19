@@ -14,6 +14,7 @@ class SourceDocument:
     content: str
     content_type: str
     content_hash: str
+    tenant_id: str = "default"
     version: str = "1"
     allowed_groups: tuple[str, ...] = ("public",)
     risk_level: str = "low"
@@ -32,6 +33,7 @@ class ChunkRecord:
     chunk_index: int
     text: str
     token_count: int
+    tenant_id: str = "default"
     embedding: list[float] = field(default_factory=list)
     allowed_groups: tuple[str, ...] = ("public",)
     risk_level: str = "low"

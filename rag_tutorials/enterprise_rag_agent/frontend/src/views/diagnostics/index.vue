@@ -15,6 +15,30 @@
         <section class="diagnostics-page__section">
             <div class="diagnostics-page__section-header">
                 <div>
+                    <h2 class="diagnostics-page__section-title">诊断建议</h2>
+                    <p class="diagnostics-page__hint">建议来自当前租户的运行指标，不会自动修改模型或排序配置。</p>
+                </div>
+            </div>
+            <div class="diagnostics-page__suggestions">
+                <article
+                    v-for="suggestion in suggestions"
+                    :key="suggestion.code"
+                    class="diagnostics-page__suggestion"
+                    :class="`diagnostics-page__suggestion--${suggestion.severity}`"
+                >
+                    <div class="diagnostics-page__suggestion-header">
+                        <strong>{{ suggestion.title }}</strong>
+                        <span>{{ severityLabel(suggestion.severity) }}</span>
+                    </div>
+                    <p>{{ suggestion.detail }}</p>
+                    <p class="diagnostics-page__suggestion-action">建议：{{ suggestion.action }}</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="diagnostics-page__section">
+            <div class="diagnostics-page__section-header">
+                <div>
                     <h2 class="diagnostics-page__section-title">外部检索</h2>
                     <p class="diagnostics-page__hint">
                         {{ store.diagnostics?.web_fallback_enabled ? '已启用受控 Web fallback。' : '当前未启用 Web fallback。' }}
@@ -40,7 +64,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRagStore } from '@/store/rag';
-import type { RagWebSearchResultView } from '@/types/rag';
+import type { RagDiagnosticSuggestionView, RagWebSearchResultView } from '@/types/rag';
 
 const store = useRagStore();
 const question = ref('');
@@ -54,6 +78,21 @@ const metrics = computed(() => [
     { label: '低置信度回答', value: store.diagnostics?.low_confidence_answers ?? 0 },
     { label: '反馈均分', value: store.diagnostics?.feedback.average_rating ?? 0 }
 ]);
+const suggestions = computed(() => store.diagnostics?.suggestions ?? []);
+
+/**
+ * 将后端诊断等级转换为页面可读文本。
+ * @param severity 后端返回的诊断等级。
+ * @returns 中文等级名称。
+ */
+function severityLabel(severity: RagDiagnosticSuggestionView['severity']): string {
+    const labels: Record<RagDiagnosticSuggestionView['severity'], string> = {
+        info: '提示',
+        warning: '注意',
+        critical: '严重'
+    };
+    return labels[severity];
+}
 
 /** 刷新诊断数据；失败时保留最近一次成功结果。 */
 async function refresh(): Promise<void> {
@@ -155,6 +194,55 @@ onMounted(() => {
     &__section-title {
         margin: 0;
         font-size: 16px;
+    }
+
+    &__suggestions {
+        display: grid;
+        gap: 10px;
+    }
+
+    &__suggestion {
+        border-left: 4px solid #94a3b8;
+        padding: 12px 14px;
+        background: #f8fafc;
+
+        p {
+            margin: 6px 0 0;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        &--critical {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+
+        &--warning {
+            border-left-color: #d97706;
+            background: #fffbeb;
+        }
+
+        &--info {
+            border-left-color: #2563eb;
+            background: #eff6ff;
+        }
+    }
+
+    &__suggestion-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+
+        span {
+            flex: 0 0 auto;
+            color: #64748b;
+            font-size: 12px;
+        }
+    }
+
+    &__suggestion-action {
+        font-size: 13px;
     }
 
     &__input {

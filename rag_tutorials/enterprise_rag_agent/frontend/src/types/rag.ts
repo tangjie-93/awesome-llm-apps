@@ -84,6 +84,7 @@ export interface RagConfigView {
     llm_provider?: string;
     llm_model?: string;
     auth_mode?: string;
+    jwt_tenant_claim?: string;
     web_fallback_enabled?: boolean;
 }
 
@@ -115,8 +116,18 @@ export interface RagDiagnosticsView {
     feedback: {
         count: number;
         average_rating: number;
+        negative_count: number;
     };
     web_fallback_enabled: boolean;
+    suggestions: RagDiagnosticSuggestionView[];
+}
+
+export interface RagDiagnosticSuggestionView {
+    code: string;
+    severity: 'info' | 'warning' | 'critical';
+    title: string;
+    detail: string;
+    action: string;
 }
 
 export interface RagBusinessDomainView {

@@ -142,8 +142,8 @@ export const useRagStore = defineStore('rag', () => {
     }
 
     /** 删除或清理审计日志。 */
-    async function purgeAuditLogs(before?: string): Promise<RagAuditDeleteView> {
-        return before ? ragApi.deleteAuditLogs(before) : ragApi.purgeAuditLogs();
+    async function purgeAuditLogs(approvalToken: string, before?: string): Promise<RagAuditDeleteView> {
+        return before ? ragApi.deleteAuditLogs(approvalToken, before) : ragApi.purgeAuditLogs(approvalToken);
     }
 
     /** 加载管理员用量统计和当前 rerank provider。 */

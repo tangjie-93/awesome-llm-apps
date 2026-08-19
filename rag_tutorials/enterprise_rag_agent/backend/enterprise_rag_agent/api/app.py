@@ -3,6 +3,7 @@
 import os
 import csv
 import io
+import hmac
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +74,10 @@ class RoleRequest(BaseModel):
     permissions: list[str] = Field(default_factory=list)
 
 
+class AuditActionRequest(BaseModel):
+    approval_token: str = Field(min_length=1, max_length=500)
+
+
 def create_app() -> FastAPI:
     app_config = load_config()
     service = EnterpriseRAGService(app_config)
@@ -109,6 +114,7 @@ def create_app() -> FastAPI:
             context.display_name,
             context.email,
             list(context.groups),
+            tenant_id=context.tenant_id,
         )
         if not profile["is_active"]:
             return JSONResponse(status_code=403, content={"detail": "User is disabled"})
@@ -119,6 +125,7 @@ def create_app() -> FastAPI:
                 context.display_name,
                 context.email,
                 context.groups,
+                context.tenant_id,
                 True,
                 context.claims,
             )
@@ -132,6 +139,7 @@ def create_app() -> FastAPI:
             input_tokens=0,
             output_tokens=0,
             model_calls=0,
+            tenant_id=context.tenant_id,
         )
         return response
 
@@ -150,8 +158,9 @@ def create_app() -> FastAPI:
 
     @api.get('/stats')
     def stats(request: Request) -> dict[str, Any]:
-        result = service.stats()
-        result["usage"] = service.store.usage_stats()
+        context = auth_context(request)
+        result = service.stats(context.tenant_id)
+        result["usage"] = service.store.usage_stats(context.tenant_id)
         return result
 
     @api.get('/config')
@@ -173,6 +182,7 @@ def create_app() -> FastAPI:
             'rerank_provider': app_config.rerank_provider,
             'audit_retention_days': app_config.audit_retention_days,
             'web_fallback_enabled': app_config.web_fallback_enabled,
+            'jwt_tenant_claim': app_config.jwt_tenant_claim,
         }
 
     @api.get('/session')
@@ -183,6 +193,7 @@ def create_app() -> FastAPI:
             "display_name": context.display_name,
             "email": context.email,
             "groups": list(context.groups),
+            "tenant_id": context.tenant_id,
             "is_admin": context.is_admin,
             "permissions": sorted(request.state.permissions),
         }
@@ -199,12 +210,12 @@ def create_app() -> FastAPI:
         }
 
     @api.get('/knowledge-bases')
-    def knowledge_bases() -> dict[str, Any]:
-        return {'knowledge_bases': service.store.list_knowledge_bases()}
+    def knowledge_bases(request: Request) -> dict[str, Any]:
+        return {'knowledge_bases': service.store.list_knowledge_bases(auth_context(request).tenant_id)}
 
     @api.get('/documents')
-    def documents(knowledge_base: str | None = None) -> dict[str, Any]:
-        return {'documents': service.list_documents(knowledge_base)}
+    def documents(request: Request, knowledge_base: str | None = None) -> dict[str, Any]:
+        return {'documents': service.list_documents(knowledge_base, auth_context(request).tenant_id)}
 
     @api.post('/ingest')
     def ingest(payload: IngestRequest, request: Request) -> dict[str, Any]:
@@ -218,14 +229,16 @@ def create_app() -> FastAPI:
                 payload.knowledge_base,
                 payload.allowed_groups,
                 {"error": f"Path not found: {payload.path}"},
+                tenant_id=context.tenant_id,
             )
-            service.store.log_audit(context.user_id, "ingest_failed", payload.path, {"error": f"Path not found: {payload.path}"})
+            service.store.log_audit(context.user_id, "ingest_failed", payload.path, {"error": f"Path not found: {payload.path}"}, context.tenant_id)
             raise HTTPException(status_code=404, detail=f'Path not found: {payload.path}')
         try:
             result = service.ingest_path(
                 target,
                 knowledge_base=payload.knowledge_base,
                 allowed_groups=payload.allowed_groups,
+                tenant_id=context.tenant_id,
             )
         except Exception as exc:
             service.store.log_operation(
@@ -235,6 +248,7 @@ def create_app() -> FastAPI:
                 payload.knowledge_base,
                 payload.allowed_groups,
                 {"error": str(exc)},
+                tenant_id=context.tenant_id,
             )
             raise
         result_payload = result.to_dict()
@@ -245,8 +259,9 @@ def create_app() -> FastAPI:
             payload.knowledge_base,
             payload.allowed_groups,
             result_payload,
+            tenant_id=context.tenant_id,
         )
-        service.store.log_audit(context.user_id, "ingest", str(target), result_payload)
+        service.store.log_audit(context.user_id, "ingest", str(target), result_payload, context.tenant_id)
         service.store.log_usage(
             context.user_id,
             "model_call",
@@ -254,6 +269,7 @@ def create_app() -> FastAPI:
             input_tokens=_estimate_tokens(str(target)),
             output_tokens=0,
             model_calls=1 if result_payload.get("chunks_indexed", 0) else 0,
+            tenant_id=context.tenant_id,
         )
         return result_payload
 
@@ -265,12 +281,14 @@ def create_app() -> FastAPI:
             knowledge_base=payload.knowledge_base,
             user_groups=list(context.groups),
             top_k=payload.top_k,
+            tenant_id=context.tenant_id,
         )
         service.store.log_audit(
             context.user_id,
             "search",
             payload.knowledge_base or "all",
             {"question": payload.question, "result_count": len(results)},
+            context.tenant_id,
         )
         service.store.log_usage(
             context.user_id,
@@ -279,6 +297,7 @@ def create_app() -> FastAPI:
             input_tokens=_estimate_tokens(payload.question),
             output_tokens=0,
             model_calls=1,
+            tenant_id=context.tenant_id,
         )
         return {'results': [item.to_dict() for item in results]}
 
@@ -290,12 +309,14 @@ def create_app() -> FastAPI:
             knowledge_base=payload.knowledge_base,
             user_groups=list(context.groups),
             top_k=payload.top_k,
+            tenant_id=context.tenant_id,
         ).to_dict()
         service.store.log_audit(
             context.user_id,
             "ask",
             payload.knowledge_base or "all",
             {"question": payload.question, "result_count": len(result.get("citations", []))},
+            context.tenant_id,
         )
         service.store.log_usage(
             context.user_id,
@@ -304,6 +325,7 @@ def create_app() -> FastAPI:
             input_tokens=_estimate_tokens(payload.question),
             output_tokens=_estimate_tokens(str(result.get("answer", ""))),
             model_calls=1 if app_config.enable_llm else 0,
+            tenant_id=context.tenant_id,
         )
         return result
 
@@ -337,8 +359,8 @@ def create_app() -> FastAPI:
     @api.get('/diagnostics')
     def diagnostics(request: Request) -> dict[str, Any]:
         context = auth_context(request)
-        result = service.diagnostics()
-        service.store.log_audit(context.user_id, "diagnostics_read", "system", {})
+        result = service.diagnostics(context.tenant_id)
+        service.store.log_audit(context.user_id, "diagnostics_read", "system", {}, context.tenant_id)
         return result
 
     @api.post('/feedback')
@@ -349,26 +371,27 @@ def create_app() -> FastAPI:
             payload.answer_log_id,
             payload.rating,
             payload.comment.strip(),
+            tenant_id=context.tenant_id,
         )
-        service.store.log_audit(context.user_id, "feedback_submit", str(payload.answer_log_id or ""), {"rating": payload.rating})
+        service.store.log_audit(context.user_id, "feedback_submit", str(payload.answer_log_id or ""), {"rating": payload.rating}, context.tenant_id)
         return {"feedback": result}
 
     @api.get('/answer-logs')
-    def answer_logs() -> dict[str, Any]:
-        return {'answer_logs': service.list_answer_logs()}
+    def answer_logs(request: Request) -> dict[str, Any]:
+        return {'answer_logs': service.list_answer_logs(auth_context(request).tenant_id)}
 
     @api.get('/evaluation-logs')
-    def evaluation_logs() -> dict[str, Any]:
-        return {'evaluation_logs': service.list_evaluation_logs()}
+    def evaluation_logs(request: Request) -> dict[str, Any]:
+        return {'evaluation_logs': service.list_evaluation_logs(auth_context(request).tenant_id)}
 
     @api.get('/operation-logs')
-    def operation_logs() -> dict[str, Any]:
-        return {'operation_logs': service.list_operation_logs()}
+    def operation_logs(request: Request) -> dict[str, Any]:
+        return {'operation_logs': service.list_operation_logs(auth_context(request).tenant_id)}
 
     @api.post('/operation-logs/{operation_id}/replay')
     def replay_operation(operation_id: int, request: Request) -> dict[str, Any]:
         context = require_permission(request, "run_ingest")
-        log = service.store.get_operation_log(operation_id)
+        log = service.store.get_operation_log(operation_id, context.tenant_id)
         if not log:
             raise HTTPException(status_code=404, detail=f'Operation log not found: {operation_id}')
         if log['operation'] != 'ingest':
@@ -387,6 +410,7 @@ def create_app() -> FastAPI:
                 replay_path,
                 knowledge_base=knowledge_base,
                 allowed_groups=allowed_groups,
+                tenant_id=context.tenant_id,
             )
         except Exception as exc:
             service.store.log_operation(
@@ -396,6 +420,7 @@ def create_app() -> FastAPI:
                 knowledge_base,
                 allowed_groups,
                 {"replay_of": operation_id, "error": str(exc)},
+                tenant_id=context.tenant_id,
             )
             raise
 
@@ -407,13 +432,14 @@ def create_app() -> FastAPI:
             knowledge_base,
             allowed_groups,
             {"replay_of": operation_id, **result_payload},
+            tenant_id=context.tenant_id,
         )
         return result_payload
 
     @api.get('/admin/audit-logs')
     def audit_logs(request: Request, limit: int = 500) -> dict[str, Any]:
         require_permission(request, "read_audit")
-        return {"audit_logs": service.store.list_audit_logs(min(max(limit, 1), 2000))}
+        return {"audit_logs": service.store.list_audit_logs(min(max(limit, 1), 2000), auth_context(request).tenant_id)}
 
     @api.get('/admin/audit-logs/export')
     def export_audit_logs(request: Request) -> StreamingResponse:
@@ -421,7 +447,7 @@ def create_app() -> FastAPI:
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=["id", "actor_id", "action", "resource", "detail", "created_at"])
         writer.writeheader()
-        for item in service.store.list_audit_logs(2000):
+        for item in service.store.list_audit_logs(2000, auth_context(request).tenant_id):
             writer.writerow({key: item.get(key, "") for key in writer.fieldnames})
         return StreamingResponse(
             iter([output.getvalue()]),
@@ -430,28 +456,30 @@ def create_app() -> FastAPI:
         )
 
     @api.delete('/admin/audit-logs')
-    def delete_audit_logs(request: Request, before: str | None = None) -> dict[str, int]:
+    def delete_audit_logs(payload: AuditActionRequest, request: Request, before: str | None = None) -> dict[str, int]:
         context = require_permission(request, "manage_audit")
-        deleted = service.store.delete_audit_logs(before)
-        service.store.log_audit(context.user_id, "audit_delete", "audit_logs", {"before": before, "deleted": deleted})
+        _require_audit_approval(payload.approval_token, app_config)
+        deleted = service.store.delete_audit_logs(before, context.tenant_id)
+        service.store.log_audit(context.user_id, "audit_delete", "audit_logs", {"before": before, "deleted": deleted}, context.tenant_id)
         return {"deleted": deleted}
 
     @api.post('/admin/audit-logs/purge')
-    def purge_audit_logs(request: Request) -> dict[str, int]:
+    def purge_audit_logs(payload: AuditActionRequest, request: Request) -> dict[str, int]:
         context = require_permission(request, "manage_audit")
-        deleted = service.store.purge_audit_logs(app_config.audit_retention_days)
-        service.store.log_audit(context.user_id, "audit_purge", "audit_logs", {"retention_days": app_config.audit_retention_days, "deleted": deleted})
+        _require_audit_approval(payload.approval_token, app_config)
+        deleted = service.store.purge_audit_logs(app_config.audit_retention_days, context.tenant_id)
+        service.store.log_audit(context.user_id, "audit_purge", "audit_logs", {"retention_days": app_config.audit_retention_days, "deleted": deleted}, context.tenant_id)
         return {"deleted": deleted, "retention_days": app_config.audit_retention_days}
 
     @api.get('/admin/usage')
     def usage(request: Request) -> dict[str, Any]:
         require_permission(request, "read_audit")
-        return {"usage": service.store.usage_stats(), "rerank_provider": app_config.rerank_provider}
+        return {"usage": service.store.usage_stats(auth_context(request).tenant_id), "rerank_provider": app_config.rerank_provider}
 
     @api.get('/admin/users')
     def users(request: Request) -> dict[str, Any]:
         require_permission(request, "manage_users")
-        return {"users": service.store.list_users()}
+        return {"users": service.store.list_users(auth_context(request).tenant_id)}
 
     @api.post('/admin/users')
     def create_user(payload: UserCreateRequest, request: Request) -> dict[str, Any]:
@@ -463,10 +491,11 @@ def create_app() -> FastAPI:
                 payload.email,
                 payload.groups,
                 payload.role_ids,
+                tenant_id=context.tenant_id,
             )
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Unable to create user: {exc}") from exc
-        service.store.log_audit(context.user_id, "user_create", payload.external_id, {"roles": payload.role_ids})
+        service.store.log_audit(context.user_id, "user_create", payload.external_id, {"roles": payload.role_ids}, context.tenant_id)
         return {"user": user}
 
     @api.put('/admin/users/{user_id}')
@@ -479,18 +508,19 @@ def create_app() -> FastAPI:
             payload.groups,
             payload.is_active,
             payload.role_ids,
+            tenant_id=context.tenant_id,
         )
         if not user:
             raise HTTPException(status_code=404, detail=f"User not found: {user_id}")
-        service.store.log_audit(context.user_id, "user_update", str(user_id), {"roles": payload.role_ids, "is_active": payload.is_active})
+        service.store.log_audit(context.user_id, "user_update", str(user_id), {"roles": payload.role_ids, "is_active": payload.is_active}, context.tenant_id)
         return {"user": user}
 
     @api.delete('/admin/users/{user_id}')
     def delete_user(user_id: int, request: Request) -> dict[str, bool]:
         context = require_permission(request, "manage_users")
-        if not service.store.delete_user(user_id):
+        if not service.store.delete_user(user_id, auth_context(request).tenant_id):
             raise HTTPException(status_code=404, detail=f"User not found: {user_id}")
-        service.store.log_audit(context.user_id, "user_delete", str(user_id), {})
+        service.store.log_audit(context.user_id, "user_delete", str(user_id), {}, context.tenant_id)
         return {"deleted": True}
 
     @api.get('/admin/roles')
@@ -561,3 +591,11 @@ def _cors_origins() -> list[str]:
 def _estimate_tokens(value: str) -> int:
     """在模型未返回 usage 时提供稳定的本地 token 估算。"""
     return max(1, len(value.replace("\n", " ").split()))
+
+
+def _require_audit_approval(approval_token: str, config: Any) -> None:
+    """校验破坏性审计操作的服务端审批令牌，未配置或不匹配时拒绝执行。"""
+    if not config.audit_approval_token:
+        raise HTTPException(status_code=503, detail="Audit approval token is not configured")
+    if not hmac.compare_digest(approval_token, config.audit_approval_token):
+        raise HTTPException(status_code=403, detail="Valid audit approval token required")

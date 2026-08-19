@@ -98,12 +98,16 @@ class RagApi {
         return response.data;
     }
 
-    public async deleteAuditLogs(before?: string): Promise<RagAuditDeleteView> {
-        return this.request('/admin/audit-logs', { method: 'DELETE', params: before ? { before } : undefined });
+    public async deleteAuditLogs(approvalToken: string, before?: string): Promise<RagAuditDeleteView> {
+        return this.request('/admin/audit-logs', {
+            method: 'DELETE',
+            params: before ? { before } : undefined,
+            data: { approval_token: approvalToken }
+        });
     }
 
-    public async purgeAuditLogs(): Promise<RagAuditDeleteView> {
-        return this.request('/admin/audit-logs/purge', { method: 'POST' });
+    public async purgeAuditLogs(approvalToken: string): Promise<RagAuditDeleteView> {
+        return this.request('/admin/audit-logs/purge', { method: 'POST', data: { approval_token: approvalToken } });
     }
 
     public async getUsage(): Promise<{ usage: RagUsageView; rerank_provider: string }> {

@@ -31,6 +31,11 @@ class ApiRagFlowTest(unittest.TestCase):
                 },
             ):
                 client = TestClient(create_app())
+                empty_diagnostics = client.get("/api/diagnostics")
+                self.assertEqual(empty_diagnostics.status_code, 200)
+                empty_suggestion_codes = {item["code"] for item in empty_diagnostics.json()["suggestions"]}
+                self.assertIn("empty_index", empty_suggestion_codes)
+
                 ingest = client.post(
                     "/api/ingest",
                     json={
@@ -67,7 +72,19 @@ class ApiRagFlowTest(unittest.TestCase):
                 diagnostics = client.get("/api/diagnostics")
                 self.assertEqual(diagnostics.status_code, 200)
                 self.assertEqual(diagnostics.json()["feedback"]["count"], 1)
+                self.assertEqual(diagnostics.json()["feedback"]["negative_count"], 0)
                 self.assertFalse(diagnostics.json()["web_fallback_enabled"])
+                suggestion_codes = {item["code"] for item in diagnostics.json()["suggestions"]}
+                self.assertIn("web_fallback_disabled", suggestion_codes)
+
+                negative_feedback = client.post("/api/feedback", json={"rating": 1, "comment": "Needs review"})
+                self.assertEqual(negative_feedback.status_code, 200)
+                diagnostics_after_feedback = client.get("/api/diagnostics")
+                self.assertEqual(diagnostics_after_feedback.status_code, 200)
+                self.assertEqual(diagnostics_after_feedback.json()["feedback"]["negative_count"], 1)
+                suggestion_codes = {item["code"] for item in diagnostics_after_feedback.json()["suggestions"]}
+                self.assertIn("negative_feedback", suggestion_codes)
+
                 web_search = client.post("/api/web-search", json={"question": "What is the incident policy?"})
                 self.assertEqual(web_search.status_code, 200)
                 self.assertFalse(web_search.json()["enabled"])

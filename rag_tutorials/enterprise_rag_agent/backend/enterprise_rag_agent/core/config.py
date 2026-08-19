@@ -43,10 +43,13 @@ class EnterpriseRAGConfig:
     jwt_algorithm: str = "RS256"
     jwt_groups_claim: str = "groups"
     jwt_roles_claim: str = "roles"
+    jwt_tenant_claim: str = "tenant_id"
+    default_tenant_id: str = "default"
     admin_groups: tuple[str, ...] = ("rag-admin",)
     dev_user_id: str = "local-admin"
     dev_user_groups: tuple[str, ...] = ("public", "security", "hr", "it", "ops")
     audit_retention_days: int = 30
+    audit_approval_token: str | None = None
     rerank_provider: str = "heuristic"
     rerank_url: str | None = None
     rerank_api_key: str | None = None
@@ -106,10 +109,13 @@ def load_config() -> EnterpriseRAGConfig:
         jwt_algorithm=os.getenv("ENTERPRISE_RAG_JWT_ALGORITHM", "RS256").strip(),
         jwt_groups_claim=os.getenv("ENTERPRISE_RAG_JWT_GROUPS_CLAIM", "groups").strip(),
         jwt_roles_claim=os.getenv("ENTERPRISE_RAG_JWT_ROLES_CLAIM", "roles").strip(),
+        jwt_tenant_claim=os.getenv("ENTERPRISE_RAG_JWT_TENANT_CLAIM", "tenant_id").strip(),
+        default_tenant_id=os.getenv("ENTERPRISE_RAG_DEFAULT_TENANT_ID", "default").strip() or "default",
         admin_groups=_read_csv("ENTERPRISE_RAG_ADMIN_GROUPS", ("rag-admin",)),
         dev_user_id=os.getenv("ENTERPRISE_RAG_DEV_USER_ID", "local-admin").strip(),
         dev_user_groups=_read_csv("ENTERPRISE_RAG_DEV_USER_GROUPS", ("public", "security", "hr", "it", "ops")),
         audit_retention_days=int(os.getenv("ENTERPRISE_RAG_AUDIT_RETENTION_DAYS", "30")),
+        audit_approval_token=os.getenv("ENTERPRISE_RAG_AUDIT_APPROVAL_TOKEN", "").strip() or None,
         rerank_provider=os.getenv("ENTERPRISE_RAG_RERANK_PROVIDER", "heuristic").strip().lower(),
         rerank_url=os.getenv("ENTERPRISE_RAG_RERANK_URL", "").strip() or None,
         rerank_api_key=os.getenv("ENTERPRISE_RAG_RERANK_API_KEY", "").strip() or None,

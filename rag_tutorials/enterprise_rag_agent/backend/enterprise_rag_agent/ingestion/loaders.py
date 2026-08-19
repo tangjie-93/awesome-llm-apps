@@ -12,7 +12,11 @@ from ..core.models import SourceDocument
 SUPPORTED_SUFFIXES = {".md", ".txt", ".json", ".csv", ".pdf"}
 
 
-def load_sources(target: Path, default_knowledge_base: str) -> list[SourceDocument]:
+def load_sources(
+    target: Path,
+    default_knowledge_base: str,
+    tenant_id: str = "default",
+) -> list[SourceDocument]:
     files = _resolve_files(target)
     root = target if target.is_dir() else target.parent
     documents: list[SourceDocument] = []
@@ -22,7 +26,8 @@ def load_sources(target: Path, default_knowledge_base: str) -> list[SourceDocume
         knowledge_base = _infer_knowledge_base(path, root, default_knowledge_base)
         documents.append(
             SourceDocument(
-                source_id=str(uuid5(NAMESPACE_URL, str(path.resolve()))),
+                source_id=str(uuid5(NAMESPACE_URL, f"{tenant_id}:{path.resolve()}")),
+                tenant_id=tenant_id,
                 knowledge_base=knowledge_base,
                 path=str(path.resolve()),
                 title=path.stem.replace("_", " ").strip() or path.name,

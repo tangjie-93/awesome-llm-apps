@@ -27,6 +27,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS documents (
                         source_id TEXT PRIMARY KEY,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         knowledge_base TEXT NOT NULL,
                         path TEXT NOT NULL,
                         title TEXT NOT NULL,
@@ -45,6 +46,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS chunks (
                         chunk_id TEXT PRIMARY KEY,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         source_id TEXT NOT NULL,
                         knowledge_base TEXT NOT NULL,
                         path TEXT NOT NULL,
@@ -65,6 +67,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS answer_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         question TEXT NOT NULL,
                         answer TEXT NOT NULL,
                         confidence REAL NOT NULL,
@@ -78,6 +81,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS evaluation_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         question TEXT NOT NULL,
                         expected_answer TEXT,
                         actual_answer TEXT NOT NULL,
@@ -91,6 +95,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS operation_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         operation TEXT NOT NULL,
                         status TEXT NOT NULL,
                         path TEXT,
@@ -105,6 +110,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS audit_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         actor_id TEXT NOT NULL,
                         action TEXT NOT NULL,
                         resource TEXT NOT NULL,
@@ -117,6 +123,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS usage_events (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         actor_id TEXT NOT NULL,
                         event_type TEXT NOT NULL,
                         endpoint TEXT NOT NULL,
@@ -131,7 +138,8 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        external_id TEXT NOT NULL UNIQUE,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
+                        external_id TEXT NOT NULL,
                         display_name TEXT NOT NULL,
                         email TEXT,
                         groups TEXT NOT NULL DEFAULT '[]',
@@ -171,6 +179,7 @@ class SQLiteRAGStore:
                     """
                     CREATE TABLE IF NOT EXISTS feedback (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
                         actor_id TEXT NOT NULL,
                         answer_log_id INTEGER,
                         rating INTEGER NOT NULL,
@@ -196,13 +205,20 @@ class SQLiteRAGStore:
                     ],
                 )
                 self._ensure_column(connection, "documents", "content_hash", "TEXT NOT NULL DEFAULT ''")
+                self._ensure_column(connection, "documents", "tenant_id", "TEXT NOT NULL DEFAULT 'default'")
                 self._ensure_column(connection, "documents", "risk_level", "TEXT NOT NULL DEFAULT 'low'")
                 self._ensure_column(connection, "documents", "indexed_at", "TEXT NOT NULL DEFAULT ''")
                 self._ensure_column(connection, "chunks", "embedding", "TEXT NOT NULL DEFAULT '[]'")
+                self._ensure_column(connection, "chunks", "tenant_id", "TEXT NOT NULL DEFAULT 'default'")
                 self._ensure_column(connection, "chunks", "risk_level", "TEXT NOT NULL DEFAULT 'low'")
+                for table in ("answer_logs", "evaluation_logs", "operation_logs", "audit_logs", "usage_events", "users", "feedback"):
+                    self._ensure_column(connection, table, "tenant_id", "TEXT NOT NULL DEFAULT 'default'")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_chunks_kb ON chunks(knowledge_base)")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source_id)")
                 connection.execute("CREATE INDEX IF NOT EXISTS idx_docs_kb ON documents(knowledge_base)")
+                connection.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_tenant_external ON users(tenant_id, external_id)"
+                )
                 connection.execute(
                     "CREATE INDEX IF NOT EXISTS idx_docs_content_hash ON documents(content_hash)"
                 )
@@ -229,11 +245,12 @@ class SQLiteRAGStore:
                 connection.execute(
                     """
                     INSERT INTO documents
-                    (source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata, content)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (source_id, tenant_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata, content)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         document.source_id,
+                        document.tenant_id,
                         document.knowledge_base,
                         document.path,
                         document.title,
@@ -249,12 +266,13 @@ class SQLiteRAGStore:
                 connection.executemany(
                     """
                     INSERT INTO chunks
-                    (chunk_id, source_id, knowledge_base, path, title, section_path, chunk_index, text, token_count, embedding, allowed_groups, risk_level, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (chunk_id, tenant_id, source_id, knowledge_base, path, title, section_path, chunk_index, text, token_count, embedding, allowed_groups, risk_level, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     [
                         (
                             chunk.chunk_id,
+                            chunk.tenant_id,
                             chunk.source_id,
                             chunk.knowledge_base,
                             chunk.path,
@@ -274,12 +292,12 @@ class SQLiteRAGStore:
         finally:
             connection.close()
 
-    def delete_document(self, source_id: str) -> bool:
+    def delete_document(self, source_id: str, tenant_id: str = "default") -> bool:
         connection = self._connect()
         try:
             with connection:
-                connection.execute("DELETE FROM chunks WHERE source_id = ?", (source_id,))
-                cursor = connection.execute("DELETE FROM documents WHERE source_id = ?", (source_id,))
+                connection.execute("DELETE FROM chunks WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
+                cursor = connection.execute("DELETE FROM documents WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
         finally:
             connection.close()
         return cursor.rowcount > 0
@@ -289,13 +307,14 @@ class SQLiteRAGStore:
         root_path: Path,
         keep_source_ids: set[str],
         knowledge_base: str | None = None,
+        tenant_id: str = "default",
     ) -> int:
         root = str(root_path.resolve())
-        query = "SELECT source_id, path FROM documents"
-        params: tuple[object, ...] = ()
+        query = "SELECT source_id, path FROM documents WHERE tenant_id = ?"
+        params: tuple[object, ...] = (tenant_id,)
         if knowledge_base:
-            query += " WHERE knowledge_base = ?"
-            params = (knowledge_base,)
+            query += " AND knowledge_base = ?"
+            params = (tenant_id, knowledge_base)
 
         connection = self._connect()
         try:
@@ -307,8 +326,8 @@ class SQLiteRAGStore:
             ]
             with connection:
                 for source_id in stale_source_ids:
-                    connection.execute("DELETE FROM chunks WHERE source_id = ?", (source_id,))
-                    connection.execute("DELETE FROM documents WHERE source_id = ?", (source_id,))
+                    connection.execute("DELETE FROM chunks WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
+                    connection.execute("DELETE FROM documents WHERE source_id = ? AND tenant_id = ?", (source_id, tenant_id))
         finally:
             connection.close()
         return len(stale_source_ids)
@@ -320,17 +339,24 @@ class SQLiteRAGStore:
             return False
         return True
 
-    def load_chunks(self, knowledge_bases: list[str] | None = None) -> list[ChunkRecord]:
+    def load_chunks(
+        self,
+        knowledge_bases: list[str] | None = None,
+        tenant_id: str = "default",
+    ) -> list[ChunkRecord]:
         query = """
-            SELECT chunk_id, source_id, knowledge_base, path, title, section_path,
+            SELECT chunk_id, tenant_id, source_id, knowledge_base, path, title, section_path,
                    chunk_index, text, token_count, embedding, allowed_groups, risk_level, metadata
             FROM chunks
         """
         params: tuple[object, ...] = ()
         if knowledge_bases:
             placeholders = ",".join("?" for _ in knowledge_bases)
-            query += f" WHERE knowledge_base IN ({placeholders})"
-            params = tuple(knowledge_bases)
+            query += f" WHERE tenant_id = ? AND knowledge_base IN ({placeholders})"
+            params = (tenant_id, *knowledge_bases)
+        else:
+            query += " WHERE tenant_id = ?"
+            params = (tenant_id,)
         query += " ORDER BY knowledge_base, path, chunk_index"
         connection = self._connect()
         try:
@@ -340,6 +366,7 @@ class SQLiteRAGStore:
         return [
             ChunkRecord(
                 chunk_id=row["chunk_id"],
+                tenant_id=row["tenant_id"],
                 source_id=row["source_id"],
                 knowledge_base=row["knowledge_base"],
                 path=row["path"],
@@ -356,15 +383,20 @@ class SQLiteRAGStore:
             for row in rows
         ]
 
-    def list_documents(self, knowledge_base: str | None = None) -> list[dict[str, object]]:
+    def list_documents(
+        self,
+        knowledge_base: str | None = None,
+        tenant_id: str = "default",
+    ) -> list[dict[str, object]]:
         query = """
-            SELECT source_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata, indexed_at
+            SELECT source_id, tenant_id, knowledge_base, path, title, content_type, content_hash, version, allowed_groups, risk_level, metadata, indexed_at
             FROM documents
         """
-        params: tuple[object, ...] = ()
+        query += " WHERE tenant_id = ?"
+        params: tuple[object, ...] = (tenant_id,)
         if knowledge_base:
-            query += " WHERE knowledge_base = ?"
-            params = (knowledge_base,)
+            query += " AND knowledge_base = ?"
+            params = (tenant_id, knowledge_base)
         query += " ORDER BY knowledge_base, path"
         connection = self._connect()
         try:
@@ -374,6 +406,7 @@ class SQLiteRAGStore:
         return [
             {
                 "source_id": row["source_id"],
+                "tenant_id": row["tenant_id"],
                 "knowledge_base": row["knowledge_base"],
                 "path": row["path"],
                 "title": row["title"],
@@ -388,17 +421,17 @@ class SQLiteRAGStore:
             for row in rows
         ]
 
-    def get_document(self, source_id: str) -> dict[str, object] | None:
+    def get_document(self, source_id: str, tenant_id: str = "default") -> dict[str, object] | None:
         connection = self._connect()
         try:
             row = connection.execute(
                 """
-                SELECT source_id, knowledge_base, path, title, content_type,
+                SELECT source_id, tenant_id, knowledge_base, path, title, content_type,
                        content_hash, version, allowed_groups, risk_level, metadata, indexed_at
                 FROM documents
-                WHERE source_id = ?
+                WHERE source_id = ? AND tenant_id = ?
                 """,
-                (source_id,),
+                (source_id, tenant_id),
             ).fetchone()
         finally:
             connection.close()
@@ -408,19 +441,20 @@ class SQLiteRAGStore:
         self,
         content_hash: str,
         exclude_source_id: str,
+        tenant_id: str = "default",
     ) -> dict[str, object] | None:
         connection = self._connect()
         try:
             row = connection.execute(
                 """
-                SELECT source_id, knowledge_base, path, title, content_type,
+                SELECT source_id, tenant_id, knowledge_base, path, title, content_type,
                        content_hash, version, allowed_groups, risk_level, metadata, indexed_at
                 FROM documents
-                WHERE content_hash = ? AND source_id != ?
+                WHERE content_hash = ? AND source_id != ? AND tenant_id = ?
                 ORDER BY knowledge_base, path
                 LIMIT 1
                 """,
-                (content_hash, exclude_source_id),
+                (content_hash, exclude_source_id, tenant_id),
             ).fetchone()
         finally:
             connection.close()
@@ -429,6 +463,7 @@ class SQLiteRAGStore:
     def _document_row_to_dict(self, row: sqlite3.Row) -> dict[str, object]:
         return {
             "source_id": row["source_id"],
+            "tenant_id": row["tenant_id"],
             "knowledge_base": row["knowledge_base"],
             "path": row["path"],
             "title": row["title"],
@@ -441,24 +476,28 @@ class SQLiteRAGStore:
             "indexed_at": row["indexed_at"],
         }
 
-    def list_knowledge_bases(self) -> list[str]:
+    def list_knowledge_bases(self, tenant_id: str = "default") -> list[str]:
         connection = self._connect()
         try:
             rows = connection.execute(
-                "SELECT DISTINCT knowledge_base FROM documents ORDER BY knowledge_base"
+                "SELECT DISTINCT knowledge_base FROM documents WHERE tenant_id = ? ORDER BY knowledge_base",
+                (tenant_id,),
             ).fetchall()
         finally:
             connection.close()
         return [row["knowledge_base"] for row in rows]
 
     def stats(self) -> dict[str, int]:
+        return self.stats_for_tenant("default")
+
+    def stats_for_tenant(self, tenant_id: str) -> dict[str, int]:
         connection = self._connect()
         try:
-            documents = connection.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
-            chunks = connection.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
-            answer_logs = connection.execute("SELECT COUNT(*) FROM answer_logs").fetchone()[0]
-            evaluation_logs = connection.execute("SELECT COUNT(*) FROM evaluation_logs").fetchone()[0]
-            operation_logs = connection.execute("SELECT COUNT(*) FROM operation_logs").fetchone()[0]
+            documents = connection.execute("SELECT COUNT(*) FROM documents WHERE tenant_id = ?", (tenant_id,)).fetchone()[0]
+            chunks = connection.execute("SELECT COUNT(*) FROM chunks WHERE tenant_id = ?", (tenant_id,)).fetchone()[0]
+            answer_logs = connection.execute("SELECT COUNT(*) FROM answer_logs WHERE tenant_id = ?", (tenant_id,)).fetchone()[0]
+            evaluation_logs = connection.execute("SELECT COUNT(*) FROM evaluation_logs WHERE tenant_id = ?", (tenant_id,)).fetchone()[0]
+            operation_logs = connection.execute("SELECT COUNT(*) FROM operation_logs WHERE tenant_id = ?", (tenant_id,)).fetchone()[0]
         finally:
             connection.close()
         return {
@@ -476,16 +515,18 @@ class SQLiteRAGStore:
         confidence: float,
         citations: list[dict[str, object]],
         metadata: dict[str, object],
+        tenant_id: str = "default",
     ) -> None:
         connection = self._connect()
         try:
             with connection:
                 connection.execute(
                     """
-                    INSERT INTO answer_logs (question, answer, confidence, citations, metadata)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO answer_logs (tenant_id, question, answer, confidence, citations, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        tenant_id,
                         question,
                         answer,
                         confidence,
@@ -496,16 +537,16 @@ class SQLiteRAGStore:
         finally:
             connection.close()
 
-    def log_evaluation(self, question: str, expected_answer: str | None, actual_answer: str, score: float, notes: str) -> None:
+    def log_evaluation(self, question: str, expected_answer: str | None, actual_answer: str, score: float, notes: str, tenant_id: str = "default") -> None:
         connection = self._connect()
         try:
             with connection:
                 connection.execute(
                     """
-                    INSERT INTO evaluation_logs (question, expected_answer, actual_answer, score, notes)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO evaluation_logs (tenant_id, question, expected_answer, actual_answer, score, notes)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
-                    (question, expected_answer, actual_answer, score, notes),
+                    (tenant_id, question, expected_answer, actual_answer, score, notes),
                 )
         finally:
             connection.close()
@@ -518,16 +559,18 @@ class SQLiteRAGStore:
         knowledge_base: str | None,
         allowed_groups: list[str] | None,
         detail: dict[str, object],
+        tenant_id: str = "default",
     ) -> None:
         connection = self._connect()
         try:
             with connection:
                 connection.execute(
                     """
-                    INSERT INTO operation_logs (operation, status, path, knowledge_base, allowed_groups, detail)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO operation_logs (tenant_id, operation, status, path, knowledge_base, allowed_groups, detail)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        tenant_id,
                         operation,
                         status,
                         path,
@@ -539,15 +582,16 @@ class SQLiteRAGStore:
         finally:
             connection.close()
 
-    def list_answer_logs(self) -> list[dict[str, object]]:
+    def list_answer_logs(self, tenant_id: str = "default") -> list[dict[str, object]]:
         connection = self._connect()
         try:
             rows = connection.execute(
                 """
                 SELECT id, question, answer, confidence, citations, metadata, created_at
-                FROM answer_logs
+                FROM answer_logs WHERE tenant_id = ?
                 ORDER BY id DESC
                 """
+                , (tenant_id,)
             ).fetchall()
         finally:
             connection.close()
@@ -564,15 +608,16 @@ class SQLiteRAGStore:
             for row in rows
         ]
 
-    def list_evaluation_logs(self) -> list[dict[str, object]]:
+    def list_evaluation_logs(self, tenant_id: str = "default") -> list[dict[str, object]]:
         connection = self._connect()
         try:
             rows = connection.execute(
                 """
                 SELECT id, question, expected_answer, actual_answer, score, notes, created_at
-                FROM evaluation_logs
+                FROM evaluation_logs WHERE tenant_id = ?
                 ORDER BY id DESC
                 """
+                , (tenant_id,)
             ).fetchall()
         finally:
             connection.close()
@@ -589,15 +634,16 @@ class SQLiteRAGStore:
             for row in rows
         ]
 
-    def list_operation_logs(self) -> list[dict[str, object]]:
+    def list_operation_logs(self, tenant_id: str = "default") -> list[dict[str, object]]:
         connection = self._connect()
         try:
             rows = connection.execute(
                 """
                 SELECT id, operation, status, path, knowledge_base, allowed_groups, detail, created_at
-                FROM operation_logs
+                FROM operation_logs WHERE tenant_id = ?
                 ORDER BY id DESC
                 """
+                , (tenant_id,)
             ).fetchall()
         finally:
             connection.close()
@@ -615,16 +661,16 @@ class SQLiteRAGStore:
             for row in rows
         ]
 
-    def get_operation_log(self, operation_id: int) -> dict[str, object] | None:
+    def get_operation_log(self, operation_id: int, tenant_id: str = "default") -> dict[str, object] | None:
         connection = self._connect()
         try:
             row = connection.execute(
                 """
                 SELECT id, operation, status, path, knowledge_base, allowed_groups, detail, created_at
                 FROM operation_logs
-                WHERE id = ?
+                WHERE id = ? AND tenant_id = ?
                 """,
-                (operation_id,),
+                (operation_id, tenant_id),
             ).fetchone()
         finally:
             connection.close()
@@ -641,24 +687,24 @@ class SQLiteRAGStore:
             "created_at": row["created_at"],
         }
 
-    def log_audit(self, actor_id: str, action: str, resource: str, detail: dict[str, object]) -> None:
+    def log_audit(self, actor_id: str, action: str, resource: str, detail: dict[str, object], tenant_id: str = "default") -> None:
         """记录需要管理员追踪的业务动作。"""
         connection = self._connect()
         try:
             with connection:
                 connection.execute(
-                    "INSERT INTO audit_logs (actor_id, action, resource, detail) VALUES (?, ?, ?, ?)",
-                    (actor_id, action, resource, json.dumps(detail, ensure_ascii=False)),
+                    "INSERT INTO audit_logs (tenant_id, actor_id, action, resource, detail) VALUES (?, ?, ?, ?, ?)",
+                    (tenant_id, actor_id, action, resource, json.dumps(detail, ensure_ascii=False)),
                 )
         finally:
             connection.close()
 
-    def list_audit_logs(self, limit: int = 500) -> list[dict[str, object]]:
+    def list_audit_logs(self, limit: int = 500, tenant_id: str = "default") -> list[dict[str, object]]:
         connection = self._connect()
         try:
             rows = connection.execute(
-                "SELECT id, actor_id, action, resource, detail, created_at FROM audit_logs ORDER BY id DESC LIMIT ?",
-                (limit,),
+                "SELECT id, actor_id, action, resource, detail, created_at FROM audit_logs WHERE tenant_id = ? ORDER BY id DESC LIMIT ?",
+                (tenant_id, limit),
             ).fetchall()
         finally:
             connection.close()
@@ -674,21 +720,21 @@ class SQLiteRAGStore:
             for row in rows
         ]
 
-    def delete_audit_logs(self, before: str | None = None) -> int:
+    def delete_audit_logs(self, before: str | None = None, tenant_id: str = "default") -> int:
         connection = self._connect()
         try:
             with connection:
                 if before:
-                    cursor = connection.execute("DELETE FROM audit_logs WHERE created_at < ?", (before,))
+                    cursor = connection.execute("DELETE FROM audit_logs WHERE tenant_id = ? AND created_at < ?", (tenant_id, before))
                 else:
-                    cursor = connection.execute("DELETE FROM audit_logs")
+                    cursor = connection.execute("DELETE FROM audit_logs WHERE tenant_id = ?", (tenant_id,))
         finally:
             connection.close()
         return cursor.rowcount
 
-    def purge_audit_logs(self, retention_days: int) -> int:
+    def purge_audit_logs(self, retention_days: int, tenant_id: str = "default") -> int:
         cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).strftime("%Y-%m-%d %H:%M:%S")
-        return self.delete_audit_logs(cutoff)
+        return self.delete_audit_logs(cutoff, tenant_id=tenant_id)
 
     def log_usage(
         self,
@@ -698,6 +744,7 @@ class SQLiteRAGStore:
         input_tokens: int = 0,
         output_tokens: int = 0,
         model_calls: int = 0,
+        tenant_id: str = "default",
     ) -> None:
         connection = self._connect()
         try:
@@ -705,15 +752,15 @@ class SQLiteRAGStore:
                 connection.execute(
                     """
                     INSERT INTO usage_events
-                    (actor_id, event_type, endpoint, input_tokens, output_tokens, model_calls)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (tenant_id, actor_id, event_type, endpoint, input_tokens, output_tokens, model_calls)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (actor_id, event_type, endpoint, input_tokens, output_tokens, model_calls),
+                    (tenant_id, actor_id, event_type, endpoint, input_tokens, output_tokens, model_calls),
                 )
         finally:
             connection.close()
 
-    def usage_stats(self) -> dict[str, int]:
+    def usage_stats(self, tenant_id: str = "default") -> dict[str, int]:
         connection = self._connect()
         try:
             row = connection.execute(
@@ -721,14 +768,15 @@ class SQLiteRAGStore:
                 SELECT COALESCE(SUM(CASE WHEN event_type = 'request' THEN 1 ELSE 0 END), 0) AS requests,
                        COALESCE(SUM(input_tokens + output_tokens), 0) AS tokens,
                        COALESCE(SUM(model_calls), 0) AS model_calls
-                FROM usage_events
+                FROM usage_events WHERE tenant_id = ?
                 """
+                , (tenant_id,)
             ).fetchone()
         finally:
             connection.close()
         model_row = self._connect()
         try:
-            calls = model_row.execute("SELECT COALESCE(SUM(model_calls), 0) FROM usage_events").fetchone()[0]
+            calls = model_row.execute("SELECT COALESCE(SUM(model_calls), 0) FROM usage_events WHERE tenant_id = ?", (tenant_id,)).fetchone()[0]
         finally:
             model_row.close()
         return {"requests": int(row["requests"]), "tokens": int(row["tokens"]), "model_calls": int(calls)}
@@ -739,26 +787,36 @@ class SQLiteRAGStore:
         display_name: str,
         email: str | None,
         groups: list[str],
+        tenant_id: str = "default",
     ) -> dict[str, object]:
         connection = self._connect()
         try:
             with connection:
-                connection.execute(
-                    """
-                    INSERT INTO users (external_id, display_name, email, groups)
-                    VALUES (?, ?, ?, ?)
-                    ON CONFLICT(external_id) DO UPDATE SET
-                        display_name = excluded.display_name,
-                        email = excluded.email,
-                        groups = excluded.groups,
-                        last_seen_at = CURRENT_TIMESTAMP,
-                        updated_at = CURRENT_TIMESTAMP
-                    """,
-                    (external_id, display_name, email, json.dumps(groups, ensure_ascii=False)),
-                )
+                existing = connection.execute(
+                    "SELECT id FROM users WHERE tenant_id = ? AND external_id = ?",
+                    (tenant_id, external_id),
+                ).fetchone()
+                if existing:
+                    connection.execute(
+                        """
+                        UPDATE users
+                        SET display_name = ?, email = ?, groups = ?,
+                            last_seen_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ? AND tenant_id = ?
+                        """,
+                        (display_name, email, json.dumps(groups, ensure_ascii=False), existing["id"], tenant_id),
+                    )
+                else:
+                    connection.execute(
+                        """
+                        INSERT INTO users (tenant_id, external_id, display_name, email, groups)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (tenant_id, external_id, display_name, email, json.dumps(groups, ensure_ascii=False)),
+                    )
             row = connection.execute(
-                "SELECT id, external_id, display_name, email, groups, is_active, metadata, created_at, updated_at, last_seen_at FROM users WHERE external_id = ?",
-                (external_id,),
+                "SELECT id, external_id, display_name, email, groups, is_active, metadata, created_at, updated_at, last_seen_at FROM users WHERE external_id = ? AND tenant_id = ?",
+                (external_id, tenant_id),
             ).fetchone()
         finally:
             connection.close()
@@ -802,13 +860,20 @@ class SQLiteRAGStore:
             if isinstance(permission, str) and permission
         }
 
-    def log_feedback(self, actor_id: str, answer_log_id: int | None, rating: int, comment: str) -> dict[str, object]:
+    def log_feedback(
+        self,
+        actor_id: str,
+        answer_log_id: int | None,
+        rating: int,
+        comment: str,
+        tenant_id: str = "default",
+    ) -> dict[str, object]:
         connection = self._connect()
         try:
             with connection:
                 cursor = connection.execute(
-                    "INSERT INTO feedback (actor_id, answer_log_id, rating, comment) VALUES (?, ?, ?, ?)",
-                    (actor_id, answer_log_id, rating, comment),
+                    "INSERT INTO feedback (tenant_id, actor_id, answer_log_id, rating, comment) VALUES (?, ?, ?, ?, ?)",
+                    (tenant_id, actor_id, answer_log_id, rating, comment),
                 )
                 feedback_id = cursor.lastrowid
             row = connection.execute(
@@ -826,32 +891,40 @@ class SQLiteRAGStore:
             "created_at": row["created_at"],
         }
 
-    def feedback_summary(self) -> dict[str, float | int]:
+    def feedback_summary(self, tenant_id: str = "default") -> dict[str, float | int]:
         connection = self._connect()
         try:
             row = connection.execute(
-                "SELECT COUNT(*) AS count, COALESCE(AVG(rating), 0) AS average_rating FROM feedback"
+                "SELECT COUNT(*) AS count, COALESCE(AVG(rating), 0) AS average_rating, "
+                "SUM(CASE WHEN rating <= 2 THEN 1 ELSE 0 END) AS negative_count "
+                "FROM feedback WHERE tenant_id = ?",
+                (tenant_id,),
             ).fetchone()
         finally:
             connection.close()
-        return {"count": int(row["count"]), "average_rating": round(float(row["average_rating"]), 2)}
+        return {
+            "count": int(row["count"]),
+            "average_rating": round(float(row["average_rating"]), 2),
+            "negative_count": int(row["negative_count"] or 0),
+        }
 
-    def count_low_confidence_answers(self, threshold: float) -> int:
+    def count_low_confidence_answers(self, threshold: float, tenant_id: str = "default") -> int:
         connection = self._connect()
         try:
             row = connection.execute(
-                "SELECT COUNT(*) AS count FROM answer_logs WHERE confidence < ?",
-                (threshold,),
+                "SELECT COUNT(*) AS count FROM answer_logs WHERE confidence < ? AND tenant_id = ?",
+                (threshold, tenant_id),
             ).fetchone()
         finally:
             connection.close()
         return int(row["count"])
 
-    def list_users(self) -> list[dict[str, object]]:
+    def list_users(self, tenant_id: str = "default") -> list[dict[str, object]]:
         connection = self._connect()
         try:
             rows = connection.execute(
-                "SELECT id, external_id, display_name, email, groups, is_active, metadata, created_at, updated_at, last_seen_at FROM users ORDER BY display_name, id"
+                "SELECT id, external_id, display_name, email, groups, is_active, metadata, created_at, updated_at, last_seen_at FROM users WHERE tenant_id = ? ORDER BY display_name, id",
+                (tenant_id,),
             ).fetchall()
         finally:
             connection.close()
@@ -867,10 +940,11 @@ class SQLiteRAGStore:
         email: str | None,
         groups: list[str],
         role_ids: list[int],
+        tenant_id: str = "default",
     ) -> dict[str, object]:
-        user = self.upsert_user_profile(external_id, display_name, email, groups)
+        user = self.upsert_user_profile(external_id, display_name, email, groups, tenant_id=tenant_id)
         self.set_user_roles(int(user["id"]), role_ids)
-        return next(item for item in self.list_users() if item["id"] == user["id"])
+        return next(item for item in self.list_users(tenant_id) if item["id"] == user["id"])
 
     def update_user(
         self,
@@ -880,6 +954,7 @@ class SQLiteRAGStore:
         groups: list[str],
         is_active: bool,
         role_ids: list[int],
+        tenant_id: str = "default",
     ) -> dict[str, object] | None:
         connection = self._connect()
         try:
@@ -888,21 +963,24 @@ class SQLiteRAGStore:
                     """
                     UPDATE users
                     SET display_name = ?, email = ?, groups = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
+                    WHERE id = ? AND tenant_id = ?
                     """,
-                    (display_name, email, json.dumps(groups, ensure_ascii=False), int(is_active), user_id),
+                    (display_name, email, json.dumps(groups, ensure_ascii=False), int(is_active), user_id, tenant_id),
                 )
         finally:
             connection.close()
         self.set_user_roles(user_id, role_ids)
-        return next((item for item in self.list_users() if item["id"] == user_id), None)
+        return next((item for item in self.list_users(tenant_id) if item["id"] == user_id), None)
 
-    def delete_user(self, user_id: int) -> bool:
+    def delete_user(self, user_id: int, tenant_id: str = "default") -> bool:
         connection = self._connect()
         try:
             with connection:
-                connection.execute("DELETE FROM user_roles WHERE user_id = ?", (user_id,))
-                cursor = connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                connection.execute(
+                    "DELETE FROM user_roles WHERE user_id = ? AND user_id IN (SELECT id FROM users WHERE tenant_id = ?)",
+                    (user_id, tenant_id),
+                )
+                cursor = connection.execute("DELETE FROM users WHERE id = ? AND tenant_id = ?", (user_id, tenant_id))
         finally:
             connection.close()
         return cursor.rowcount > 0
