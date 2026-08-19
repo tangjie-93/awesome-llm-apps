@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 import csv
@@ -12,10 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse, StreamingResponse
 
-from ..application.service import EnterpriseRAGService
-from ..core.config import load_config
-from ..retrieval.embeddings import EmbeddingServiceUnavailable
-from ..security.auth import AuthContext, authenticate_request, require_admin
+from application.service import EnterpriseRAGService
+from core.config import load_config
+from retrieval.embeddings import EmbeddingServiceUnavailable
+from security.auth import AuthContext, authenticate_request, require_admin
 
 
 class IngestRequest(BaseModel):
@@ -645,7 +645,7 @@ def _resolve_path(value: str) -> Path:
     if path.exists():
         return path
 
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[2]
     candidate = repo_root / value
     if candidate.exists():
         return candidate

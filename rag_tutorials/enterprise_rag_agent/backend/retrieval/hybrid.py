@@ -6,9 +6,9 @@ import json
 from urllib import request as urlrequest
 from collections import Counter
 
-from ..core.models import ChunkRecord, RetrievedChunk
-from ..security.permissions import can_access
-from ..storage.sqlite_store import SQLiteRAGStore
+from core.models import ChunkRecord, RetrievedChunk
+from security.permissions import can_access
+from storage.sqlite_store import SQLiteRAGStore
 from .embeddings import EmbeddingGenerator, cosine_similarity
 
 TOKEN_PATTERN = re.compile(r"[\w\u4e00-\u9fff]+", re.UNICODE)

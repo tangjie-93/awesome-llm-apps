@@ -5,8 +5,8 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from ..core.models import ChunkRecord, SourceDocument
-from ..retrieval.knowledge_graph import build_graph_records, extract_entities, normalize_entity
+from core.models import ChunkRecord, SourceDocument
+from retrieval.knowledge_graph import build_graph_records, extract_entities, normalize_entity
 
 
 class SQLiteRAGStore:

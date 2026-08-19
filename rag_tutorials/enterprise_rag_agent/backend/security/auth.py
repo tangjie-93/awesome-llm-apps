@@ -7,7 +7,7 @@ import jwt
 from fastapi import HTTPException, Request
 from jwt import PyJWKClient
 
-from ..core.config import EnterpriseRAGConfig
+from core.config import EnterpriseRAGConfig
 
 
 @dataclass(frozen=True, slots=True)

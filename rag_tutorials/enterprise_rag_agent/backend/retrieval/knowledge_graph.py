@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from ..core.models import ChunkRecord
+from core.models import ChunkRecord
 
 ENGLISH_ENTITY_PATTERN = re.compile(r"\b[A-Z][A-Za-z0-9-]*(?:[ \t]+[A-Z][A-Za-z0-9-]*){0,3}\b")
 CAMEL_CASE_ENTITY_PATTERN = re.compile(r"\b[A-Z][a-z]+(?:[A-Z][A-Za-z0-9-]*)+\b")

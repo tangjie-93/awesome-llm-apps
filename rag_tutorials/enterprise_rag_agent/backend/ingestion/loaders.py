@@ -8,7 +8,7 @@ import struct
 from typing import Iterable
 from uuid import NAMESPACE_URL, uuid5
 
-from ..core.models import SourceDocument
+from core.models import SourceDocument
 
 SUPPORTED_SUFFIXES = {".md", ".txt", ".json", ".csv", ".pdf", ".png", ".jpg", ".jpeg"}
 

@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from fastapi.testclient import TestClient
 
-from enterprise_rag_agent.api.app import create_app
+from api.app import create_app
 
 
 class AuthAdminTest(unittest.TestCase):
@@ -68,7 +68,7 @@ class AuthAdminTest(unittest.TestCase):
                     "ENTERPRISE_RAG_AUDIT_APPROVAL_TOKEN": "approved-by-security",
                 },
             ):
-                with patch("enterprise_rag_agent.security.auth.PyJWKClient", FakeJwkClient):
+                with patch("security.auth.PyJWKClient", FakeJwkClient):
                     client = TestClient(create_app())
                     unauthorized = client.get("/api/admin/usage")
                     self.assertEqual(unauthorized.status_code, 401)

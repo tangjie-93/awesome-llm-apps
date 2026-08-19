@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from enterprise_rag_agent.security.permissions import can_access, normalize_groups
+from security.permissions import can_access, normalize_groups
 
 
 class PermissionTest(unittest.TestCase):

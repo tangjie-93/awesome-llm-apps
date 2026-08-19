@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from enterprise_rag_agent.api.app import create_app
+from api.app import create_app
 
 
 class ApiConfigTest(unittest.TestCase):

@@ -6,9 +6,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from enterprise_rag_agent.api.app import create_app
-from enterprise_rag_agent.application.service import EnterpriseRAGService
-from enterprise_rag_agent.core.config import load_config
+from api.app import create_app
+from application.service import EnterpriseRAGService
+from core.config import load_config
 
 
 def build_parser() -> argparse.ArgumentParser:

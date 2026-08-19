@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import httpx
 from openai import APIStatusError
 
-from enterprise_rag_agent.retrieval.embeddings import (
+from retrieval.embeddings import (
     OpenAIEmbeddingGenerator,
 )
 
@@ -28,7 +28,7 @@ class EmbeddingGeneratorTest(unittest.TestCase):
         generator = OpenAIEmbeddingGenerator("text-embedding-3-small", api_key="test-key")
 
         with patch("openai.OpenAI", return_value=client), patch(
-            "enterprise_rag_agent.retrieval.embeddings.time.sleep"
+            "retrieval.embeddings.time.sleep"
         ) as sleep:
             result = generator.embed_texts(["hello"])
 
@@ -48,7 +48,7 @@ class EmbeddingGeneratorTest(unittest.TestCase):
         generator = OpenAIEmbeddingGenerator("text-embedding-3-small", api_key="test-key")
 
         with patch("openai.OpenAI", return_value=client), patch(
-            "enterprise_rag_agent.retrieval.embeddings.time.sleep"
+            "retrieval.embeddings.time.sleep"
         ):
             result = generator.embed_texts(["hello"])
 

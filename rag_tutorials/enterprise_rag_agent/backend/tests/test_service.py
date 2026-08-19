@@ -5,8 +5,8 @@ import struct
 import tempfile
 import unittest
 
-from enterprise_rag_agent.core.config import EnterpriseRAGConfig
-from enterprise_rag_agent.application.service import EnterpriseRAGService
+from core.config import EnterpriseRAGConfig
+from application.service import EnterpriseRAGService
 
 
 class EnterpriseRAGServiceTest(unittest.TestCase):

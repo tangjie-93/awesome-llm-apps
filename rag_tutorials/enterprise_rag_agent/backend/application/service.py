@@ -3,16 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
-from ..core.config import EnterpriseRAGConfig
-from ..core.models import ChunkRecord, IngestResult, RetrievedChunk, SourceDocument
-from ..ingestion.chunking import SectionBlock, chunk_text, split_sections
-from ..ingestion.loaders import load_sources
-from ..retrieval.embeddings import create_embedding_generator
-from ..retrieval.hybrid import HybridRetriever
-from ..retrieval.router import KnowledgeBaseRouter
-from ..retrieval.web_fallback import search_web
-from ..security.permissions import can_access, normalize_groups
-from ..storage.sqlite_store import SQLiteRAGStore
+from core.config import EnterpriseRAGConfig
+from core.models import ChunkRecord, IngestResult, RetrievedChunk, SourceDocument
+from ingestion.chunking import SectionBlock, chunk_text, split_sections
+from ingestion.loaders import load_sources
+from retrieval.embeddings import create_embedding_generator
+from retrieval.hybrid import HybridRetriever
+from retrieval.router import KnowledgeBaseRouter
+from retrieval.web_fallback import search_web
+from security.permissions import can_access, normalize_groups
+from storage.sqlite_store import SQLiteRAGStore
 from .agent import EnterpriseRAGAgent
 
 
@@ -169,7 +169,7 @@ class EnterpriseRAGService:
         return self.store.list_operation_logs(tenant_id=tenant_id)
 
     def evaluate_answer(self, question: str, expected_answer: str | None, actual_answer: str) -> dict[str, object]:
-        from ..evaluation.scorer import score_answer
+        from evaluation.scorer import score_answer
 
         score, notes = score_answer(expected_answer, actual_answer)
         self.store.log_evaluation(question, expected_answer, actual_answer, score, notes)
@@ -177,7 +177,7 @@ class EnterpriseRAGService:
 
     def evaluate_retrieval(self, cases: list[dict[str, object]] | None = None) -> dict[str, object]:
         """运行稳定的召回样例，返回命中率、MRR 和每条样例的解释结果。"""
-        from ..evaluation.benchmark import DEFAULT_RETRIEVAL_CASES, RetrievalCase
+        from evaluation.benchmark import DEFAULT_RETRIEVAL_CASES, RetrievalCase
 
         selected = [
             RetrievalCase(

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 
 from .hybrid import tokenize
-from ..storage.sqlite_store import SQLiteRAGStore
+from storage.sqlite_store import SQLiteRAGStore
 
 
 class KnowledgeBaseRouter:

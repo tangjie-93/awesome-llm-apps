@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 import re
 
-from ..core.models import AnswerResult, RetrievedChunk
-from ..llm.openai_compat import LLMMessage, OpenAIAnswerGenerator
-from ..retrieval.hybrid import expand_query
+from core.models import AnswerResult, RetrievedChunk
+from llm.openai_compat import LLMMessage, OpenAIAnswerGenerator
+from retrieval.hybrid import expand_query
 
 
 class EnterpriseRAGAgent:

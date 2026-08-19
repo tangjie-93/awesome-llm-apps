@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from urllib import request as urlrequest
 
-from ..core.config import EnterpriseRAGConfig
+from core.config import EnterpriseRAGConfig
 
 
 def search_web(question: str, config: EnterpriseRAGConfig, limit: int = 3) -> list[dict[str, str]]:
