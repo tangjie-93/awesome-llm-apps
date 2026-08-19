@@ -1,9 +1,6 @@
 <template>
     <section class="diagnostics-page">
-        <header class="diagnostics-page__header">
-            <h1 class="diagnostics-page__title">运行诊断</h1>
-            <p class="diagnostics-page__subtitle">查看知识库健康情况，并在启用后使用外部检索补充信息。</p>
-        </header>
+        <PageHeader />
 
         <section class="diagnostics-page__metrics">
             <article v-for="metric in metrics" :key="metric.label" class="diagnostics-page__metric">
@@ -86,6 +83,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagDiagnosticSuggestionView, RagWebSearchResultView } from '@/types/rag';
 
@@ -181,19 +179,6 @@ onMounted(() => {
 
 <style scoped lang="less">
 .diagnostics-page {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
     &__subtitle,
     &__hint {
         margin: 6px 0 0;
@@ -204,15 +189,15 @@ onMounted(() => {
     &__metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
+        gap: 10px;
+        margin-bottom: 14px;
     }
 
     &__metric,
     &__section {
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 16px;
+        padding: 14px;
         background: #fff;
     }
 
@@ -237,7 +222,7 @@ onMounted(() => {
     &__section-header {
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
 
     &__section-title {
@@ -248,7 +233,7 @@ onMounted(() => {
     &__action-grid {
         display: grid;
         grid-template-columns: minmax(180px, 0.5fr) minmax(260px, 1fr) auto;
-        gap: 12px;
+        gap: 10px;
         align-items: end;
 
         label {
@@ -276,7 +261,7 @@ onMounted(() => {
 
     &__suggestion {
         border-left: 4px solid #94a3b8;
-        padding: 12px 14px;
+        padding: 11px 12px;
         background: #f8fafc;
 
         p {
@@ -346,13 +331,13 @@ onMounted(() => {
     }
 
     &__message {
-        margin: 12px 0;
+        margin: 10px 0;
         color: #1d4ed8;
     }
 
     &__result {
         border-top: 1px solid #e2e8f0;
-        padding: 12px 0;
+        padding: 10px 0;
 
         a {
             color: #1d4ed8;

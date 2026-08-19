@@ -1,12 +1,10 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">仪表盘</h1>
-                <p class="page__subtitle">企业知识检索与问答总览</p>
-            </div>
-            <button class="button button--primary" @click="refreshDashboard">刷新</button>
-        </header>
+        <PageHeader>
+            <template #actions>
+                <button class="button button--primary" @click="refreshDashboard">刷新</button>
+            </template>
+        </PageHeader>
 
         <div class="grid">
             <article class="panel">
@@ -33,6 +31,7 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -48,38 +47,19 @@ onMounted(() => {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 28px;
-        line-height: 1.2;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
 }
 
 .panel {
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &__label {

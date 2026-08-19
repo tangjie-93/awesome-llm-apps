@@ -1,11 +1,6 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">评估</h1>
-                <p class="page__subtitle">对应后端 evaluate 命令，用于记录答案评分</p>
-            </div>
-        </header>
+        <PageHeader />
 
         <div class="form">
             <label class="field field--full">
@@ -71,6 +66,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagEvaluationResultView, RagRetrievalEvaluationView } from '@/types/rag';
 
@@ -114,29 +110,14 @@ async function runRetrievalEvaluation(): Promise<void> {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .form {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
-    max-width: 1080px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
 }
 
 .field {
@@ -179,25 +160,24 @@ async function runRetrievalEvaluation(): Promise<void> {
 }
 
 .alert {
-    margin-bottom: 16px;
-    padding: 12px 14px;
+    margin-bottom: 12px;
+    padding: 11px 12px;
     border-radius: 8px;
     background: #eff6ff;
     color: #1d4ed8;
 }
 
 .result {
-    max-width: 1080px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &__header {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 16px;
+        gap: 12px;
         margin-bottom: 12px;
     }
 
@@ -215,8 +195,8 @@ async function runRetrievalEvaluation(): Promise<void> {
     &__metrics {
         display: flex;
         flex-wrap: wrap;
-        gap: 16px;
-        margin-bottom: 14px;
+        gap: 12px;
+        margin-bottom: 12px;
         color: #1d4ed8;
         font-weight: 600;
     }

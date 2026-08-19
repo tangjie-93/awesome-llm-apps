@@ -1,9 +1,6 @@
 <template>
     <section class="admin-page">
-        <header class="admin-page__header">
-            <h1 class="admin-page__title">管理后台</h1>
-            <p class="admin-page__subtitle">身份、审计、用量与检索策略</p>
-        </header>
+        <PageHeader />
 
         <section class="admin-page__section">
             <h2 class="admin-page__section-title">当前会话</h2>
@@ -68,6 +65,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -150,20 +148,6 @@ onMounted(() => {
 
 <style scoped lang="less">
 .admin-page {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle,
     &__hint {
         margin: 6px 0 0;
         color: #64748b;
@@ -171,10 +155,10 @@ onMounted(() => {
     }
 
     &__section {
-        margin-bottom: 20px;
+        margin-bottom: 14px;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 16px;
+        padding: 14px;
         background: #fff;
     }
 
@@ -233,8 +217,8 @@ onMounted(() => {
     &__metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
+        gap: 10px;
+        margin-bottom: 14px;
     }
 
     &__metric {
@@ -266,7 +250,7 @@ onMounted(() => {
         justify-content: space-between;
         gap: 16px;
         border-top: 1px solid #e2e8f0;
-        padding: 12px 0;
+        padding: 10px 0;
 
         div {
             display: flex;

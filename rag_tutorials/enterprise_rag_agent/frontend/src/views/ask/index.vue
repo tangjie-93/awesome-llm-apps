@@ -1,14 +1,9 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">提问</h1>
-                <p class="page__subtitle">按知识库提问并查看回答与引用</p>
-            </div>
-        </header>
+        <PageHeader />
 
         <div class="form">
-            <label class="field field--full">
+            <label class="field field--full field--question">
                 <span class="field__label">问题</span>
                 <textarea v-model="question" class="field__textarea" rows="4"></textarea>
             </label>
@@ -84,6 +79,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { LoaderCircle } from 'lucide-vue-next';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { AnswerView } from '@/types/rag';
 
@@ -140,29 +136,15 @@ async function submitFeedback(rating: number): Promise<void> {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .form {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-    max-width: 960px;
+    grid-template-columns: minmax(0, 1.2fr) auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 16px;
 }
 
 .field {
@@ -170,6 +152,10 @@ async function submitFeedback(rating: number): Promise<void> {
     gap: 8px;
 
     &--full {
+        grid-column: 1 / -1;
+    }
+
+    &--question {
         grid-column: 1 / -1;
     }
 
@@ -187,7 +173,10 @@ async function submitFeedback(rating: number): Promise<void> {
 }
 
 .actions {
-    grid-column: 1 / -1;
+    grid-column: 2;
+    display: flex;
+    justify-content: flex-end;
+    align-items: end;
 }
 
 .button {
@@ -212,7 +201,7 @@ async function submitFeedback(rating: number): Promise<void> {
 
 .alert,
 .empty {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-radius: 8px;
     padding: 12px 14px;
 }
@@ -236,10 +225,9 @@ async function submitFeedback(rating: number): Promise<void> {
 }
 
 .result {
-    max-width: 960px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &__header {
@@ -266,7 +254,7 @@ async function submitFeedback(rating: number): Promise<void> {
 }
 
 .section-title {
-    margin: 20px 0 12px;
+    margin: 16px 0 10px;
     font-size: 16px;
 }
 
@@ -334,7 +322,7 @@ async function submitFeedback(rating: number): Promise<void> {
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 12px;
     color: #475569;
     font-size: 13px;
 
@@ -349,6 +337,17 @@ async function submitFeedback(rating: number): Promise<void> {
             cursor: wait;
             opacity: 0.65;
         }
+    }
+}
+
+@media (max-width: 900px) {
+    .form {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        grid-column: 1;
+        justify-content: flex-start;
     }
 }
 

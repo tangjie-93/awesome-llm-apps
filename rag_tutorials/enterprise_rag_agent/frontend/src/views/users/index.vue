@@ -1,45 +1,44 @@
 <template>
     <section class="users-page">
-        <header class="users-page__header">
-            <h1 class="users-page__title">用户管理</h1>
-            <p class="users-page__subtitle">管理外部身份映射、权限组和本地角色。</p>
-        </header>
+        <PageHeader />
 
         <section class="users-page__section">
-            <h2 class="users-page__section-title">{{ editingId ? '编辑用户' : '新增用户' }}</h2>
+            <h2 class="users-page__section-title">用户</h2>
             <div class="users-page__form">
-                <label>
+                <label class="users-page__field">
                     <span>外部身份 ID</span>
                     <input v-model.trim="externalId" :disabled="Boolean(editingId)" />
                 </label>
-                <label>
+                <label class="users-page__field">
                     <span>显示名称</span>
                     <input v-model.trim="displayName" />
                 </label>
-                <label>
+                <label class="users-page__field">
                     <span>邮箱</span>
                     <input v-model.trim="email" type="email" />
                 </label>
-                <label>
+                <label class="users-page__field">
                     <span>权限组</span>
                     <input v-model="groupsInput" placeholder="public,security" />
                 </label>
-                <label>
+                <label class="users-page__field">
                     <span>角色</span>
-                    <select v-model="selectedRoleIds" multiple>
-                        <option v-for="role in store.roles" :key="role.id" :value="role.id">{{ role.name }}</option>
-                    </select>
+                    <MultiSelectDropdown
+                        v-model="selectedRoleIds"
+                        :options="roleOptions"
+                        placeholder="选择角色"
+                    />
                 </label>
-                <label v-if="editingId" class="users-page__checkbox">
+                <label v-if="editingId" class="users-page__field users-page__checkbox">
                     <input v-model="isActive" type="checkbox" />
                     <span>启用用户</span>
                 </label>
-            </div>
-            <div class="users-page__actions">
-                <button class="users-page__button users-page__button--primary" :disabled="saving" @click="saveUser">
-                    {{ editingId ? '保存修改' : '创建用户' }}
-                </button>
-                <button v-if="editingId" class="users-page__button" :disabled="saving" @click="resetForm">取消编辑</button>
+                <div class="users-page__form-actions">
+                    <button class="users-page__button users-page__button--primary" :disabled="saving" @click="saveUser">
+                        {{ editingId ? '保存修改' : '创建用户' }}
+                    </button>
+                    <button v-if="editingId" class="users-page__button" :disabled="saving" @click="resetForm">取消编辑</button>
+                </div>
             </div>
             <p v-if="message" class="users-page__message">{{ message }}</p>
         </section>
@@ -50,15 +49,22 @@
                 <button class="users-page__button" :disabled="saving" @click="refresh">刷新</button>
             </div>
             <div v-if="!store.users.length" class="users-page__empty">暂无用户。用户首次通过身份源访问后会自动同步。</div>
+            <div v-else class="users-page__table-header">
+                <span>用户</span>
+                <span>组</span>
+                <span>角色</span>
+                <span>状态</span>
+                <span>操作</span>
+            </div>
             <div v-for="user in store.users" :key="user.id" class="users-page__row">
                 <div class="users-page__identity">
                     <strong>{{ user.display_name }}</strong>
                     <span>{{ user.external_id }}</span>
                     <span>{{ user.email || '未设置邮箱' }}</span>
                 </div>
+                <div class="users-page__meta">{{ user.groups.join(', ') || '-' }}</div>
+                <div class="users-page__meta">{{ user.roles.join(', ') || '-' }}</div>
                 <div class="users-page__meta">
-                    <span>组：{{ user.groups.join(', ') || '-' }}</span>
-                    <span>角色：{{ user.roles.join(', ') || '-' }}</span>
                     <span :class="{ 'users-page__status--disabled': !user.is_active }">
                         {{ user.is_active ? '启用' : '停用' }}
                     </span>
@@ -73,7 +79,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import MultiSelectDropdown from '@/components/form/MultiSelectDropdown.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -86,6 +94,7 @@ const selectedRoleIds = ref<number[]>([]);
 const isActive = ref(true);
 const saving = ref(false);
 const message = ref('');
+const roleOptions = computed(() => store.roles.map((role) => ({ label: role.name, value: role.id })));
 
 /** 刷新用户和角色目录。 */
 async function refresh(): Promise<void> {
@@ -181,35 +190,15 @@ onMounted(() => {
 
 <style scoped lang="less">
 .users-page {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 6px 0 0;
-        color: #64748b;
-        font-size: 13px;
-    }
-
     &__section {
-        margin-bottom: 20px;
+        margin-bottom: 14px;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 16px;
+        padding: 14px;
         background: #fff;
     }
 
     &__section-header,
-    &__actions,
     &__row-actions {
         display: flex;
         align-items: center;
@@ -228,8 +217,9 @@ onMounted(() => {
 
     &__form {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 10px;
+        align-items: end;
 
         label {
             display: grid;
@@ -248,16 +238,30 @@ onMounted(() => {
             padding: 9px 10px;
             background: #fff;
         }
+    }
 
-        select {
-            min-height: 92px;
-        }
+    &__field {
+        min-width: 0;
+    }
+
+    &__form-actions {
+        display: flex;
+        justify-self: stretch;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
     }
 
     &__checkbox {
         display: flex !important;
         align-items: center;
         gap: 8px;
+        padding-bottom: 10px;
+
+        input {
+            width: 16px;
+            height: 16px;
+        }
     }
 
     &__button {
@@ -295,11 +299,22 @@ onMounted(() => {
 
     &__row {
         display: grid;
-        grid-template-columns: minmax(220px, 1fr) minmax(300px, 1fr) auto;
-        gap: 16px;
+        grid-template-columns: minmax(220px, 1.3fr) minmax(120px, 0.8fr) minmax(150px, 0.9fr) minmax(80px, 0.5fr) auto;
+        gap: 12px;
         align-items: center;
         border-top: 1px solid #e2e8f0;
-        padding: 12px 0;
+        padding: 10px 0;
+    }
+
+    &__table-header {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.3fr) minmax(120px, 0.8fr) minmax(150px, 0.9fr) minmax(80px, 0.5fr) auto;
+        gap: 12px;
+        border-top: 1px solid #e2e8f0;
+        padding: 10px 0 8px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
     }
 
     &__identity,
@@ -314,6 +329,11 @@ onMounted(() => {
         font-size: 13px;
     }
 
+    &__meta {
+        color: #475569;
+        font-size: 13px;
+    }
+
     &__status--disabled {
         color: #b91c1c !important;
     }
@@ -322,6 +342,11 @@ onMounted(() => {
         &__form,
         &__row {
             grid-template-columns: 1fr;
+        }
+
+        &__form-actions {
+            justify-self: start;
+            flex-wrap: wrap;
         }
 
         &__row-actions {

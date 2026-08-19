@@ -1,11 +1,6 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">导入文档</h1>
-                <p class="page__subtitle">对应后端 ingest 命令，将本地路径内容导入知识库</p>
-            </div>
-        </header>
+        <PageHeader />
 
         <div class="form">
             <label class="field field--full">
@@ -71,6 +66,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagIngestResultView } from '@/types/rag';
 
@@ -116,28 +112,13 @@ async function submitIngest(): Promise<void> {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .form {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    max-width: 920px;
+    gap: 12px;
 }
 
 .field {
@@ -193,11 +174,10 @@ async function submitIngest(): Promise<void> {
 }
 
 .summary {
-    margin-top: 20px;
-    max-width: 920px;
+    margin-top: 14px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &__title {
@@ -208,7 +188,7 @@ async function submitIngest(): Promise<void> {
     &__stats {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px;
 
         div {
             border: 1px solid #e2e8f0;

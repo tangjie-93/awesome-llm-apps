@@ -1,14 +1,12 @@
 <template>
     <section class="knowledge-graph-page">
-        <header class="knowledge-graph-page__header">
-            <div>
-                <h1 class="knowledge-graph-page__title">知识图谱</h1>
-                <p class="knowledge-graph-page__subtitle">查看当前用户有权限访问的实体和一跳关联。</p>
-            </div>
-            <button class="knowledge-graph-page__button" :disabled="loading" @click="refresh">
-                {{ loading ? '加载中...' : '刷新' }}
-            </button>
-        </header>
+        <PageHeader>
+            <template #actions>
+                <button class="knowledge-graph-page__button" :disabled="loading" @click="refresh">
+                    {{ loading ? '加载中...' : '刷新' }}
+                </button>
+            </template>
+        </PageHeader>
 
         <p v-if="message" class="knowledge-graph-page__message">{{ message }}</p>
 
@@ -92,6 +90,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { ragApi } from '@/services/ragApi';
 import type { RagKnowledgeGraphView } from '@/types/rag';
 
@@ -139,32 +138,10 @@ async function queryGraph(): Promise<void> {
 
 <style scoped lang="less">
 .knowledge-graph-page {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 24px;
-
-    &__header,
     &__relation {
         display: flex;
         align-items: center;
         gap: 12px;
-    }
-
-    &__header {
-        justify-content: space-between;
-        margin-bottom: 20px;
-    }
-
-    &__title {
-        margin: 0;
-        color: #0f172a;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 6px 0 0;
-        color: #64748b;
-        font-size: 13px;
     }
 
     &__button {
@@ -196,7 +173,7 @@ async function queryGraph(): Promise<void> {
 
     &__metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
 
     &__grid {
@@ -204,10 +181,10 @@ async function queryGraph(): Promise<void> {
     }
 
     &__query {
-        margin: 12px 0;
+        margin: 10px 0;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 16px;
+        padding: 14px;
         background: #fff;
     }
 
@@ -236,7 +213,7 @@ async function queryGraph(): Promise<void> {
 
     &__query-summary {
         grid-template-columns: repeat(3, max-content);
-        margin-top: 16px;
+        margin-top: 12px;
         color: #475569;
         font-size: 13px;
     }
@@ -244,7 +221,7 @@ async function queryGraph(): Promise<void> {
     &__path-list {
         display: grid;
         gap: 8px;
-        margin-top: 12px;
+        margin-top: 10px;
     }
 
     &__path {
@@ -252,7 +229,7 @@ async function queryGraph(): Promise<void> {
         gap: 12px;
         align-items: baseline;
         border-bottom: 1px solid #f1f5f9;
-        padding: 8px 0;
+        padding: 7px 0;
         color: #334155;
 
         strong {
@@ -266,7 +243,7 @@ async function queryGraph(): Promise<void> {
     &__section {
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 16px;
+        padding: 14px;
         background: #fff;
     }
 
@@ -302,7 +279,7 @@ async function queryGraph(): Promise<void> {
         justify-content: space-between;
         min-width: 0;
         border-bottom: 1px solid #f1f5f9;
-        padding: 8px 0;
+        padding: 7px 0;
         color: #334155;
     }
 

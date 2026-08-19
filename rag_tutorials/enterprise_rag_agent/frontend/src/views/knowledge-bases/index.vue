@@ -1,11 +1,6 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">知识库</h1>
-                <p class="page__subtitle">路由后的知识库和权限范围</p>
-            </div>
-        </header>
+        <PageHeader />
 
         <div class="list">
             <article v-for="kb in store.knowledgeBases" :key="kb" class="item">
@@ -17,6 +12,7 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -28,33 +24,19 @@ onMounted(() => {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
+    gap: 12px;
 }
 
 .item {
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &__title {

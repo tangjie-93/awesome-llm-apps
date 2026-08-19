@@ -1,12 +1,10 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">文档</h1>
-                <p class="page__subtitle">已导入文档、权限、风险和索引信息</p>
-            </div>
-            <button class="button" :disabled="store.loading" @click="refreshDocuments">刷新</button>
-        </header>
+        <PageHeader>
+            <template #actions>
+                <button class="button" :disabled="store.loading" @click="refreshDocuments">刷新</button>
+            </template>
+        </PageHeader>
 
         <div v-if="store.error" class="alert alert--error">{{ store.error }}</div>
 
@@ -38,6 +36,7 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -56,25 +55,7 @@ onMounted(() => {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .button {
@@ -92,9 +73,9 @@ onMounted(() => {
 
 .alert,
 .empty {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: 11px 12px;
 }
 
 .alert {
@@ -122,8 +103,8 @@ onMounted(() => {
     &__row {
         display: grid;
         grid-template-columns: 110px 150px minmax(220px, 1fr) 140px 80px 160px 70px 160px;
-        gap: 12px;
-        padding: 12px 16px;
+        gap: 10px;
+        padding: 10px 12px;
         border-top: 1px solid #e2e8f0;
         min-width: 1180px;
 

@@ -1,14 +1,9 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">检索</h1>
-                <p class="page__subtitle">对应后端 search 命令，展示候选片段与打分</p>
-            </div>
-        </header>
+        <PageHeader />
 
         <div class="form">
-            <label class="field field--full">
+            <label class="field field--full field--question">
                 <span class="field__label">问题</span>
                 <textarea v-model="question" class="field__textarea" rows="4"></textarea>
             </label>
@@ -66,6 +61,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { LoaderCircle } from 'lucide-vue-next';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagSearchItemView } from '@/types/rag';
 
@@ -120,29 +116,15 @@ async function submitSearch(): Promise<void> {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .form {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
-    max-width: 1080px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(160px, 0.7fr) minmax(160px, 0.7fr) auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 14px;
 }
 
 .field {
@@ -150,6 +132,10 @@ async function submitSearch(): Promise<void> {
     gap: 8px;
 
     &--full {
+        grid-column: 1 / -1;
+    }
+
+    &--question {
         grid-column: 1 / -1;
     }
 
@@ -168,7 +154,10 @@ async function submitSearch(): Promise<void> {
 }
 
 .actions {
-    grid-column: 1 / -1;
+    grid-column: 4;
+    display: flex;
+    justify-content: flex-end;
+    align-items: end;
 }
 
 .button {
@@ -192,7 +181,7 @@ async function submitSearch(): Promise<void> {
 }
 
 .alert {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     padding: 12px 14px;
     border-radius: 8px;
     background: #eff6ff;
@@ -205,7 +194,7 @@ async function submitSearch(): Promise<void> {
 }
 
 .empty {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border: 1px dashed #cbd5e1;
     border-radius: 8px;
     padding: 12px 14px;
@@ -215,14 +204,13 @@ async function submitSearch(): Promise<void> {
 
 .results {
     display: grid;
-    gap: 12px;
-    max-width: 1080px;
+    gap: 10px;
 }
 
 .result-card {
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &__header {
@@ -266,6 +254,27 @@ async function submitSearch(): Promise<void> {
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 1100px) {
+    .form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 720px) {
+    .form {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        grid-column: 1;
     }
 }
 </style>

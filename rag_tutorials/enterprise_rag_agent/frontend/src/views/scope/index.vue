@@ -1,12 +1,10 @@
 ﻿<template>
     <section class="scope-page">
-        <header class="scope-page__header">
-            <div>
-                <h1 class="scope-page__title">范围</h1>
-                <p class="scope-page__subtitle">阶段 0 范围、配置和权限总览</p>
-            </div>
-            <button class="scope-page__button" @click="refreshScope">刷新</button>
-        </header>
+        <PageHeader>
+            <template #actions>
+                <button class="scope-page__button" @click="refreshScope">刷新</button>
+            </template>
+        </PageHeader>
 
         <div class="scope-grid">
             <article class="scope-card">
@@ -132,6 +130,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -155,26 +154,6 @@ onMounted(() => {
 
 <style scoped lang="less">
 .scope-page {
-    padding: 24px;
-
-    &__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
-
     &__button {
         border: 1px solid #cbd5e1;
         border-radius: 8px;
@@ -187,13 +166,13 @@ onMounted(() => {
 .scope-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
 }
 
 .scope-card {
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &--wide {

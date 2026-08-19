@@ -1,49 +1,59 @@
 <template>
     <section class="roles-page">
-        <header class="roles-page__header">
-            <h1 class="roles-page__title">角色管理</h1>
-            <p class="roles-page__subtitle">维护角色名称、说明和权限项。</p>
-        </header>
+        <PageHeader />
 
         <section class="roles-page__section">
-            <h2 class="roles-page__section-title">{{ editingId ? '编辑角色' : '新增角色' }}</h2>
             <div class="roles-page__form">
-                <label>
+                <label class="roles-page__field">
                     <span>角色名称</span>
                     <input v-model.trim="name" :disabled="editingSystemRole" />
                 </label>
-                <label>
+                <label class="roles-page__field">
                     <span>角色说明</span>
                     <input v-model.trim="description" />
                 </label>
-                <label class="roles-page__field--full">
+                <label class="roles-page__field">
                     <span>权限项</span>
-                    <input v-model="permissionsInput" placeholder="read_documents,ask_questions" />
+                    <MultiSelectDropdown
+                        v-model="selectedPermissions"
+                        :options="permissionOptions"
+                        placeholder="选择权限项"
+                    />
                 </label>
-            </div>
-            <div class="roles-page__actions">
-                <button class="roles-page__button roles-page__button--primary" :disabled="saving" @click="saveRole">
-                    {{ editingId ? '保存修改' : '创建角色' }}
-                </button>
-                <button v-if="editingId" class="roles-page__button" :disabled="saving" @click="resetForm">取消编辑</button>
+                <div class="roles-page__form-actions">
+                    <button class="roles-page__button roles-page__button--primary" :disabled="saving" @click="saveRole">
+                        {{ editingId ? '保存修改' : '创建角色' }}
+                    </button>
+                    <button v-if="editingId" class="roles-page__button" :disabled="saving" @click="resetForm">取消编辑</button>
+                    <button class="roles-page__button" :disabled="saving" @click="refresh">刷新</button>
+                </div>
             </div>
             <p v-if="message" class="roles-page__message">{{ message }}</p>
         </section>
 
         <section class="roles-page__section">
             <div class="roles-page__section-header">
-                <h2 class="roles-page__section-title">角色列表</h2>
-                <button class="roles-page__button" :disabled="saving" @click="refresh">刷新</button>
+                <span class="roles-page__section-label">角色列表</span>
             </div>
             <div v-if="!store.roles.length" class="roles-page__empty">暂无角色。</div>
+            <div v-else class="roles-page__table-header">
+                <span>角色</span>
+                <span>说明</span>
+                <span>权限项</span>
+                <span>类型</span>
+                <span>操作</span>
+            </div>
             <div v-for="role in store.roles" :key="role.id" class="roles-page__row">
                 <div>
                     <strong>{{ role.name }}</strong>
                     <span>{{ role.description || '暂无说明' }}</span>
                 </div>
                 <div class="roles-page__permissions">{{ role.permissions.join(', ') || '暂无权限项' }}</div>
-                <div class="roles-page__row-actions">
+                <div class="roles-page__type">
                     <span v-if="role.is_system" class="roles-page__system">系统角色</span>
+                    <span v-else>自定义</span>
+                </div>
+                <div class="roles-page__row-actions">
                     <button class="roles-page__button" @click="editRole(role.id)">编辑</button>
                     <button class="roles-page__button roles-page__button--danger" :disabled="role.is_system" @click="removeRole(role.id)">
                         删除
@@ -56,16 +66,28 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import MultiSelectDropdown from '@/components/form/MultiSelectDropdown.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
 const editingId = ref<number | null>(null);
 const name = ref('');
 const description = ref('');
-const permissionsInput = ref('');
+const selectedPermissions = ref<string[]>([]);
 const message = ref('');
 const saving = ref(false);
 const editingSystemRole = computed(() => store.roles.find((item) => item.id === editingId.value)?.is_system ?? false);
+const permissionOptions = [
+    { label: 'read_documents', value: 'read_documents' },
+    { label: 'ask_questions', value: 'ask_questions' },
+    { label: 'run_ingest', value: 'run_ingest' },
+    { label: 'manage_documents', value: 'manage_documents' },
+    { label: 'read_audit', value: 'read_audit' },
+    { label: 'manage_users', value: 'manage_users' },
+    { label: 'manage_roles', value: 'manage_roles' },
+    { label: 'manage_audit', value: 'manage_audit' }
+];
 
 /** 刷新角色和用户目录。 */
 async function refresh(): Promise<void> {
@@ -81,7 +103,7 @@ function resetForm(): void {
     editingId.value = null;
     name.value = '';
     description.value = '';
-    permissionsInput.value = '';
+    selectedPermissions.value = [];
 }
 
 /** 将角色加载到编辑表单。 */
@@ -91,7 +113,7 @@ function editRole(roleId: number): void {
     editingId.value = role.id;
     name.value = role.name;
     description.value = role.description;
-    permissionsInput.value = role.permissions.join(',');
+    selectedPermissions.value = [...role.permissions];
 }
 
 /** 保存新增或编辑后的角色。 */
@@ -100,7 +122,7 @@ async function saveRole(): Promise<void> {
         message.value = '请填写角色名称';
         return;
     }
-    const permissions = permissionsInput.value.split(',').map((item) => item.trim()).filter(Boolean);
+    const permissions = selectedPermissions.value;
     saving.value = true;
     message.value = '';
     try {
@@ -148,35 +170,15 @@ onMounted(() => {
 
 <style scoped lang="less">
 .roles-page {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 6px 0 0;
-        color: #64748b;
-        font-size: 13px;
-    }
-
     &__section {
-        margin-bottom: 20px;
+        margin-bottom: 14px;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 16px;
+        padding: 14px;
         background: #fff;
     }
 
     &__section-header,
-    &__actions,
     &__row-actions {
         display: flex;
         align-items: center;
@@ -188,6 +190,12 @@ onMounted(() => {
         margin-bottom: 14px;
     }
 
+    &__section-label {
+        color: #475569;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
     &__section-title {
         margin: 0;
         font-size: 16px;
@@ -195,8 +203,9 @@ onMounted(() => {
 
     &__form {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        align-items: end;
 
         label {
             display: grid;
@@ -215,8 +224,16 @@ onMounted(() => {
         }
     }
 
-    &__field--full {
-        grid-column: 1 / -1;
+    &__field {
+        min-width: 0;
+    }
+
+    &__form-actions {
+        display: flex;
+        justify-self: stretch;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
     }
 
     &__button {
@@ -254,11 +271,11 @@ onMounted(() => {
 
     &__row {
         display: grid;
-        grid-template-columns: minmax(180px, 1fr) minmax(300px, 2fr) auto;
-        gap: 16px;
+        grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(240px, 1.4fr) minmax(90px, 0.6fr) auto;
+        gap: 12px;
         align-items: center;
         border-top: 1px solid #e2e8f0;
-        padding: 12px 0;
+        padding: 10px 0;
 
         div:first-child {
             display: grid;
@@ -271,7 +288,23 @@ onMounted(() => {
         }
     }
 
+    &__table-header {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(240px, 1.4fr) minmax(90px, 0.6fr) auto;
+        gap: 12px;
+        border-top: 1px solid #e2e8f0;
+        padding: 10px 0 8px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
     &__permissions {
+        color: #475569;
+        font-size: 13px;
+    }
+
+    &__type {
         color: #475569;
         font-size: 13px;
     }
@@ -284,6 +317,11 @@ onMounted(() => {
         &__form,
         &__row {
             grid-template-columns: 1fr;
+        }
+
+        &__form-actions {
+            justify-self: start;
+            flex-wrap: wrap;
         }
 
         &__row-actions {

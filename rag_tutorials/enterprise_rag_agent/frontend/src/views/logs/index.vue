@@ -1,11 +1,6 @@
 ﻿<template>
     <section class="page">
-        <header class="page__header">
-            <div>
-                <h1 class="page__title">日志</h1>
-                <p class="page__subtitle">问答与评估记录</p>
-            </div>
-        </header>
+        <PageHeader />
 
         <div class="logs">
             <article class="panel">
@@ -55,6 +50,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -82,33 +78,19 @@ async function replay(operationId: number): Promise<void> {
 
 <style scoped lang="less">
 .page {
-    padding: 24px;
-
-    &__header {
-        margin-bottom: 24px;
-    }
-
-    &__title {
-        margin: 0;
-        font-size: 24px;
-    }
-
-    &__subtitle {
-        margin: 8px 0 0;
-        color: #64748b;
-    }
+    min-width: 0;
 }
 
 .logs {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
 }
 
 .panel {
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     background: #fff;
 
     &__title {
@@ -148,8 +130,8 @@ async function replay(operationId: number): Promise<void> {
 }
 
 .alert {
-    margin-top: 16px;
-    padding: 10px 12px;
+    margin-top: 12px;
+    padding: 11px 12px;
     border: 1px solid #bfdbfe;
     border-radius: 6px;
     background: #eff6ff;
