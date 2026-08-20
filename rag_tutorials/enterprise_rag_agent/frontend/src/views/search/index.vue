@@ -1,66 +1,65 @@
-﻿<template>
-    <section class="page">
+<template>
+    <section class="search-page">
         <PageHeader />
 
-        <div class="form">
-            <label class="field field--full field--question">
-                <span class="field__label">问题</span>
-                <textarea v-model="question" class="field__textarea" rows="4"></textarea>
-            </label>
-            <label class="field">
-                <span class="field__label">知识库</span>
-                <input v-model="knowledgeBase" class="field__input" type="text" placeholder="general" />
-            </label>
-            <label class="field">
-                <span class="field__label">权限组</span>
-                <input v-model="userGroupsText" class="field__input" type="text" placeholder="public,security" />
-            </label>
-            <label class="field">
-                <span class="field__label">Top K</span>
-                <input v-model.number="topK" class="field__input" type="number" min="1" max="20" />
-            </label>
-            <div class="actions">
-                <button
-                    class="button button--primary"
-                    :aria-busy="submitting"
-                    :disabled="submitting"
-                    @click="submitSearch"
-                >
-                    <LoaderCircle v-if="submitting" class="button__spinner" :size="16" aria-hidden="true" />
-                    {{ submitting ? '检索中...' : '检索' }}
-                </button>
-            </div>
-        </div>
+        <el-card shadow="never" class="search-page__card">
+            <el-row :gutter="12" align="bottom">
+                <el-col :xs="24" :md="10">
+                    <div class="search-page__label">问题</div>
+                    <el-input v-model="question" type="textarea" :rows="3" resize="none" placeholder="请输入检索问题" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <div class="search-page__label">知识库</div>
+                    <el-input v-model="knowledgeBase" placeholder="general" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <div class="search-page__label">权限组</div>
+                    <el-input v-model="userGroupsText" placeholder="public,security" />
+                </el-col>
+                <el-col :xs="24" :md="3">
+                    <div class="search-page__label">Top K</div>
+                    <el-input-number v-model="topK" :min="1" :max="20" controls-position="right" class="search-page__number" />
+                </el-col>
+                <el-col :xs="24" :md="3" class="search-page__actions">
+                    <el-button type="primary" :loading="submitting" class="search-page__submit" @click="submitSearch">
+                        检索
+                    </el-button>
+                </el-col>
+            </el-row>
+        </el-card>
 
-        <div v-if="message" class="alert" :class="{ 'alert--error': hasError }">{{ message }}</div>
-        <div v-if="hasSearched && !submitting && !results.length && !hasError" class="empty">
-            未检索到候选片段。请确认知识库、权限组或问题关键词。
-        </div>
+        <el-alert v-if="message" :title="message" :type="hasError ? 'error' : 'info'" show-icon class="search-page__alert" />
+        <el-empty
+            v-if="hasSearched && !submitting && !results.length && !hasError"
+            description="未检索到候选片段。请确认知识库、权限组或问题关键词。"
+            class="search-page__empty"
+        />
 
-        <div v-if="results.length" class="results">
-            <article v-for="item in results" :key="item.chunk.chunk_id" class="result-card">
-                <div class="result-card__header">
+        <el-space v-if="results.length" fill direction="vertical" class="search-page__results">
+            <el-card v-for="item in results" :key="item.chunk.chunk_id" shadow="never" class="search-page__result">
+                <div class="search-page__result-header">
                     <div>
-                        <div class="result-card__title">{{ item.chunk.knowledge_base }} / {{ item.chunk.title }}</div>
-                        <div class="result-card__meta">{{ item.chunk.section_path }} · chunk {{ item.chunk.chunk_index }} · {{ item.chunk.risk_level }} · {{ item.chunk.path }}</div>
+                        <div class="search-page__result-title">{{ item.chunk.knowledge_base }} / {{ item.chunk.title }}</div>
+                        <div class="search-page__result-meta">
+                            {{ item.chunk.section_path }} · chunk {{ item.chunk.chunk_index }} · {{ item.chunk.risk_level }} · {{ item.chunk.path }}
+                        </div>
                     </div>
-                    <div class="result-card__score">{{ item.score.toFixed(3) }}</div>
+                    <div class="search-page__result-score">{{ item.score.toFixed(3) }}</div>
                 </div>
-                <p class="result-card__text">{{ item.chunk.text }}</p>
-                <div class="result-card__footer">
+                <p class="search-page__result-text">{{ item.chunk.text }}</p>
+                <div class="search-page__result-footer">
                     <span>词元 {{ item.chunk.token_count }}</span>
                     <span>lexical {{ item.lexical_score.toFixed(3) }}</span>
                     <span>rerank {{ item.rerank_score.toFixed(3) }}</span>
                     <span v-if="item.matched_terms.length">{{ item.matched_terms.join(', ') }}</span>
                 </div>
-            </article>
-        </div>
+            </el-card>
+        </el-space>
     </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { LoaderCircle } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagSearchItemView } from '@/types/rag';
@@ -115,166 +114,70 @@ async function submitSearch(): Promise<void> {
 </script>
 
 <style scoped lang="less">
-.page {
+.search-page {
     min-width: 0;
-}
 
-.form {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(160px, 0.7fr) minmax(160px, 0.7fr) auto;
-    gap: 12px;
-    align-items: end;
-    margin-bottom: 14px;
-}
-
-.field {
-    display: grid;
-    gap: 8px;
-
-    &--full {
-        grid-column: 1 / -1;
-    }
-
-    &--question {
-        grid-column: 1 / -1;
+    &__card {
+        margin-bottom: 12px;
     }
 
     &__label {
-        font-size: 13px;
+        margin-bottom: 6px;
         color: #64748b;
+        font-size: 13px;
     }
 
-    &__input,
-    &__textarea {
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font: inherit;
-    }
-}
-
-.actions {
-    grid-column: 4;
-    display: flex;
-    justify-content: flex-end;
-    align-items: end;
-}
-
-.button {
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    background: #fff;
-    cursor: pointer;
-
-    &--primary {
-        border-color: #1d4ed8;
-        background: #1d4ed8;
-        color: #fff;
+    &__number,
+    &__submit {
+        width: 100%;
     }
 
-    &__spinner {
-        margin-right: 6px;
-        vertical-align: -3px;
-        animation: spin 0.8s linear infinite;
-    }
-}
-
-.alert {
-    margin-bottom: 12px;
-    padding: 12px 14px;
-    border-radius: 8px;
-    background: #eff6ff;
-    color: #1d4ed8;
-
-    &--error {
-        background: #fef2f2;
-        color: #b91c1c;
-    }
-}
-
-.empty {
-    margin-bottom: 12px;
-    border: 1px dashed #cbd5e1;
-    border-radius: 8px;
-    padding: 12px 14px;
-    background: #f8fafc;
-    color: #64748b;
-}
-
-.results {
-    display: grid;
-    gap: 10px;
-}
-
-.result-card {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px;
-    background: #fff;
-
-    &__header {
+    &__actions {
         display: flex;
-        justify-content: space-between;
-        gap: 16px;
+        align-items: flex-end;
+    }
+
+    &__alert,
+    &__empty {
+        margin-bottom: 12px;
+    }
+
+    &__results {
+        width: 100%;
+    }
+
+    &__result {
         margin-bottom: 10px;
     }
 
-    &__title {
+    &__result-header,
+    &__result-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    &__result-title {
         font-weight: 600;
     }
 
-    &__meta,
-    &__footer {
-        margin-top: 4px;
+    &__result-meta,
+    &__result-footer {
+        margin-top: 6px;
         color: #64748b;
         font-size: 13px;
     }
 
-    &__text {
-        margin: 0;
+    &__result-text {
+        margin: 12px 0 0;
         line-height: 1.6;
         white-space: pre-wrap;
     }
 
-    &__footer {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 12px;
-    }
-
-    &__score {
+    &__result-score {
+        color: #1d4ed8;
         font-size: 18px;
         font-weight: 700;
-        color: #1d4ed8;
-    }
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@media (max-width: 1100px) {
-    .form {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .actions {
-        grid-column: 1 / -1;
-        justify-content: flex-start;
-    }
-}
-
-@media (max-width: 720px) {
-    .form {
-        grid-template-columns: 1fr;
-    }
-
-    .actions {
-        grid-column: 1;
     }
 }
 </style>

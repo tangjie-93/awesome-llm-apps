@@ -1,130 +1,116 @@
-﻿<template>
+<template>
     <section class="scope-page">
         <PageHeader>
             <template #actions>
-                <button class="scope-page__button" @click="refreshScope">刷新</button>
+                <el-button @click="refreshScope">刷新</el-button>
             </template>
         </PageHeader>
 
-        <div class="scope-grid">
-            <article class="scope-card">
-                <h2 class="scope-card__title">基础配置</h2>
-                <dl class="scope-list">
-                    <div>
-                        <dt>公司</dt>
-                        <dd>{{ store.config.company_name ?? store.companyName }}</dd>
-                    </div>
-                    <div>
-                        <dt>默认知识库</dt>
-                        <dd>{{ store.config.default_knowledge_base ?? 'general' }}</dd>
-                    </div>
-                    <div>
-                        <dt>LLM</dt>
-                        <dd>{{ store.config.enable_llm ? '已启用' : '未启用' }}</dd>
-                    </div>
-                    <div>
-                        <dt>供应商</dt>
-                        <dd>{{ store.config.llm_provider ?? '-' }}</dd>
-                    </div>
-                    <div>
-                        <dt>模型</dt>
-                        <dd>{{ store.config.llm_model ?? '-' }}</dd>
-                    </div>
-                </dl>
-            </article>
+        <el-row :gutter="12">
+            <el-col :xs="24" :md="12" :lg="8">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">基础配置</div>
+                    <el-descriptions :column="1" border>
+                        <el-descriptions-item label="公司">{{ store.config.company_name ?? store.companyName }}</el-descriptions-item>
+                        <el-descriptions-item label="默认知识库">{{ store.config.default_knowledge_base ?? 'general' }}</el-descriptions-item>
+                        <el-descriptions-item label="LLM">{{ store.config.enable_llm ? '已启用' : '未启用' }}</el-descriptions-item>
+                        <el-descriptions-item label="供应商">{{ store.config.llm_provider ?? '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="模型">{{ store.config.llm_model ?? '-' }}</el-descriptions-item>
+                    </el-descriptions>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card">
-                <h2 class="scope-card__title">访问组</h2>
-                <div class="tag-list">
-                    <span v-for="group in store.config.default_groups ?? []" :key="group" class="tag">
-                        {{ group }}
-                    </span>
-                </div>
-            </article>
+            <el-col :xs="24" :md="12" :lg="8">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">访问组</div>
+                    <el-space wrap>
+                        <el-tag v-for="group in store.config.default_groups ?? []" :key="group">{{ group }}</el-tag>
+                    </el-space>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card">
-                <h2 class="scope-card__title">风险等级</h2>
-                <div class="tag-list">
-                    <span v-for="risk in store.config.default_risk_levels ?? []" :key="risk" class="tag tag--risk">
-                        {{ risk }}
-                    </span>
-                </div>
-            </article>
+            <el-col :xs="24" :md="12" :lg="8">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">风险等级</div>
+                    <el-space wrap>
+                        <el-tag v-for="risk in store.config.default_risk_levels ?? []" :key="risk" type="warning">{{ risk }}</el-tag>
+                    </el-space>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card">
-                <h2 class="scope-card__title">检索默认值</h2>
-                <dl class="scope-list">
-                    <div>
-                        <dt>分块大小</dt>
-                        <dd>{{ store.config.chunk_size ?? '-' }}</dd>
-                    </div>
-                    <div>
-                        <dt>分块重叠</dt>
-                        <dd>{{ store.config.chunk_overlap ?? '-' }}</dd>
-                    </div>
-                    <div>
-                        <dt>Top K</dt>
-                        <dd>{{ store.config.top_k ?? '-' }}</dd>
-                    </div>
-                    <div>
-                        <dt>重排 Top K</dt>
-                        <dd>{{ store.config.rerank_top_k ?? '-' }}</dd>
-                    </div>
-                </dl>
-            </article>
+            <el-col :xs="24" :md="12" :lg="8">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">检索默认值</div>
+                    <el-descriptions :column="1" border>
+                        <el-descriptions-item label="分块大小">{{ store.config.chunk_size ?? '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="分块重叠">{{ store.config.chunk_overlap ?? '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="Top K">{{ store.config.top_k ?? '-' }}</el-descriptions-item>
+                        <el-descriptions-item label="重排 Top K">{{ store.config.rerank_top_k ?? '-' }}</el-descriptions-item>
+                    </el-descriptions>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card">
-                <h2 class="scope-card__title">知识库</h2>
-                <div class="tag-list">
-                    <span v-for="kb in store.knowledgeBases" :key="kb" class="tag">
-                        {{ kb }}
-                    </span>
-                </div>
-            </article>
+            <el-col :xs="24" :md="12" :lg="8">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">知识库</div>
+                    <el-space wrap>
+                        <el-tag v-for="kb in store.knowledgeBases" :key="kb">{{ kb }}</el-tag>
+                    </el-space>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card">
-                <h2 class="scope-card__title">样本文档</h2>
-                <ul class="scope-bullets">
-                    <li v-for="doc in store.documents" :key="String(doc.source_id)">
-                        {{ doc.knowledge_base }} / {{ doc.title }} / {{ doc.allowed_groups.join(', ') }} / {{ doc.risk_level }}
-                    </li>
-                </ul>
-            </article>
+            <el-col :xs="24" :md="12" :lg="8">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">样本文档</div>
+                    <el-space fill direction="vertical" class="scope-page__stack">
+                        <div v-for="doc in store.documents" :key="String(doc.source_id)" class="scope-page__item">
+                            {{ doc.knowledge_base }} / {{ doc.title }} / {{ doc.allowed_groups.join(', ') }} / {{ doc.risk_level }}
+                        </div>
+                    </el-space>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card scope-card--wide">
-                <h2 class="scope-card__title">业务范围</h2>
-                <ul class="scope-bullets">
-                    <li v-for="domain in businessDomains" :key="domain.code">
-                        {{ domain.code }}：{{ domain.description }}
-                    </li>
-                </ul>
-            </article>
+            <el-col :xs="24">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">业务范围</div>
+                    <el-space fill direction="vertical" class="scope-page__stack">
+                        <div v-for="domain in businessDomains" :key="domain.code" class="scope-page__item">
+                            {{ domain.code }}：{{ domain.description }}
+                        </div>
+                    </el-space>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card scope-card--wide">
-                <h2 class="scope-card__title">不在范围内</h2>
-                <ul class="scope-bullets">
-                    <li v-for="item in excludedScopes" :key="item">{{ item }}</li>
-                </ul>
-            </article>
+            <el-col :xs="24" :md="12">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">不在范围内</div>
+                    <el-space fill direction="vertical" class="scope-page__stack">
+                        <div v-for="item in excludedScopes" :key="item" class="scope-page__item">{{ item }}</div>
+                    </el-space>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card scope-card--wide">
-                <h2 class="scope-card__title">权限说明</h2>
-                <ul class="scope-bullets">
-                    <li v-for="rule in permissionSummary" :key="rule">{{ rule }}</li>
-                </ul>
-            </article>
+            <el-col :xs="24" :md="12">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">权限说明</div>
+                    <el-space fill direction="vertical" class="scope-page__stack">
+                        <div v-for="rule in permissionSummary" :key="rule" class="scope-page__item">{{ rule }}</div>
+                    </el-space>
+                </el-card>
+            </el-col>
 
-            <article class="scope-card scope-card--wide">
-                <h2 class="scope-card__title">风险映射</h2>
-                <dl class="scope-list">
-                    <div v-for="[group, riskLevel] in riskEntries" :key="group">
-                        <dt>{{ group }}</dt>
-                        <dd>{{ riskLevel }}</dd>
-                    </div>
-                </dl>
-                <p class="scope-copy">{{ store.scope?.high_risk_policy }}</p>
-            </article>
-        </div>
+            <el-col :xs="24">
+                <el-card shadow="never" class="scope-page__card">
+                    <div class="scope-page__title">风险映射</div>
+                    <el-descriptions :column="2" border>
+                        <el-descriptions-item v-for="[group, riskLevel] in riskEntries" :key="group" :label="group">
+                            {{ riskLevel }}
+                        </el-descriptions-item>
+                    </el-descriptions>
+                    <p class="scope-page__copy">{{ store.scope?.high_risk_policy }}</p>
+                </el-card>
+            </el-col>
+        </el-row>
     </section>
 </template>
 
@@ -154,84 +140,38 @@ onMounted(() => {
 
 <style scoped lang="less">
 .scope-page {
-    &__button {
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 10px 14px;
-        background: #fff;
-        cursor: pointer;
-    }
-}
+    min-width: 0;
 
-.scope-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.scope-card {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px;
-    background: #fff;
-
-    &--wide {
-        grid-column: 1 / -1;
+    &__card {
+        margin-bottom: 12px;
     }
 
     &__title {
-        margin: 0 0 12px;
+        margin-bottom: 12px;
         font-size: 16px;
-    }
-}
-
-.scope-list {
-    display: grid;
-    gap: 12px;
-
-    dt {
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    dd {
-        margin: 4px 0 0;
         font-weight: 600;
+        color: #0f172a;
     }
-}
 
-.tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.tag {
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #eff6ff;
-    color: #1d4ed8;
-    font-size: 13px;
-
-    &--risk {
-        background: #fef3c7;
-        color: #92400e;
+    &__stack {
+        width: 100%;
     }
-}
 
-.scope-bullets {
-    margin: 0;
-    padding-left: 18px;
-    color: #0f172a;
-
-    li + li {
-        margin-top: 8px;
+    &__item,
+    &__copy {
+        color: #475569;
+        line-height: 1.6;
     }
-}
 
-.scope-copy {
-    margin: 0;
-    color: #0f172a;
-    line-height: 1.6;
+    &__item {
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    &__copy {
+        margin: 12px 0 0;
+    }
 }
 </style>

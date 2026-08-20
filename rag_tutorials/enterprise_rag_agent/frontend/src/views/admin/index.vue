@@ -2,64 +2,66 @@
     <section class="admin-page">
         <PageHeader />
 
-        <section class="admin-page__section">
-            <h2 class="admin-page__section-title">当前会话</h2>
-            <div class="admin-page__token-row">
-                <input
-                    v-model="tokenInput"
-                    class="admin-page__token-input"
-                    type="password"
-                    autocomplete="off"
-                    placeholder="粘贴 OIDC/JWT access token"
-                />
-                <button class="admin-page__button admin-page__button--primary" @click="applyToken">应用 token</button>
-                <button class="admin-page__button" @click="clearToken">清除</button>
-            </div>
-            <p class="admin-page__hint">token 仅保存在当前浏览器内存中，刷新页面后需要重新输入。</p>
-            <input
-                v-model="approvalToken"
-                class="admin-page__token-input"
-                type="password"
-                autocomplete="off"
-                placeholder="审计清理审批令牌"
-            />
-            <p class="admin-page__hint">清理或删除审计日志需要服务端配置的审批令牌。</p>
-        </section>
+        <el-card shadow="never" class="admin-page__card">
+            <div class="admin-page__section-title">当前会话</div>
+            <el-row :gutter="12">
+                <el-col :xs="24" :md="12" class="admin-page__field">
+                    <div class="admin-page__label">Access Token</div>
+                    <el-input
+                        v-model="tokenInput"
+                        type="password"
+                        autocomplete="off"
+                        placeholder="粘贴 OIDC/JWT access token"
+                    />
+                </el-col>
+                <el-col :xs="24" :md="12" class="admin-page__field">
+                    <div class="admin-page__label">审计清理审批令牌</div>
+                    <el-input
+                        v-model="approvalToken"
+                        type="password"
+                        autocomplete="off"
+                        placeholder="服务端配置的审批令牌"
+                    />
+                </el-col>
+                <el-col :xs="24" class="admin-page__actions">
+                    <el-button type="primary" @click="applyToken">应用 token</el-button>
+                    <el-button @click="clearToken">清除</el-button>
+                </el-col>
+            </el-row>
+            <div class="admin-page__hint">token 仅保存在当前浏览器内存中，刷新页面后需要重新输入。</div>
+            <div class="admin-page__hint">清理或删除审计日志需要服务端配置的审批令牌。</div>
+        </el-card>
 
-        <section class="admin-page__metrics">
-            <article v-for="metric in metrics" :key="metric.label" class="admin-page__metric">
-                <span>{{ metric.label }}</span>
-                <strong>{{ metric.value }}</strong>
-            </article>
-        </section>
+        <el-row :gutter="12" class="admin-page__metrics">
+            <el-col v-for="metric in metrics" :key="metric.label" :xs="12" :sm="12" :md="6">
+                <el-card shadow="never" class="admin-page__metric">
+                    <div class="admin-page__metric-label">{{ metric.label }}</div>
+                    <div class="admin-page__metric-value">{{ metric.value }}</div>
+                </el-card>
+            </el-col>
+        </el-row>
 
-        <section class="admin-page__section">
+        <el-card shadow="never" class="admin-page__card">
             <div class="admin-page__section-header">
                 <div>
-                    <h2 class="admin-page__section-title">审计日志</h2>
-                    <p class="admin-page__hint">默认保留 30 天，支持管理员导出与清理。</p>
+                    <div class="admin-page__section-title">审计日志</div>
+                    <div class="admin-page__hint">默认保留 30 天，支持管理员导出与清理。</div>
                 </div>
                 <div class="admin-page__actions">
-                    <button class="admin-page__button" :disabled="loading" @click="refresh">刷新</button>
-                <button class="admin-page__button" :disabled="loading" @click="exportLogs">导出 CSV</button>
-                <button class="admin-page__button admin-page__button--danger" :disabled="loading" @click="purgeLogs">
-                    清理 30 天前日志
-                </button>
+                    <el-button :loading="loading" @click="refresh">刷新</el-button>
+                    <el-button :loading="loading" @click="exportLogs">导出 CSV</el-button>
+                    <el-button :loading="loading" type="danger" plain @click="purgeLogs">清理 30 天前日志</el-button>
                 </div>
             </div>
-            <div v-if="message" class="admin-page__message">{{ message }}</div>
-            <div v-if="!store.auditLogs.length" class="admin-page__empty">暂无审计记录。</div>
-            <div v-for="log in store.auditLogs" :key="log.id" class="admin-page__audit-row">
-                <div>
-                    <strong>{{ log.action }}</strong>
-                    <span>{{ log.resource }}</span>
-                </div>
-                <div>
-                    <span>{{ log.actor_id }}</span>
-                    <time>{{ log.created_at }}</time>
-                </div>
-            </div>
-        </section>
+            <el-alert v-if="message" :title="message" type="info" show-icon class="admin-page__message" />
+            <el-empty v-if="!store.auditLogs.length" description="暂无审计记录。" />
+            <el-table v-else :data="store.auditLogs" border stripe>
+                <el-table-column label="动作" prop="action" min-width="180" />
+                <el-table-column label="资源" prop="resource" min-width="200" />
+                <el-table-column label="操作者" prop="actor_id" width="140" />
+                <el-table-column label="时间" prop="created_at" width="180" />
+            </el-table>
+        </el-card>
     </section>
 </template>
 
@@ -148,138 +150,60 @@ onMounted(() => {
 
 <style scoped lang="less">
 .admin-page {
+    min-width: 0;
+
+    &__card,
+    &__metrics {
+        margin-bottom: 12px;
+    }
+
+    &__field,
+    &__message {
+        margin-bottom: 12px;
+    }
+
+    &__label,
     &__hint {
-        margin: 6px 0 0;
+        margin-bottom: 6px;
         color: #64748b;
         font-size: 13px;
     }
 
-    &__section {
-        margin-bottom: 14px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px;
-        background: #fff;
-    }
-
-    &__section-header,
-    &__token-row,
-    &__actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    &__section-title {
+        margin-bottom: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
     }
 
     &__section-header {
+        display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 14px;
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
-    &__section-title {
-        margin: 0;
-        font-size: 16px;
-    }
-
-    &__token-input {
-        min-width: 0;
-        flex: 1;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 9px 10px;
-    }
-
-    &__button {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 8px 11px;
-        background: #fff;
-        color: #0f172a;
-        cursor: pointer;
-
-        &:disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-        }
-
-        &--primary {
-            border-color: #1d4ed8;
-            background: #1d4ed8;
-            color: #fff;
-        }
-
-        &--danger {
-            border-color: #fecaca;
-            color: #b91c1c;
-        }
-    }
-
-    &__metrics {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
         gap: 10px;
-        margin-bottom: 14px;
+        justify-content: flex-end;
     }
 
     &__metric {
-        display: grid;
-        gap: 8px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px;
-        background: #fff;
+        height: 100%;
+    }
+
+    &__metric-label {
         color: #64748b;
-
-        strong {
-            color: #0f172a;
-            font-size: 20px;
-        }
+        font-size: 13px;
     }
 
-    &__message {
-        margin-bottom: 12px;
-        color: #1d4ed8;
-    }
-
-    &__empty {
-        color: #64748b;
-    }
-
-    &__audit-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        border-top: 1px solid #e2e8f0;
-        padding: 10px 0;
-
-        div {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        span,
-        time {
-            color: #64748b;
-            font-size: 13px;
-        }
-    }
-
-    @media (max-width: 760px) {
-        &__metrics {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        &__section-header,
-        &__token-row,
-        &__audit-row {
-            align-items: stretch;
-            flex-direction: column;
-        }
-
-        &__actions {
-            flex-wrap: wrap;
-        }
+    &__metric-value {
+        margin-top: 10px;
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
     }
 }
 </style>

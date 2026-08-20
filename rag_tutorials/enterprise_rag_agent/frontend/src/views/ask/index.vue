@@ -1,84 +1,111 @@
-﻿<template>
-    <section class="page">
+<template>
+    <section class="ask-page">
         <PageHeader />
 
-        <div class="form">
-            <label class="field field--full field--question">
-                <span class="field__label">问题</span>
-                <textarea v-model="question" class="field__textarea" rows="4"></textarea>
-            </label>
-            <div class="actions">
-                <button
-                    class="button button--primary"
-                    :aria-busy="submitting"
-                    :disabled="submitting"
-                    @click="submitQuestion"
-                >
-                    <LoaderCircle v-if="submitting" class="button__spinner" :size="16" aria-hidden="true" />
-                    {{ submitting ? '生成中...' : '提问' }}
-                </button>
-            </div>
-        </div>
-
-        <div v-if="message" class="alert" :class="{ 'alert--error': hasError }">{{ message }}</div>
-
-        <article v-if="answer" class="result">
-            <div class="result__header">
-                <div class="result__score">置信度 {{ answer.confidence.toFixed(2) }}</div>
-                <div v-if="answer.clarifying_question" class="result__hint">{{ answer.clarifying_question }}</div>
-            </div>
-            <pre class="result__text">{{ answer.answer }}</pre>
-            <div v-if="!answer.citations.length" class="empty">未返回引用来源，当前回答不能作为已验证结论。</div>
-            <div v-if="answer.citations.length" class="citations">
-                <h2 class="section-title">引用来源</h2>
-                <div v-for="citation in answer.citations" :key="citation.source + String(citation.chunk_index)" class="citation">
-                    <div class="citation__title">{{ citation.knowledge_base }} / {{ citation.title }}</div>
-                    <div class="citation__meta">{{ citation.section_path }} 段 chunk {{ citation.chunk_index }} / {{ citation.risk_level }}</div>
-                    <div class="citation__terms">{{ citation.matched_terms.join(', ') }}</div>
-                </div>
-            </div>
-            <div v-if="answer.evidence_snippets.length" class="evidence">
-                <h2 class="section-title">证据片段</h2>
-                <article
-                    v-for="snippet in answer.evidence_snippets"
-                    :key="snippet.source + snippet.section_path"
-                    class="evidence__item"
-                >
-                    <div class="evidence__meta">
-                        {{ snippet.knowledge_base }} / {{ snippet.section_path }} / {{ snippet.risk_level }}
+        <el-card shadow="never" class="ask-page__card ask-page__card--form">
+            <el-row :gutter="12" align="middle">
+                <el-col :xs="24" :md="20">
+                    <div class="ask-page__label">问题</div>
+                    <div class="ask-page__field">
+                        <el-input
+                            v-model="question"
+                            :rows="4"
+                            type="textarea"
+                            resize="none"
+                            placeholder="请输入问题"
+                        />
                     </div>
-                    <p class="evidence__text">{{ snippet.snippet }}</p>
-                </article>
+                </el-col>
+                <el-col :xs="24" :md="4" class="ask-page__actions">
+                    <el-button
+                        type="primary"
+                        :loading="submitting"
+                        class="ask-page__submit"
+                        @click="submitQuestion"
+                    >
+                        提问
+                    </el-button>
+                </el-col>
+            </el-row>
+        </el-card>
+
+        <el-alert v-if="message" :title="message" :type="hasError ? 'error' : 'info'" show-icon class="ask-page__alert" />
+
+        <el-card v-if="answer" shadow="never" class="ask-page__card">
+            <div class="ask-page__result-header">
+                <el-tag type="success">置信度 {{ answer.confidence.toFixed(2) }}</el-tag>
+                <span v-if="answer.clarifying_question" class="ask-page__clarifying">{{ answer.clarifying_question }}</span>
             </div>
-            <div v-if="answer.external_sources.length" class="external-sources">
-                <h2 class="section-title">外部补充来源</h2>
-                <a
-                    v-for="source in answer.external_sources"
-                    :key="source.url"
-                    class="external-sources__item"
-                    :href="source.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <strong>{{ source.title }}</strong>
-                    <span>{{ source.snippet }}</span>
-                </a>
+            <pre class="ask-page__answer">{{ answer.answer }}</pre>
+
+            <el-empty
+                v-if="!answer.citations.length"
+                description="未返回引用来源，当前回答不能作为已验证结论。"
+                class="ask-page__empty"
+            />
+
+            <div v-if="answer.citations.length" class="ask-page__section">
+                <div class="ask-page__section-title">引用来源</div>
+                <el-row :gutter="12">
+                    <el-col v-for="citation in answer.citations" :key="citation.source + String(citation.chunk_index)" :xs="24" :md="12">
+                        <el-card shadow="never" class="ask-page__citation">
+                            <div class="ask-page__citation-title">{{ citation.knowledge_base }} / {{ citation.title }}</div>
+                            <div class="ask-page__citation-meta">{{ citation.section_path }} 段 chunk {{ citation.chunk_index }} / {{ citation.risk_level }}</div>
+                            <div class="ask-page__citation-terms">{{ citation.matched_terms.join(', ') }}</div>
+                        </el-card>
+                    </el-col>
+                </el-row>
             </div>
-            <div v-if="answer.tool_trace.length" class="tool-trace">
+
+            <div v-if="answer.evidence_snippets.length" class="ask-page__section">
+                <div class="ask-page__section-title">证据片段</div>
+                <el-space fill direction="vertical" class="ask-page__stack">
+                    <el-card
+                        v-for="snippet in answer.evidence_snippets"
+                        :key="snippet.source + snippet.section_path"
+                        shadow="never"
+                        class="ask-page__evidence"
+                    >
+                        <div class="ask-page__citation-meta">
+                            {{ snippet.knowledge_base }} / {{ snippet.section_path }} / {{ snippet.risk_level }}
+                        </div>
+                        <p class="ask-page__answer-text">{{ snippet.snippet }}</p>
+                    </el-card>
+                </el-space>
+            </div>
+
+            <div v-if="answer.external_sources.length" class="ask-page__section">
+                <div class="ask-page__section-title">外部补充来源</div>
+                <el-space fill direction="vertical" class="ask-page__stack">
+                    <el-link
+                        v-for="source in answer.external_sources"
+                        :key="source.url"
+                        :href="source.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="ask-page__source"
+                    >
+                        <strong>{{ source.title }}</strong>
+                        <span>{{ source.snippet }}</span>
+                    </el-link>
+                </el-space>
+            </div>
+
+            <div v-if="answer.tool_trace.length" class="ask-page__trace">
                 调用链：{{ answer.tool_trace.join(' → ') }}
             </div>
-            <div class="feedback">
+
+            <div class="ask-page__feedback">
                 <span>这次回答是否有帮助？</span>
-                <button class="feedback__button" :disabled="feedbackSubmitting" @click="submitFeedback(5)">有帮助</button>
-                <button class="feedback__button" :disabled="feedbackSubmitting" @click="submitFeedback(1)">需改进</button>
+                <el-button :loading="feedbackSubmitting" @click="submitFeedback(5)">有帮助</el-button>
+                <el-button :loading="feedbackSubmitting" @click="submitFeedback(1)">需改进</el-button>
             </div>
-        </article>
+        </el-card>
     </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { LoaderCircle } from 'lucide-vue-next';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { AnswerView } from '@/types/rag';
@@ -135,225 +162,100 @@ async function submitFeedback(rating: number): Promise<void> {
 </script>
 
 <style scoped lang="less">
-.page {
+.ask-page {
     min-width: 0;
-}
 
-.form {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) auto;
-    gap: 12px;
-    align-items: end;
-    margin-bottom: 16px;
-}
-
-.field {
-    display: grid;
-    gap: 8px;
-
-    &--full {
-        grid-column: 1 / -1;
-    }
-
-    &--question {
-        grid-column: 1 / -1;
-    }
-
-    &__label {
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    &__textarea {
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font: inherit;
-    }
-}
-
-.actions {
-    grid-column: 2;
-    display: flex;
-    justify-content: flex-end;
-    align-items: end;
-}
-
-.button {
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    background: #fff;
-    cursor: pointer;
-
-    &--primary {
-        border-color: #1d4ed8;
-        background: #1d4ed8;
-        color: #fff;
-    }
-
-    &__spinner {
-        margin-right: 6px;
-        vertical-align: -3px;
-        animation: spin 0.8s linear infinite;
-    }
-}
-
-.alert,
-.empty {
-    margin-bottom: 12px;
-    border-radius: 8px;
-    padding: 12px 14px;
-}
-
-.alert {
-    max-width: 960px;
-    background: #eff6ff;
-    color: #1d4ed8;
-
-    &--error {
-        background: #fef2f2;
-        color: #b91c1c;
-    }
-}
-
-.empty {
-    margin-top: 14px;
-    border: 1px dashed #cbd5e1;
-    background: #f8fafc;
-    color: #64748b;
-}
-
-.result {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px;
-    background: #fff;
-
-    &__header {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
+    &__card {
         margin-bottom: 12px;
     }
 
-    &__score {
-        font-weight: 600;
+    &__field {
+        margin: 0;
     }
 
-    &__hint {
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    &__submit {
+        width: 100%;
+    }
+
+    &__alert {
+        margin-bottom: 12px;
+    }
+
+    &__result-header,
+    &__feedback {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    &__result-header {
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    &__clarifying {
         color: #92400e;
     }
 
-    &__text {
+    &__answer,
+    &__answer-text {
         margin: 0;
         white-space: pre-wrap;
         font-family: inherit;
         line-height: 1.6;
     }
-}
 
-.section-title {
-    margin: 16px 0 10px;
-    font-size: 16px;
-}
+    &__section {
+        margin-top: 16px;
+    }
 
-.citation {
-    padding: 12px 0;
-    border-top: 1px solid #e2e8f0;
+    &__section-title {
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #0f172a;
+    }
 
-    &__title {
+    &__citation {
+        height: 100%;
+        margin-bottom: 12px;
+    }
+
+    &__citation-title {
         font-weight: 600;
     }
 
-    &__meta,
-    &__terms {
-        margin-top: 4px;
-        color: #64748b;
-        font-size: 13px;
-    }
-}
-
-.evidence {
-    &__item {
-        padding: 12px 0;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    &__meta {
+    &__citation-meta,
+    &__citation-terms,
+    &__trace {
+        margin-top: 6px;
         color: #64748b;
         font-size: 13px;
     }
 
-    &__text {
-        margin: 8px 0 0;
-        line-height: 1.6;
-        white-space: pre-wrap;
-    }
-}
-
-.external-sources {
-    display: grid;
-    gap: 8px;
-
-    &__item {
-        display: grid;
+    &__source {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 4px;
-        border-top: 1px solid #e2e8f0;
-        padding: 12px 0;
-        color: #0f172a;
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
         text-decoration: none;
-
-        span {
-            color: #64748b;
-            line-height: 1.5;
-        }
-    }
-}
-
-.tool-trace {
-    margin-top: 16px;
-    color: #64748b;
-    font-size: 13px;
-}
-
-.feedback {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    color: #475569;
-    font-size: 13px;
-
-    &__button {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 6px 9px;
-        background: #fff;
-        cursor: pointer;
-
-        &:disabled {
-            cursor: wait;
-            opacity: 0.65;
-        }
-    }
-}
-
-@media (max-width: 900px) {
-    .form {
-        grid-template-columns: 1fr;
+        color: inherit;
     }
 
-    .actions {
-        grid-column: 1;
-        justify-content: flex-start;
+    &__stack {
+        width: 100%;
     }
-}
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
+    &__empty {
+        margin-top: 10px;
     }
 }
 </style>

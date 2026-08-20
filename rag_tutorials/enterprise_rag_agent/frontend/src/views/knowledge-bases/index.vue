@@ -1,12 +1,16 @@
-﻿<template>
-    <section class="page">
+<template>
+    <section class="knowledge-bases-page">
         <PageHeader />
 
-        <div class="list">
-            <article v-for="kb in store.knowledgeBases" :key="kb" class="item">
-                <div class="item__title">{{ kb }}</div>
-            </article>
-        </div>
+        <el-empty v-if="!store.knowledgeBases.length" description="暂无知识库" class="knowledge-bases-page__empty" />
+
+        <el-row v-else :gutter="12">
+            <el-col v-for="kb in store.knowledgeBases" :key="kb" :xs="24" :sm="12" :md="8" :lg="6">
+                <el-card shadow="never" class="knowledge-bases-page__card">
+                    <div class="knowledge-bases-page__title">{{ kb }}</div>
+                </el-card>
+            </el-col>
+        </el-row>
     </section>
 </template>
 
@@ -23,24 +27,17 @@ onMounted(() => {
 </script>
 
 <style scoped lang="less">
-.page {
+.knowledge-bases-page {
     min-width: 0;
-}
 
-.list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
-}
-
-.item {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px;
-    background: #fff;
+    &__card,
+    &__empty {
+        margin-bottom: 12px;
+    }
 
     &__title {
         font-weight: 600;
+        color: #0f172a;
     }
 }
 </style>

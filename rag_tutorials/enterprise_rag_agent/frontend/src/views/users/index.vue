@@ -2,85 +2,94 @@
     <section class="users-page">
         <PageHeader />
 
-        <section class="users-page__section">
-            <h2 class="users-page__section-title">用户</h2>
-            <div class="users-page__form">
-                <label class="users-page__field">
-                    <span>外部身份 ID</span>
-                    <input v-model.trim="externalId" :disabled="Boolean(editingId)" />
-                </label>
-                <label class="users-page__field">
-                    <span>显示名称</span>
-                    <input v-model.trim="displayName" />
-                </label>
-                <label class="users-page__field">
-                    <span>邮箱</span>
-                    <input v-model.trim="email" type="email" />
-                </label>
-                <label class="users-page__field">
-                    <span>权限组</span>
-                    <input v-model="groupsInput" placeholder="public,security" />
-                </label>
-                <label class="users-page__field">
-                    <span>角色</span>
-                    <MultiSelectDropdown
-                        v-model="selectedRoleIds"
-                        :options="roleOptions"
-                        placeholder="选择角色"
-                    />
-                </label>
-                <label v-if="editingId" class="users-page__field users-page__checkbox">
-                    <input v-model="isActive" type="checkbox" />
-                    <span>启用用户</span>
-                </label>
-                <div class="users-page__form-actions">
-                    <button class="users-page__button users-page__button--primary" :disabled="saving" @click="saveUser">
+        <el-card shadow="never" class="users-page__card">
+            <div class="users-page__section-title">{{ editingId ? '编辑用户' : '新建用户' }}</div>
+            <el-row :gutter="12" align="bottom">
+                <el-col :xs="24" :md="4">
+                    <div class="users-page__label">外部身份 ID</div>
+                    <el-input v-model.trim="externalId" :disabled="Boolean(editingId)" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <div class="users-page__label">显示名称</div>
+                    <el-input v-model.trim="displayName" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <div class="users-page__label">邮箱</div>
+                    <el-input v-model.trim="email" type="email" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <div class="users-page__label">权限组</div>
+                    <el-input v-model="groupsInput" placeholder="public,security" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <div class="users-page__label">角色</div>
+                    <el-select v-model="selectedRoleIds" multiple collapse-tags collapse-tags-tooltip placeholder="选择角色">
+                        <el-option v-for="role in roleOptions" :key="role.value" :label="role.label" :value="role.value" />
+                    </el-select>
+                </el-col>
+                <el-col v-if="editingId" :xs="24" :md="2">
+                    <el-checkbox v-model="isActive" class="users-page__checkbox">启用用户</el-checkbox>
+                </el-col>
+                <el-col :xs="24" :md="2" class="users-page__actions">
+                    <el-button type="primary" :loading="saving" @click="saveUser">
                         {{ editingId ? '保存修改' : '创建用户' }}
-                    </button>
-                    <button v-if="editingId" class="users-page__button" :disabled="saving" @click="resetForm">取消编辑</button>
-                </div>
-            </div>
-            <p v-if="message" class="users-page__message">{{ message }}</p>
-        </section>
+                    </el-button>
+                </el-col>
+                <el-col v-if="editingId" :xs="24" :md="2" class="users-page__actions">
+                    <el-button :loading="saving" @click="resetForm">取消编辑</el-button>
+                </el-col>
+            </el-row>
+            <el-alert v-if="message" :title="message" type="info" show-icon class="users-page__alert" />
+        </el-card>
 
-        <section class="users-page__section">
-            <div class="users-page__section-header">
-                <h2 class="users-page__section-title">用户列表</h2>
-                <button class="users-page__button" :disabled="saving" @click="refresh">刷新</button>
+        <el-card shadow="never" class="users-page__card">
+            <div class="users-page__header">
+                <div class="users-page__section-title">用户列表</div>
+                <el-button :loading="saving" @click="refresh">刷新</el-button>
             </div>
-            <div v-if="!store.users.length" class="users-page__empty">暂无用户。用户首次通过身份源访问后会自动同步。</div>
-            <div v-else class="users-page__table-header">
-                <span>用户</span>
-                <span>组</span>
-                <span>角色</span>
-                <span>状态</span>
-                <span>操作</span>
-            </div>
-            <div v-for="user in store.users" :key="user.id" class="users-page__row">
-                <div class="users-page__identity">
-                    <strong>{{ user.display_name }}</strong>
-                    <span>{{ user.external_id }}</span>
-                    <span>{{ user.email || '未设置邮箱' }}</span>
-                </div>
-                <div class="users-page__meta">{{ user.groups.join(', ') || '-' }}</div>
-                <div class="users-page__meta">{{ user.roles.join(', ') || '-' }}</div>
-                <div class="users-page__meta">
-                    <span :class="{ 'users-page__status--disabled': !user.is_active }">
-                        {{ user.is_active ? '启用' : '停用' }}
-                    </span>
-                </div>
-                <div class="users-page__row-actions">
-                    <button class="users-page__button" @click="editUser(user.id)">编辑</button>
-                    <button class="users-page__button users-page__button--danger" @click="removeUser(user.id)">删除</button>
-                </div>
-            </div>
-        </section>
+            <el-empty v-if="!store.users.length" description="暂无用户。用户首次通过身份源访问后会自动同步。" />
+            <el-table v-else :data="store.users" border stripe>
+                <el-table-column label="用户" min-width="220">
+                    <template #default="{ row }">
+                        <div class="users-page__identity">
+                            <strong>{{ row.display_name }}</strong>
+                            <span>{{ row.external_id }}</span>
+                            <span>{{ row.email || '未设置邮箱' }}</span>
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column label="组" min-width="150">
+                    <template #default="{ row }">
+                        {{ row.groups.join(', ') || '-' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="角色" min-width="180">
+                    <template #default="{ row }">
+                        {{ row.roles.join(', ') || '-' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="状态" width="90">
+                    <template #default="{ row }">
+                        <span :class="{ 'users-page__status--disabled': !row.is_active }">
+                            {{ row.is_active ? '启用' : '停用' }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" width="170" fixed="right">
+                    <template #default="{ row }">
+                        <div class="users-page__row-actions">
+                            <el-button size="small" @click="editUser(row.id)">编辑</el-button>
+                            <el-button size="small" type="danger" plain @click="removeUser(row.id)">删除</el-button>
+                        </div>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-card>
     </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import MultiSelectDropdown from '@/components/form/MultiSelectDropdown.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
@@ -190,168 +199,53 @@ onMounted(() => {
 
 <style scoped lang="less">
 .users-page {
-    &__section {
-        margin-bottom: 14px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px;
-        background: #fff;
-    }
+    min-width: 0;
 
-    &__section-header,
-    &__row-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    &__section-header {
-        justify-content: space-between;
-        margin-bottom: 14px;
+    &__card {
+        margin-bottom: 12px;
     }
 
     &__section-title {
-        margin: 0;
+        margin-bottom: 12px;
         font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
     }
 
-    &__form {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 10px;
-        align-items: end;
-
-        label {
-            display: grid;
-            gap: 6px;
-        }
-
-        span {
-            color: #64748b;
-            font-size: 13px;
-        }
-
-        input,
-        select {
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 9px 10px;
-            background: #fff;
-        }
+    &__label {
+        margin-bottom: 6px;
+        color: #64748b;
+        font-size: 13px;
     }
 
-    &__field {
-        min-width: 0;
-    }
-
-    &__form-actions {
+    &__actions {
         display: flex;
-        justify-self: stretch;
-        align-items: center;
-        gap: 8px;
-        white-space: nowrap;
+        align-items: flex-end;
     }
 
-    &__checkbox {
-        display: flex !important;
-        align-items: center;
-        gap: 8px;
-        padding-bottom: 10px;
-
-        input {
-            width: 16px;
-            height: 16px;
-        }
+    &__alert {
+        margin-top: 12px;
     }
 
-    &__button {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 8px 11px;
-        background: #fff;
-        cursor: pointer;
-
-        &:disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-        }
-
-        &--primary {
-            border-color: #1d4ed8;
-            background: #1d4ed8;
-            color: #fff;
-        }
-
-        &--danger {
-            border-color: #fecaca;
-            color: #b91c1c;
-        }
-    }
-
-    &__message {
-        margin: 12px 0 0;
-        color: #1d4ed8;
-    }
-
-    &__empty {
-        color: #64748b;
-    }
-
-    &__row {
-        display: grid;
-        grid-template-columns: minmax(220px, 1.3fr) minmax(120px, 0.8fr) minmax(150px, 0.9fr) minmax(80px, 0.5fr) auto;
+    &__header {
+        display: flex;
+        justify-content: space-between;
         gap: 12px;
-        align-items: center;
-        border-top: 1px solid #e2e8f0;
-        padding: 10px 0;
+        margin-bottom: 12px;
     }
 
-    &__table-header {
-        display: grid;
-        grid-template-columns: minmax(220px, 1.3fr) minmax(120px, 0.8fr) minmax(150px, 0.9fr) minmax(80px, 0.5fr) auto;
-        gap: 12px;
-        border-top: 1px solid #e2e8f0;
-        padding: 10px 0 8px;
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    &__identity,
-    &__meta {
+    &__identity {
         display: grid;
         gap: 4px;
     }
 
-    &__identity span,
-    &__meta span {
-        color: #64748b;
-        font-size: 13px;
-    }
-
-    &__meta {
-        color: #475569;
-        font-size: 13px;
-    }
-
     &__status--disabled {
-        color: #b91c1c !important;
+        color: #dc2626;
     }
 
-    @media (max-width: 820px) {
-        &__form,
-        &__row {
-            grid-template-columns: 1fr;
-        }
-
-        &__form-actions {
-            justify-self: start;
-            flex-wrap: wrap;
-        }
-
-        &__row-actions {
-            justify-content: flex-start;
-        }
+    &__row-actions {
+        display: flex;
+        gap: 8px;
     }
 }
 </style>

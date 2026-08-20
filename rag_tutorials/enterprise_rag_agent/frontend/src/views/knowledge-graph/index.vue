@@ -2,89 +2,95 @@
     <section class="knowledge-graph-page">
         <PageHeader>
             <template #actions>
-                <button class="knowledge-graph-page__button" :disabled="loading" @click="refresh">
-                    {{ loading ? '加载中...' : '刷新' }}
-                </button>
+                <el-button :loading="loading" @click="refresh">{{ loading ? '加载中...' : '刷新' }}</el-button>
             </template>
         </PageHeader>
 
-        <p v-if="message" class="knowledge-graph-page__message">{{ message }}</p>
+        <el-alert v-if="message" :title="message" type="info" show-icon class="knowledge-graph-page__alert" />
 
-        <section class="knowledge-graph-page__metrics">
-            <article class="knowledge-graph-page__metric">
-                <span>实体</span>
-                <strong>{{ graph?.entity_count ?? 0 }}</strong>
-            </article>
-            <article class="knowledge-graph-page__metric">
-                <span>关系</span>
-                <strong>{{ graph?.relation_count ?? 0 }}</strong>
-            </article>
-        </section>
+        <el-row :gutter="12" class="knowledge-graph-page__metrics">
+            <el-col :xs="12" :md="12">
+                <el-card shadow="never" class="knowledge-graph-page__metric">
+                    <div class="knowledge-graph-page__metric-label">实体</div>
+                    <div class="knowledge-graph-page__metric-value">{{ graph?.entity_count ?? 0 }}</div>
+                </el-card>
+            </el-col>
+            <el-col :xs="12" :md="12">
+                <el-card shadow="never" class="knowledge-graph-page__metric">
+                    <div class="knowledge-graph-page__metric-label">关系</div>
+                    <div class="knowledge-graph-page__metric-value">{{ graph?.relation_count ?? 0 }}</div>
+                </el-card>
+            </el-col>
+        </el-row>
 
-        <section class="knowledge-graph-page__query">
-            <div class="knowledge-graph-page__query-fields">
-                <label>
-                    <span>多跳查询</span>
-                    <input v-model.trim="question" type="search" placeholder="输入实体或关系问题" @keyup.enter="queryGraph" />
-                </label>
-                <label class="knowledge-graph-page__hop-field">
-                    <span>最大跳数</span>
-                    <select v-model.number="maxHops">
-                        <option :value="1">1 跳</option>
-                        <option :value="2">2 跳</option>
-                        <option :value="3">3 跳</option>
-                    </select>
-                </label>
-                <button class="knowledge-graph-page__button" :disabled="queryLoading || !question" @click="queryGraph">
-                    {{ queryLoading ? '查询中...' : '查询路径' }}
-                </button>
-            </div>
-            <p v-if="queryMessage" class="knowledge-graph-page__message">{{ queryMessage }}</p>
-            <div v-if="queryResult" class="knowledge-graph-page__query-result">
-                <div class="knowledge-graph-page__query-summary">
-                    <span>{{ queryResult.entities.length }} 个实体</span>
-                    <span>{{ queryResult.relations.length }} 条关系</span>
-                    <span>{{ queryResult.paths.length }} 条路径</span>
-                </div>
-                <div v-if="queryResult.paths.length" class="knowledge-graph-page__path-list">
-                    <div v-for="(path, index) in queryResult.paths" :key="`${index}-${path.entities.join('-')}`" class="knowledge-graph-page__path">
-                        <strong>{{ path.hops }} 跳</strong>
-                        <span>{{ path.entities.join(' -> ') }}</span>
-                    </div>
-                </div>
-                <p v-else class="knowledge-graph-page__empty">没有找到当前权限范围内的关联路径。</p>
-            </div>
-        </section>
+        <el-card shadow="never" class="knowledge-graph-page__card">
+            <div class="knowledge-graph-page__section-title">多跳查询</div>
+            <el-row :gutter="12" align="bottom">
+                <el-col :xs="24" :md="18">
+                    <div class="knowledge-graph-page__label">查询问题</div>
+                    <el-input
+                        v-model.trim="question"
+                        placeholder="输入实体或关系问题"
+                        @keyup.enter="queryGraph"
+                    />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <div class="knowledge-graph-page__label">最大跳数</div>
+                    <el-select v-model="maxHops" class="knowledge-graph-page__select">
+                        <el-option :value="1" label="1 跳" />
+                        <el-option :value="2" label="2 跳" />
+                        <el-option :value="3" label="3 跳" />
+                    </el-select>
+                </el-col>
+                <el-col :xs="24" :md="2">
+                    <el-button type="primary" :loading="queryLoading" class="knowledge-graph-page__submit" @click="queryGraph">
+                        查询
+                    </el-button>
+                </el-col>
+            </el-row>
 
-        <section class="knowledge-graph-page__grid">
-            <article class="knowledge-graph-page__section">
-                <h2>实体</h2>
-                <div v-if="graph?.entities.length" class="knowledge-graph-page__entity-list">
-                    <div v-for="entity in graph.entities" :key="entity.name" class="knowledge-graph-page__entity">
-                        <span>{{ entity.name }}</span>
-                        <strong>{{ entity.chunk_count }} 个切块</strong>
-                    </div>
-                </div>
-                <p v-else class="knowledge-graph-page__empty">暂无可见实体，请先导入文档。</p>
-            </article>
+            <el-alert v-if="queryMessage" :title="queryMessage" type="info" show-icon class="knowledge-graph-page__alert" />
 
-            <article class="knowledge-graph-page__section">
-                <h2>共现关系</h2>
-                <div v-if="graph?.relations.length" class="knowledge-graph-page__relation-list">
-                    <div
-                        v-for="relation in graph.relations"
-                        :key="`${relation.source}-${relation.target}-${relation.type}`"
-                        class="knowledge-graph-page__relation"
-                    >
-                        <span>{{ relation.source }}</span>
-                        <span aria-hidden="true">→</span>
-                        <span>{{ relation.target }}</span>
-                        <strong>{{ relation.weight }}</strong>
-                    </div>
-                </div>
-                <p v-else class="knowledge-graph-page__empty">暂无可见关系。</p>
-            </article>
-        </section>
+            <el-descriptions v-if="queryResult" :column="3" border class="knowledge-graph-page__summary">
+                <el-descriptions-item label="实体">{{ queryResult.entities.length }}</el-descriptions-item>
+                <el-descriptions-item label="关系">{{ queryResult.relations.length }}</el-descriptions-item>
+                <el-descriptions-item label="路径">{{ queryResult.paths.length }}</el-descriptions-item>
+            </el-descriptions>
+
+            <el-empty v-if="queryResult && !queryResult.paths.length" description="没有找到当前权限范围内的关联路径。" />
+
+            <el-space v-if="queryResult?.paths.length" fill direction="vertical" class="knowledge-graph-page__stack">
+                <el-card v-for="(path, index) in queryResult.paths" :key="`${index}-${path.entities.join('-')}`" shadow="never">
+                    <strong>{{ path.hops }} 跳</strong>
+                    <span class="knowledge-graph-page__path">{{ path.entities.join(' -> ') }}</span>
+                </el-card>
+            </el-space>
+        </el-card>
+
+        <el-row :gutter="12">
+            <el-col :xs="24" :md="12">
+                <el-card shadow="never" class="knowledge-graph-page__card">
+                    <div class="knowledge-graph-page__section-title">实体</div>
+                    <el-empty v-if="!graph?.entities.length" description="暂无可见实体，请先导入文档。" />
+                    <el-table v-else :data="graph.entities" border stripe size="small">
+                        <el-table-column label="名称" prop="name" min-width="180" />
+                        <el-table-column label="切块数" prop="chunk_count" width="100" />
+                    </el-table>
+                </el-card>
+            </el-col>
+            <el-col :xs="24" :md="12">
+                <el-card shadow="never" class="knowledge-graph-page__card">
+                    <div class="knowledge-graph-page__section-title">共现关系</div>
+                    <el-empty v-if="!graph?.relations.length" description="暂无可见关系。" />
+                    <el-table v-else :data="graph.relations" border stripe size="small">
+                        <el-table-column label="来源" prop="source" min-width="140" />
+                        <el-table-column label="目标" prop="target" min-width="140" />
+                        <el-table-column label="类型" prop="type" width="120" />
+                        <el-table-column label="权重" prop="weight" width="80" />
+                    </el-table>
+                </el-card>
+            </el-col>
+        </el-row>
     </section>
 </template>
 
@@ -138,179 +144,47 @@ async function queryGraph(): Promise<void> {
 
 <style scoped lang="less">
 .knowledge-graph-page {
-    &__relation {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
+    min-width: 0;
 
-    &__button {
-        border: 1px solid #1d4ed8;
-        border-radius: 6px;
-        padding: 8px 12px;
-        background: #1d4ed8;
-        color: #fff;
-        cursor: pointer;
-
-        &:disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-        }
-    }
-
-    &__message {
-        margin: 12px 0;
-        color: #b91c1c;
-    }
-
-    &__metrics,
-    &__grid,
-    &__query-fields,
-    &__query-summary {
-        display: grid;
-        gap: 12px;
-    }
-
+    &__alert,
+    &__card,
     &__metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-bottom: 10px;
-    }
-
-    &__grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    &__query {
-        margin: 10px 0;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px;
-        background: #fff;
-    }
-
-    &__query-fields {
-        grid-template-columns: minmax(0, 1fr) 120px auto;
-        align-items: end;
-
-        label {
-            display: grid;
-            gap: 6px;
-            color: #334155;
-            font-size: 13px;
-        }
-
-        input,
-        select {
-            box-sizing: border-box;
-            min-height: 38px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 8px 10px;
-            background: #fff;
-            color: #0f172a;
-        }
-    }
-
-    &__query-summary {
-        grid-template-columns: repeat(3, max-content);
-        margin-top: 12px;
-        color: #475569;
-        font-size: 13px;
-    }
-
-    &__path-list {
-        display: grid;
-        gap: 8px;
-        margin-top: 10px;
-    }
-
-    &__path {
-        display: flex;
-        gap: 12px;
-        align-items: baseline;
-        border-bottom: 1px solid #f1f5f9;
-        padding: 7px 0;
-        color: #334155;
-
-        strong {
-            min-width: 38px;
-            color: #1d4ed8;
-            font-size: 12px;
-        }
-    }
-
-    &__metric,
-    &__section {
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px;
-        background: #fff;
+        margin-bottom: 12px;
     }
 
     &__metric {
-        display: grid;
-        gap: 6px;
+        height: 100%;
+    }
+
+    &__metric-label,
+    &__label,
+    &__path {
         color: #64748b;
-
-        strong {
-            color: #0f172a;
-            font-size: 22px;
-        }
+        font-size: 13px;
     }
 
-    &__section {
-        min-width: 0;
-
-        h2 {
-            margin: 0 0 12px;
-            color: #0f172a;
-            font-size: 16px;
-        }
+    &__metric-value {
+        margin-top: 10px;
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
     }
 
-    &__entity-list,
-    &__relation-list {
-        display: grid;
-        gap: 8px;
+    &__section-title {
+        margin-bottom: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
     }
 
-    &__entity,
-    &__relation {
-        justify-content: space-between;
-        min-width: 0;
-        border-bottom: 1px solid #f1f5f9;
-        padding: 7px 0;
-        color: #334155;
+    &__submit,
+    &__select {
+        width: 100%;
     }
 
-    &__entity strong,
-    &__relation strong {
-        color: #64748b;
-        font-size: 12px;
-    }
-
-    &__empty {
-        color: #64748b;
-    }
-
-    @media (max-width: 760px) {
-        &__header {
-            align-items: stretch;
-            flex-direction: column;
-        }
-
-        &__grid {
-            grid-template-columns: 1fr;
-        }
-
-        &__query-fields {
-            grid-template-columns: 1fr;
-        }
-
-        &__query-summary {
-            grid-template-columns: 1fr;
-            gap: 6px;
-        }
+    &__stack {
+        width: 100%;
+        margin-top: 12px;
     }
 }
 </style>

@@ -1,36 +1,43 @@
-﻿<template>
-    <section class="page">
+<template>
+    <section class="documents-page">
         <PageHeader>
             <template #actions>
-                <button class="button" :disabled="store.loading" @click="refreshDocuments">刷新</button>
+                <el-button :loading="store.loading" @click="refreshDocuments">刷新</el-button>
             </template>
         </PageHeader>
 
-        <div v-if="store.error" class="alert alert--error">{{ store.error }}</div>
+        <el-alert v-if="store.error" :title="store.error" type="error" show-icon class="documents-page__alert" />
 
-        <div v-if="store.documents.length" class="table">
-            <div class="table__row table__row--head">
-                <span>知识库</span>
-                <span>标题</span>
-                <span>路径</span>
-                <span>权限组</span>
-                <span>风险</span>
-                <span>内容哈希</span>
-                <span>版本</span>
-                <span>导入时间</span>
-            </div>
-            <div v-for="doc in store.documents" :key="String(doc.source_id)" class="table__row">
-                <span>{{ String(doc.knowledge_base) }}</span>
-                <span>{{ String(doc.title) }}</span>
-                <span class="truncate">{{ String(doc.path) }}</span>
-                <span>{{ doc.allowed_groups.join(', ') }}</span>
-                <span>{{ doc.risk_level }}</span>
-                <span class="truncate">{{ doc.content_hash }}</span>
-                <span>{{ String(doc.version) }}</span>
-                <span>{{ doc.indexed_at || '-' }}</span>
-            </div>
-        </div>
-        <div v-else-if="!store.loading" class="empty">暂无文档。请先在导入页导入样例目录或业务文档。</div>
+        <el-empty
+            v-if="!store.loading && !store.documents.length"
+            description="暂无文档。请先在导入页导入样例目录或业务文档。"
+            class="documents-page__empty"
+        />
+
+        <el-card v-else shadow="never" class="documents-page__card">
+            <el-table :data="store.documents" border stripe class="documents-page__table">
+                <el-table-column label="知识库" prop="knowledge_base" min-width="120" />
+                <el-table-column label="标题" prop="title" min-width="160" />
+                <el-table-column label="路径" min-width="220">
+                    <template #default="{ row }">
+                        <span class="documents-page__truncate">{{ row.path }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="权限组" min-width="140">
+                    <template #default="{ row }">
+                        {{ row.allowed_groups.join(', ') }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="风险" prop="risk_level" width="100" />
+                <el-table-column label="内容哈希" min-width="180">
+                    <template #default="{ row }">
+                        <span class="documents-page__truncate">{{ row.content_hash }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="版本" prop="version" width="80" />
+                <el-table-column label="导入时间" prop="indexed_at" min-width="160" />
+            </el-table>
+        </el-card>
     </section>
 </template>
 
@@ -54,71 +61,20 @@ onMounted(() => {
 </script>
 
 <style scoped lang="less">
-.page {
+.documents-page {
     min-width: 0;
-}
 
-.button {
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    background: #fff;
-    cursor: pointer;
-
-    &:disabled {
-        cursor: not-allowed;
-        opacity: 0.65;
+    &__alert,
+    &__empty {
+        margin-bottom: 12px;
     }
-}
 
-.alert,
-.empty {
-    margin-bottom: 12px;
-    border-radius: 8px;
-    padding: 11px 12px;
-}
-
-.alert {
-    background: #eff6ff;
-    color: #1d4ed8;
-
-    &--error {
-        background: #fef2f2;
-        color: #b91c1c;
+    &__truncate {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
-}
-
-.empty {
-    border: 1px dashed #cbd5e1;
-    background: #f8fafc;
-    color: #64748b;
-}
-
-.table {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    overflow-x: auto;
-    background: #fff;
-
-    &__row {
-        display: grid;
-        grid-template-columns: 110px 150px minmax(220px, 1fr) 140px 80px 160px 70px 160px;
-        gap: 10px;
-        padding: 10px 12px;
-        border-top: 1px solid #e2e8f0;
-        min-width: 1180px;
-
-        &--head {
-            border-top: 0;
-            background: #f8fafc;
-            font-weight: 600;
-        }
-    }
-}
-
-.truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 </style>

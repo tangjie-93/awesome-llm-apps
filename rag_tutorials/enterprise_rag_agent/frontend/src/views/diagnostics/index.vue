@@ -2,82 +2,90 @@
     <section class="diagnostics-page">
         <PageHeader />
 
-        <section class="diagnostics-page__metrics">
-            <article v-for="metric in metrics" :key="metric.label" class="diagnostics-page__metric">
-                <span>{{ metric.label }}</span>
-                <strong>{{ metric.value }}</strong>
-            </article>
-        </section>
+        <el-row :gutter="12" class="diagnostics-page__metrics">
+            <el-col v-for="metric in metrics" :key="metric.label" :xs="12" :sm="12" :md="6">
+                <el-card shadow="never" class="diagnostics-page__metric">
+                    <div class="diagnostics-page__metric-label">{{ metric.label }}</div>
+                    <div class="diagnostics-page__metric-value">{{ metric.value }}</div>
+                </el-card>
+            </el-col>
+        </el-row>
 
-        <section class="diagnostics-page__section">
+        <el-card shadow="never" class="diagnostics-page__card">
             <div class="diagnostics-page__section-header">
                 <div>
-                    <h2 class="diagnostics-page__section-title">诊断建议</h2>
-                    <p class="diagnostics-page__hint">建议来自当前租户的运行指标，不会自动修改模型或排序配置。</p>
+                    <div class="diagnostics-page__section-title">诊断建议</div>
+                    <div class="diagnostics-page__hint">建议来自当前租户的运行指标，不会自动修改模型或排序配置。</div>
                 </div>
             </div>
-            <div class="diagnostics-page__suggestions">
-                <article
-                    v-for="suggestion in suggestions"
-                    :key="suggestion.code"
-                    class="diagnostics-page__suggestion"
-                    :class="`diagnostics-page__suggestion--${suggestion.severity}`"
-                >
-                    <div class="diagnostics-page__suggestion-header">
-                        <strong>{{ suggestion.title }}</strong>
-                        <span>{{ severityLabel(suggestion.severity) }}</span>
-                    </div>
-                    <p>{{ suggestion.detail }}</p>
-                    <p class="diagnostics-page__suggestion-action">建议：{{ suggestion.action }}</p>
-                </article>
-            </div>
-        </section>
+            <el-row :gutter="12">
+                <el-col v-for="suggestion in suggestions" :key="suggestion.code" :xs="24" :md="8">
+                    <el-card shadow="never" class="diagnostics-page__suggestion" :class="`diagnostics-page__suggestion--${suggestion.severity}`">
+                        <div class="diagnostics-page__suggestion-header">
+                            <strong>{{ suggestion.title }}</strong>
+                            <el-tag size="small">{{ severityLabel(suggestion.severity) }}</el-tag>
+                        </div>
+                        <p>{{ suggestion.detail }}</p>
+                        <p class="diagnostics-page__suggestion-action">建议：{{ suggestion.action }}</p>
+                    </el-card>
+                </el-col>
+            </el-row>
+        </el-card>
 
-        <section class="diagnostics-page__section">
+        <el-card shadow="never" class="diagnostics-page__card">
             <div class="diagnostics-page__section-header">
                 <div>
-                    <h2 class="diagnostics-page__section-title">人工处置</h2>
-                    <p class="diagnostics-page__hint">仅支持经过审批令牌确认的失败导入回放，执行结果会写入操作日志和审计日志。</p>
+                    <div class="diagnostics-page__section-title">人工处置</div>
+                    <div class="diagnostics-page__hint">仅支持经过审批令牌确认的失败导入回放，执行结果会写入操作日志和审计日志。</div>
                 </div>
             </div>
-            <div class="diagnostics-page__action-grid">
-                <label>
-                    <span>失败导入操作 ID</span>
-                    <input v-model.number="operationId" type="number" min="1" placeholder="例如 12" />
-                </label>
-                <label>
-                    <span>审批令牌</span>
-                    <input v-model.trim="approvalToken" type="password" autocomplete="off" placeholder="服务端配置的审批令牌" />
-                </label>
-                <button class="diagnostics-page__button diagnostics-page__button--primary" :disabled="actionLoading" @click="executeAction">
-                    {{ actionLoading ? '执行中...' : '回放失败导入' }}
-                </button>
-            </div>
-            <p v-if="actionMessage" class="diagnostics-page__message">{{ actionMessage }}</p>
-        </section>
+            <el-row :gutter="12" align="bottom">
+                <el-col :xs="24" :md="8">
+                    <div class="diagnostics-page__label">失败导入操作 ID</div>
+                    <el-input v-model.number="operationId" type="number" min="1" placeholder="例如 12" />
+                </el-col>
+                <el-col :xs="24" :md="12">
+                    <div class="diagnostics-page__label">审批令牌</div>
+                    <el-input v-model.trim="approvalToken" type="password" autocomplete="off" placeholder="服务端配置的审批令牌" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <el-button type="primary" :loading="actionLoading" class="diagnostics-page__submit" @click="executeAction">
+                        回放失败导入
+                    </el-button>
+                </el-col>
+            </el-row>
+            <el-alert v-if="actionMessage" :title="actionMessage" type="info" show-icon class="diagnostics-page__alert" />
+        </el-card>
 
-        <section class="diagnostics-page__section">
+        <el-card shadow="never" class="diagnostics-page__card">
             <div class="diagnostics-page__section-header">
                 <div>
-                    <h2 class="diagnostics-page__section-title">外部检索</h2>
-                    <p class="diagnostics-page__hint">
+                    <div class="diagnostics-page__section-title">外部检索</div>
+                    <div class="diagnostics-page__hint">
                         {{ store.diagnostics?.web_fallback_enabled ? '已启用受控 Web fallback。' : '当前未启用 Web fallback。' }}
-                    </p>
+                    </div>
                 </div>
-                <button class="diagnostics-page__button" :disabled="loading" @click="refresh">刷新诊断</button>
+                <el-button :loading="loading" @click="refresh">刷新诊断</el-button>
             </div>
-            <div class="diagnostics-page__search-row">
-                <input v-model.trim="question" class="diagnostics-page__input" placeholder="输入需要补充检索的问题" />
-                <button class="diagnostics-page__button diagnostics-page__button--primary" :disabled="searching" @click="searchWeb">
-                    {{ searching ? '检索中...' : '检索' }}
-                </button>
-            </div>
-            <p v-if="message" class="diagnostics-page__message">{{ message }}</p>
-            <div v-for="result in results" :key="result.url" class="diagnostics-page__result">
-                <a :href="result.url" target="_blank" rel="noopener noreferrer">{{ result.title }}</a>
-                <p>{{ result.snippet }}</p>
-            </div>
-        </section>
+            <el-row :gutter="12" align="bottom">
+                <el-col :xs="24" :md="20">
+                    <div class="diagnostics-page__label">检索问题</div>
+                    <el-input v-model.trim="question" placeholder="输入需要补充检索的问题" @keyup.enter="searchWeb" />
+                </el-col>
+                <el-col :xs="24" :md="4">
+                    <el-button type="primary" :loading="searching" class="diagnostics-page__submit" @click="searchWeb">
+                        检索
+                    </el-button>
+                </el-col>
+            </el-row>
+            <el-alert v-if="message" :title="message" type="info" show-icon class="diagnostics-page__alert" />
+            <el-space v-if="results.length" fill direction="vertical" class="diagnostics-page__stack">
+                <el-card v-for="result in results" :key="result.url" shadow="never">
+                    <el-link :href="result.url" target="_blank" rel="noopener noreferrer">{{ result.title }}</el-link>
+                    <p class="diagnostics-page__snippet">{{ result.snippet }}</p>
+                </el-card>
+            </el-space>
+        </el-card>
     </section>
 </template>
 
@@ -179,192 +187,76 @@ onMounted(() => {
 
 <style scoped lang="less">
 .diagnostics-page {
-    &__subtitle,
-    &__hint {
-        margin: 6px 0 0;
+    min-width: 0;
+
+    &__metrics,
+    &__card {
+        margin-bottom: 12px;
+    }
+
+    &__metric {
+        height: 100%;
+    }
+
+    &__metric-label,
+    &__hint,
+    &__label,
+    &__snippet,
+    &__suggestion-action {
         color: #64748b;
         font-size: 13px;
     }
 
-    &__metrics {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px;
-        margin-bottom: 14px;
-    }
-
-    &__metric,
-    &__section {
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px;
-        background: #fff;
-    }
-
-    &__metric {
-        display: grid;
-        gap: 8px;
-        color: #64748b;
-
-        strong {
-            color: #0f172a;
-            font-size: 20px;
-        }
+    &__metric-value {
+        margin-top: 10px;
+        font-size: 22px;
+        font-weight: 700;
+        color: #0f172a;
     }
 
     &__section-header,
-    &__search-row {
+    &__suggestion-header {
         display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    &__section-header {
         justify-content: space-between;
-        align-items: flex-start;
+        gap: 12px;
         margin-bottom: 12px;
     }
 
     &__section-title {
-        margin: 0;
         font-size: 16px;
-    }
-
-    &__action-grid {
-        display: grid;
-        grid-template-columns: minmax(180px, 0.5fr) minmax(260px, 1fr) auto;
-        gap: 10px;
-        align-items: end;
-
-        label {
-            display: grid;
-            gap: 6px;
-            color: #475569;
-            font-size: 13px;
-        }
-
-        input {
-            box-sizing: border-box;
-            min-height: 38px;
-            width: 100%;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 8px 10px;
-            color: #0f172a;
-        }
-    }
-
-    &__suggestions {
-        display: grid;
-        gap: 10px;
+        font-weight: 600;
+        color: #0f172a;
     }
 
     &__suggestion {
-        border-left: 4px solid #94a3b8;
-        padding: 11px 12px;
-        background: #f8fafc;
-
-        p {
-            margin: 6px 0 0;
-            color: #475569;
-            line-height: 1.5;
-        }
+        height: 100%;
+        margin-bottom: 12px;
+        border-left: 3px solid #94a3b8;
 
         &--critical {
             border-left-color: #dc2626;
-            background: #fef2f2;
         }
 
         &--warning {
             border-left-color: #d97706;
-            background: #fffbeb;
         }
 
         &--info {
             border-left-color: #2563eb;
-            background: #eff6ff;
         }
     }
 
-    &__suggestion-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-
-        span {
-            flex: 0 0 auto;
-            color: #64748b;
-            font-size: 12px;
-        }
+    &__submit {
+        width: 100%;
     }
 
-    &__suggestion-action {
-        font-size: 13px;
+    &__alert {
+        margin-top: 12px;
     }
 
-    &__input {
-        min-width: 0;
-        flex: 1;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 9px 10px;
-    }
-
-    &__button {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 8px 11px;
-        background: #fff;
-        cursor: pointer;
-
-        &:disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-        }
-
-        &--primary {
-            border-color: #1d4ed8;
-            background: #1d4ed8;
-            color: #fff;
-        }
-    }
-
-    &__message {
-        margin: 10px 0;
-        color: #1d4ed8;
-    }
-
-    &__result {
-        border-top: 1px solid #e2e8f0;
-        padding: 10px 0;
-
-        a {
-            color: #1d4ed8;
-            font-weight: 600;
-        }
-
-        p {
-            margin: 6px 0 0;
-            color: #475569;
-            line-height: 1.5;
-        }
-    }
-
-    @media (max-width: 760px) {
-        &__metrics {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        &__section-header,
-        &__search-row {
-            align-items: stretch;
-            flex-direction: column;
-        }
-
-        &__action-grid {
-            grid-template-columns: 1fr;
-        }
+    &__stack {
+        width: 100%;
+        margin-top: 12px;
     }
 }
 </style>

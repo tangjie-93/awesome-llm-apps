@@ -1,36 +1,38 @@
 <template>
-    <div class="app-shell">
-        <aside class="app-shell__sidebar">
+    <el-container class="app-shell">
+        <el-aside class="app-shell__sidebar" width="208px">
             <div class="app-shell__brand">
                 <div class="app-shell__title">企业 RAG</div>
                 <div class="app-shell__subtitle">企业知识检索与智能问答平台</div>
             </div>
-            <nav class="app-shell__nav" aria-label="主导航">
-                <section v-for="section in navigationSections" :key="section.key" class="app-shell__section">
-                    <h2 class="app-shell__section-title">{{ section.label }}</h2>
-                    <RouterLink
-                        v-for="item in section.items"
-                        :key="item.path"
-                        class="app-shell__link"
-                        active-class="app-shell__link--active"
-                        :to="item.path"
-                    >
+            <el-menu
+                class="app-shell__menu"
+                :default-active="activePath"
+                :default-openeds="openedSections"
+                router
+                unique-opened
+            >
+                <el-sub-menu v-for="section in navigationSections" :key="section.key" :index="section.key">
+                    <template #title>
+                        <span class="app-shell__section-title">{{ section.label }}</span>
+                    </template>
+                    <el-menu-item v-for="item in section.items" :key="item.path" :index="item.path">
                         {{ item.label }}
-                    </RouterLink>
-                </section>
-            </nav>
-        </aside>
-        <main class="app-shell__main">
+                    </el-menu-item>
+                </el-sub-menu>
+            </el-menu>
+        </el-aside>
+        <el-main class="app-shell__main">
             <AppContent>
                 <slot />
             </AppContent>
-        </main>
-    </div>
+        </el-main>
+    </el-container>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterLink } from 'vue-router';
+import { useRoute } from 'vue-router';
 import AppContent from '@/components/layout/AppContent.vue';
 import { appRoutes } from '@/router/routes';
 import type { NavigationGroup, NavigationSection } from '@/types/navigation';
@@ -41,6 +43,8 @@ const navigationGroups: NavigationGroup[] = [
     { key: 'governance', label: '治理与运营' },
     { key: 'system', label: '系统管理' }
 ];
+const route = useRoute();
+const activePath = computed(() => route.path);
 
 /**
  * 按主题提取可见路由作为左侧导航，避免壳层和路由定义分散维护。
@@ -58,29 +62,26 @@ const navigationSections = computed<NavigationSection[]>(() =>
         }))
         .filter((section) => section.items.length > 0)
 );
+
+const openedSections = computed(() => navigationSections.value.map((section) => section.key));
 </script>
 
 <style scoped lang="less">
 .app-shell {
-    display: flex;
     min-height: 100vh;
     background: #f8fafc;
 
     &__sidebar {
-        position: sticky;
-        top: 0;
-        width: 208px;
         height: 100vh;
-        flex: 0 0 208px;
-        overflow-y: auto;
+        overflow: hidden;
         border-right: 1px solid #e2e8f0;
-        padding: 14px 10px;
+        padding: 14px 12px;
         background: #fff;
     }
 
     &__brand {
         margin-bottom: 14px;
-        padding: 0 6px 10px;
+        padding: 0 4px 10px;
         border-bottom: 1px solid #e2e8f0;
     }
 
@@ -96,80 +97,30 @@ const navigationSections = computed<NavigationSection[]>(() =>
         color: #64748b;
     }
 
-    &__nav {
-        display: grid;
-        gap: 12px;
-    }
-
-    &__section {
-        display: grid;
-        gap: 4px;
-        padding: 8px 0 12px;
-        border-bottom: 1px solid #e2e8f0;
-
-        &:last-child {
-            padding-bottom: 0;
-            border-bottom: 0;
-        }
-    }
-
     &__section-title {
         margin: 0;
-        padding: 0 10px 2px;
-        color: #475569;
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0;
-        text-transform: uppercase;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
     }
 
-    &__link {
-        display: flex;
-        align-items: center;
-        min-height: 36px;
-        padding: 8px 10px 8px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        color: #0f172a;
+    &__menu {
+        border-right: 0;
         background: transparent;
-        font-size: 14px;
-        border: 1px solid transparent;
-
-        &--active {
-            background: #eff6ff;
-            border-color: #bfdbfe;
-            box-shadow: inset 3px 0 0 #1d4ed8;
-            color: #1d4ed8;
-            font-weight: 700;
-        }
-
-        &:hover:not(&--active) {
-            background: #f1f5f9;
-            border-color: #e2e8f0;
-        }
     }
 
     &__main {
         min-width: 0;
-        flex: 1;
         height: 100vh;
         overflow-y: auto;
     }
 
     @media (max-width: 860px) {
-        display: block;
-
         &__sidebar {
-            position: static;
             width: 100%;
             height: auto;
             border-right: 0;
             border-bottom: 1px solid #e2e8f0;
-        }
-
-        &__nav {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
         }
 
         &__main {
@@ -177,5 +128,30 @@ const navigationSections = computed<NavigationSection[]>(() =>
             overflow: visible;
         }
     }
+}
+
+:deep(.el-menu) {
+    border-right: 0;
+    background: transparent;
+}
+
+:deep(.el-sub-menu__title) {
+    padding-left: 4px;
+    height: 40px;
+    line-height: 40px;
+    font-weight: 600;
+}
+
+:deep(.el-menu-item) {
+    margin: 0 0 4px 12px;
+    height: 36px;
+    line-height: 36px;
+    border-radius: 8px;
+}
+
+:deep(.el-menu-item.is-active) {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 700;
 }
 </style>

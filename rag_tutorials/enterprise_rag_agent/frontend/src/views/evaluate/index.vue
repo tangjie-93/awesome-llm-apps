@@ -1,66 +1,76 @@
-﻿<template>
-    <section class="page">
+<template>
+    <section class="evaluate-page">
         <PageHeader />
 
-        <div class="form">
-            <label class="field field--full">
-                <span class="field__label">问题</span>
-                <textarea v-model="question" class="field__textarea" rows="3"></textarea>
-            </label>
-            <label class="field field--full">
-                <span class="field__label">预期答案</span>
-                <textarea v-model="expectedAnswer" class="field__textarea" rows="4"></textarea>
-            </label>
-            <label class="field field--full">
-                <span class="field__label">实际答案</span>
-                <textarea v-model="actualAnswer" class="field__textarea" rows="4"></textarea>
-            </label>
-            <div class="actions">
-                <button class="button button--primary" :disabled="submitting" @click="submitEvaluation">提交评估</button>
-            </div>
-        </div>
+        <el-card shadow="never" class="evaluate-page__card">
+            <el-row :gutter="12">
+                <el-col :xs="24" class="evaluate-page__field">
+                    <div class="evaluate-page__label">问题</div>
+                    <el-input v-model="question" :rows="3" type="textarea" resize="none" />
+                </el-col>
+                <el-col :xs="24" class="evaluate-page__field">
+                    <div class="evaluate-page__label">预期答案</div>
+                    <el-input v-model="expectedAnswer" :rows="4" type="textarea" resize="none" />
+                </el-col>
+                <el-col :xs="24" class="evaluate-page__field">
+                    <div class="evaluate-page__label">实际答案</div>
+                    <el-input v-model="actualAnswer" :rows="4" type="textarea" resize="none" />
+                </el-col>
+                <el-col :xs="24" class="evaluate-page__actions">
+                    <el-button type="primary" :loading="submitting" @click="submitEvaluation">提交评估</el-button>
+                </el-col>
+            </el-row>
+        </el-card>
 
-        <div v-if="message" class="alert">{{ message }}</div>
+        <el-alert v-if="message" :title="message" type="info" show-icon class="evaluate-page__alert" />
 
-        <article v-if="result" class="result">
-            <div class="result__header">
-                <div class="result__score">得分 {{ result.score.toFixed(2) }}</div>
+        <el-card v-if="result" shadow="never" class="evaluate-page__card">
+            <div class="evaluate-page__result-header">
+                <el-tag type="success">得分 {{ result.score.toFixed(2) }}</el-tag>
             </div>
-            <dl class="result__list">
-                <div>
-                    <dt>问题</dt>
-                    <dd>{{ result.question }}</dd>
-                </div>
-                <div>
-                    <dt>说明</dt>
-                    <dd>{{ result.notes }}</dd>
-                </div>
-            </dl>
-        </article>
+            <el-descriptions :column="1" border>
+                <el-descriptions-item label="问题">{{ result.question }}</el-descriptions-item>
+                <el-descriptions-item label="说明">{{ result.notes }}</el-descriptions-item>
+            </el-descriptions>
+        </el-card>
 
-        <article class="result result--retrieval">
-            <div class="result__header">
+        <el-card shadow="never" class="evaluate-page__card">
+            <div class="evaluate-page__result-header">
                 <div>
-                    <h2 class="result__title">召回基准</h2>
-                    <p class="result__hint">运行内置样例，比较命中率和 MRR。</p>
+                    <div class="evaluate-page__title">召回基准</div>
+                    <div class="evaluate-page__hint">运行内置样例，比较命中率和 MRR。</div>
                 </div>
-                <button class="button" :disabled="retrievalSubmitting" @click="runRetrievalEvaluation">
-                    {{ retrievalSubmitting ? '评估中...' : '运行召回评估' }}
-                </button>
+                <el-button :loading="retrievalSubmitting" @click="runRetrievalEvaluation">
+                    运行召回评估
+                </el-button>
             </div>
-            <div v-if="retrievalResult" class="result__metrics">
-                <span>样例 {{ retrievalResult.total }}</span>
-                <span>命中率 {{ (retrievalResult.hit_rate * 100).toFixed(1) }}%</span>
-                <span>MRR {{ retrievalResult.mrr.toFixed(3) }}</span>
+
+            <el-empty
+                v-if="!retrievalResult"
+                description="当前还没有运行召回评估。"
+                class="evaluate-page__empty"
+            />
+
+            <div v-else class="evaluate-page__metrics">
+                <el-tag>样例 {{ retrievalResult.total }}</el-tag>
+                <el-tag type="success">命中率 {{ (retrievalResult.hit_rate * 100).toFixed(1) }}%</el-tag>
+                <el-tag type="warning">MRR {{ retrievalResult.mrr.toFixed(3) }}</el-tag>
             </div>
-            <div v-if="retrievalResult" class="result__cases">
-                <div v-for="item in retrievalResult.results" :key="item.question" class="result__case">
-                    <strong>{{ item.hit ? '命中' : '未命中' }}</strong>
-                    <span>{{ item.question }}</span>
-                    <span>排名 {{ item.rank || '-' }}</span>
-                </div>
-            </div>
-        </article>
+
+            <el-table v-if="retrievalResult" :data="retrievalResult.results" border stripe>
+                <el-table-column label="结果" width="90">
+                    <template #default="{ row }">
+                        {{ row.hit ? '命中' : '未命中' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="问题" prop="question" min-width="280" />
+                <el-table-column label="排名" width="100">
+                    <template #default="{ row }">
+                        {{ row.rank || '-' }}
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-card>
     </section>
 </template>
 
@@ -109,132 +119,48 @@ async function runRetrievalEvaluation(): Promise<void> {
 </script>
 
 <style scoped lang="less">
-.page {
+.evaluate-page {
     min-width: 0;
-}
 
-.form {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    margin-bottom: 14px;
-}
-
-.field {
-    display: grid;
-    gap: 8px;
-
-    &--full {
-        grid-column: 1 / -1;
+    &__card,
+    &__alert {
+        margin-bottom: 12px;
     }
 
-    &__label {
-        font-size: 13px;
+    &__field {
+        margin-bottom: 12px;
+    }
+
+    &__label,
+    &__hint {
+        margin-bottom: 6px;
         color: #64748b;
+        font-size: 13px;
     }
 
-    &__textarea {
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font: inherit;
-    }
-}
-
-.actions {
-    grid-column: 1 / -1;
-}
-
-.button {
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    background: #fff;
-    cursor: pointer;
-
-    &--primary {
-        border-color: #1d4ed8;
-        background: #1d4ed8;
-        color: #fff;
-    }
-}
-
-.alert {
-    margin-bottom: 12px;
-    padding: 11px 12px;
-    border-radius: 8px;
-    background: #eff6ff;
-    color: #1d4ed8;
-}
-
-.result {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px;
-    background: #fff;
-
-    &__header {
+    &__actions {
         display: flex;
-        align-items: flex-start;
+        justify-content: flex-end;
+    }
+
+    &__result-header {
+        display: flex;
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 12px;
     }
 
     &__title {
-        margin: 0;
-        font-size: 17px;
-    }
-
-    &__hint {
-        margin: 4px 0 0;
-        color: #64748b;
-        font-size: 13px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
     }
 
     &__metrics {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 12px;
-        color: #1d4ed8;
-        font-weight: 600;
-    }
-
-    &__cases {
-        display: grid;
-        gap: 8px;
-    }
-
-    &__case {
-        display: grid;
-        grid-template-columns: 56px minmax(0, 1fr) 64px;
         gap: 10px;
-        padding-top: 8px;
-        border-top: 1px solid #e2e8f0;
-        font-size: 13px;
-    }
-
-    &__score {
-        font-size: 20px;
-        font-weight: 700;
-        color: #1d4ed8;
-    }
-
-    &__list {
-        display: grid;
-        gap: 14px;
-
-        dt {
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        dd {
-            margin: 4px 0 0;
-            white-space: pre-wrap;
-            line-height: 1.6;
-        }
+        margin-bottom: 12px;
     }
 }
 </style>

@@ -1,43 +1,50 @@
-﻿<template>
-    <section class="page">
+<template>
+    <section class="dashboard-page">
         <PageHeader>
             <template #actions>
-                <button class="button button--primary" @click="refreshDashboard">刷新</button>
+                <el-button type="primary" :loading="refreshing" @click="refreshDashboard">刷新</el-button>
             </template>
         </PageHeader>
 
-        <div class="grid">
-            <article class="panel">
-                <div class="panel__label">知识库</div>
-                <div class="panel__value">{{ store.knowledgeBases.length }}</div>
-            </article>
-            <article class="panel">
-                <div class="panel__label">文档</div>
-                <div class="panel__value">{{ store.documents.length }}</div>
-            </article>
-            <article class="panel">
-                <div class="panel__label">回答日志</div>
-                <div class="panel__value">{{ store.answerLogs.length }}</div>
-            </article>
-            <article class="panel">
-                <div class="panel__label">评估日志</div>
-                <div class="panel__value">{{ store.evaluationLogs.length }}</div>
-            </article>
-        </div>
+        <el-row :gutter="12" class="dashboard-page__metrics">
+            <el-col v-for="metric in metrics" :key="metric.label" :xs="12" :sm="12" :md="6">
+                <el-card shadow="never" class="dashboard-page__metric">
+                    <div class="dashboard-page__metric-label">{{ metric.label }}</div>
+                    <div class="dashboard-page__metric-value">{{ metric.value }}</div>
+                </el-card>
+            </el-col>
+        </el-row>
 
-        <div v-if="store.error" class="alert">{{ store.error }}</div>
+        <el-alert v-if="store.error" :title="store.error" type="error" show-icon class="dashboard-page__alert" />
     </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
+const refreshing = ref(false);
 
+const metrics = computed(() => [
+    { label: '知识库', value: store.knowledgeBases.length },
+    { label: '文档', value: store.documents.length },
+    { label: '回答日志', value: store.answerLogs.length },
+    { label: '评估日志', value: store.evaluationLogs.length }
+]);
+
+/**
+ * 刷新仪表盘统计和最近数据。
+ * 成功时更新全局 store，失败时由 store 自身记录错误状态。
+ */
 async function refreshDashboard(): Promise<void> {
-    await store.syncDashboard();
+    refreshing.value = true;
+    try {
+        await store.syncDashboard();
+    } finally {
+        refreshing.value = false;
+    }
 }
 
 onMounted(() => {
@@ -46,53 +53,31 @@ onMounted(() => {
 </script>
 
 <style scoped lang="less">
-.page {
+.dashboard-page {
     min-width: 0;
-}
 
-.grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-}
+    &__metrics {
+        margin-bottom: 8px;
+    }
 
-.panel {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px;
-    background: #fff;
+    &__metric {
+        height: 100%;
+    }
 
-    &__label {
+    &__metric-label {
         color: #64748b;
         font-size: 13px;
     }
 
-    &__value {
-        margin-top: 12px;
+    &__metric-value {
+        margin-top: 10px;
         font-size: 28px;
-        font-weight: 600;
+        font-weight: 700;
+        color: #0f172a;
     }
-}
 
-.button {
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    background: #fff;
-    cursor: pointer;
-
-    &--primary {
-        border-color: #1d4ed8;
-        background: #1d4ed8;
-        color: #fff;
+    &__alert {
+        margin-top: 12px;
     }
-}
-
-.alert {
-    margin-top: 16px;
-    padding: 12px 14px;
-    border-radius: 8px;
-    background: #fef2f2;
-    color: #b91c1c;
 }
 </style>
