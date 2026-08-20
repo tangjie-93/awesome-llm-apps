@@ -3,32 +3,33 @@
         <PageHeader />
 
         <el-card shadow="never" class="search-page__card">
-            <el-row :gutter="12" align="bottom">
-                <el-col :xs="24" :md="10">
+            <div class="search-page__form">
+                <div>
                     <div class="search-page__label">问题</div>
                     <el-input v-model="question" type="textarea" :rows="3" resize="none" placeholder="请输入检索问题" />
-                </el-col>
-                <el-col :xs="24" :md="4">
-                    <div class="search-page__label">知识库</div>
-                    <el-input v-model="knowledgeBase" placeholder="general" />
-                </el-col>
-                <el-col :xs="24" :md="4">
-                    <div class="search-page__label">权限组</div>
-                    <el-input v-model="userGroupsText" placeholder="public,security" />
-                </el-col>
-                <el-col :xs="24" :md="3">
-                    <div class="search-page__label">Top K</div>
-                    <el-input-number v-model="topK" :min="1" :max="20" controls-position="right" class="search-page__number" />
-                </el-col>
-                <el-col :xs="24" :md="3" class="search-page__actions">
-                    <el-button type="primary" :loading="submitting" class="search-page__submit" @click="submitSearch">
-                        检索
-                    </el-button>
-                </el-col>
-            </el-row>
+                </div>
+                <el-row :gutter="12" align="bottom">
+                    <el-col :xs="24" :md="7">
+                        <div class="search-page__label">知识库</div>
+                        <el-input v-model="knowledgeBase" placeholder="general" />
+                    </el-col>
+                    <el-col :xs="24" :md="7">
+                        <div class="search-page__label">权限组</div>
+                        <el-input v-model="userGroupsText" placeholder="public,security" />
+                    </el-col>
+                    <el-col :xs="24" :md="4">
+                        <div class="search-page__label">Top K</div>
+                        <el-input-number v-model="topK" :min="1" :max="20" controls-position="right" class="search-page__number" />
+                    </el-col>
+                    <el-col :xs="24" :md="6" class="search-page__actions">
+                        <el-button type="primary" :loading="submitting" class="search-page__submit" @click="submitSearch">
+                            检索
+                        </el-button>
+                    </el-col>
+                </el-row>
+            </div>
         </el-card>
 
-        <el-alert v-if="message" :title="message" :type="hasError ? 'error' : 'info'" show-icon class="search-page__alert" />
         <el-empty
             v-if="hasSearched && !submitting && !results.length && !hasError"
             description="未检索到候选片段。请确认知识库、权限组或问题关键词。"
@@ -59,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import { ElMessage } from 'element-plus';
 import { ref } from 'vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
@@ -70,7 +72,6 @@ const knowledgeBase = ref<string>('');
 const userGroupsText = ref<string>('public');
 const topK = ref<number>(5);
 const submitting = ref<boolean>(false);
-const message = ref<string>('');
 const results = ref<RagSearchItemView[]>([]);
 const hasSearched = ref<boolean>(false);
 const hasError = ref<boolean>(false);
@@ -80,14 +81,13 @@ const hasError = ref<boolean>(false);
  */
 async function submitSearch(): Promise<void> {
     if (!question.value.trim()) {
-        message.value = '请输入检索问题';
         hasError.value = true;
         hasSearched.value = true;
         results.value = [];
+        ElMessage.warning('请输入检索问题');
         return;
     }
     submitting.value = true;
-    message.value = '';
     hasError.value = false;
     try {
         const userGroups = userGroupsText.value
@@ -101,11 +101,11 @@ async function submitSearch(): Promise<void> {
             topK.value
         );
         results.value = response.results;
-        message.value = `返回 ${response.results.length} 条结果`;
+        ElMessage.success(`返回 ${response.results.length} 条结果`);
     } catch (error) {
-        message.value = error instanceof Error ? error.message : '检索失败';
         hasError.value = true;
         results.value = [];
+        ElMessage.error(error instanceof Error ? error.message : '检索失败');
     } finally {
         hasSearched.value = true;
         submitting.value = false;
@@ -121,14 +121,18 @@ async function submitSearch(): Promise<void> {
         margin-bottom: 12px;
     }
 
+    &__form {
+        display: grid;
+        gap: 12px;
+    }
+
     &__label {
         margin-bottom: 6px;
         color: #64748b;
         font-size: 13px;
     }
 
-    &__number,
-    &__submit {
+    &__number {
         width: 100%;
     }
 
@@ -137,7 +141,10 @@ async function submitSearch(): Promise<void> {
         align-items: flex-end;
     }
 
-    &__alert,
+    &__submit {
+        min-width: 112px;
+    }
+
     &__empty {
         margin-bottom: 12px;
     }

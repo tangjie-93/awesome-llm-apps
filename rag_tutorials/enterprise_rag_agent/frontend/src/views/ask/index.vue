@@ -3,20 +3,16 @@
         <PageHeader />
 
         <el-card shadow="never" class="ask-page__card ask-page__card--form">
-            <el-row :gutter="12" align="middle">
-                <el-col :xs="24" :md="20">
-                    <div class="ask-page__label">问题</div>
-                    <div class="ask-page__field">
-                        <el-input
-                            v-model="question"
-                            :rows="4"
-                            type="textarea"
-                            resize="none"
-                            placeholder="请输入问题"
-                        />
-                    </div>
-                </el-col>
-                <el-col :xs="24" :md="4" class="ask-page__actions">
+            <div class="ask-page__form">
+                <div class="ask-page__label">问题</div>
+                <el-input
+                    v-model="question"
+                    :rows="3"
+                    type="textarea"
+                    resize="none"
+                    placeholder="请输入问题"
+                />
+                <div class="ask-page__actions">
                     <el-button
                         type="primary"
                         :loading="submitting"
@@ -25,11 +21,9 @@
                     >
                         提问
                     </el-button>
-                </el-col>
-            </el-row>
+                </div>
+            </div>
         </el-card>
-
-        <el-alert v-if="message" :title="message" :type="hasError ? 'error' : 'info'" show-icon class="ask-page__alert" />
 
         <el-card v-if="answer" shadow="never" class="ask-page__card">
             <div class="ask-page__result-header">
@@ -105,6 +99,7 @@
 </template>
 
 <script setup lang="ts">
+import { ElMessage } from 'element-plus';
 import { ref } from 'vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
@@ -114,8 +109,6 @@ const store = useRagStore();
 const question = ref<string>('How fast should we acknowledge the incident?');
 const answer = ref<AnswerView | null>(null);
 const submitting = ref<boolean>(false);
-const message = ref<string>('');
-const hasError = ref<boolean>(false);
 const feedbackSubmitting = ref<boolean>(false);
 
 /**
@@ -123,23 +116,19 @@ const feedbackSubmitting = ref<boolean>(false);
  */
 async function submitQuestion(): Promise<void> {
     if (!question.value.trim()) {
-        message.value = '请输入问题';
-        hasError.value = true;
         answer.value = null;
+        ElMessage.warning('请输入问题');
         return;
     }
     submitting.value = true;
-    message.value = '';
-    hasError.value = false;
     try {
         answer.value = await store.askQuestion(question.value.trim());
         if (!answer.value.citations.length) {
-            message.value = '未检索到可引用证据';
+            ElMessage.info('未检索到可引用证据');
         }
     } catch (error) {
-        message.value = error instanceof Error ? error.message : '提问失败';
-        hasError.value = true;
         answer.value = null;
+        ElMessage.error(error instanceof Error ? error.message : '提问失败');
     } finally {
         submitting.value = false;
     }
@@ -150,11 +139,9 @@ async function submitFeedback(rating: number): Promise<void> {
     feedbackSubmitting.value = true;
     try {
         await store.submitFeedback(rating);
-        message.value = '感谢反馈，已记录到质量改进闭环。';
-        hasError.value = false;
+        ElMessage.success('感谢反馈，已记录到质量改进闭环。');
     } catch (error) {
-        message.value = error instanceof Error ? error.message : '反馈提交失败';
-        hasError.value = true;
+        ElMessage.error(error instanceof Error ? error.message : '反馈提交失败');
     } finally {
         feedbackSubmitting.value = false;
     }
@@ -169,8 +156,15 @@ async function submitFeedback(rating: number): Promise<void> {
         margin-bottom: 12px;
     }
 
-    &__field {
-        margin: 0;
+    &__form {
+        display: grid;
+        gap: 10px;
+    }
+
+    &__label {
+        color: #475569;
+        font-size: 14px;
+        font-weight: 600;
     }
 
     &__actions {
@@ -179,11 +173,7 @@ async function submitFeedback(rating: number): Promise<void> {
     }
 
     &__submit {
-        width: 100%;
-    }
-
-    &__alert {
-        margin-bottom: 12px;
+        min-width: 112px;
     }
 
     &__result-header,

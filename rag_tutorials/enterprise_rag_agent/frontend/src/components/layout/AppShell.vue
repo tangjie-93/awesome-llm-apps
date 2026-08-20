@@ -10,7 +10,6 @@
                 :default-active="activePath"
                 :default-openeds="openedSections"
                 router
-                unique-opened
             >
                 <el-sub-menu v-for="section in navigationSections" :key="section.key" :index="section.key">
                     <template #title>
@@ -113,6 +112,7 @@ const openedSections = computed(() => navigationSections.value.map((section) => 
         min-width: 0;
         height: 100vh;
         overflow-y: auto;
+        padding: 0;
     }
 
     @media (max-width: 860px) {
@@ -140,6 +140,10 @@ const openedSections = computed(() => navigationSections.value.map((section) => 
     height: 40px;
     line-height: 40px;
     font-weight: 600;
+}
+
+:deep(.el-sub-menu__icon-arrow) {
+    display: none;
 }
 
 :deep(.el-menu-item) {

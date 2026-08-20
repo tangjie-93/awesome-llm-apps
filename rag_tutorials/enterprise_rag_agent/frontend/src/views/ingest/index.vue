@@ -6,15 +6,42 @@
             <el-row :gutter="12" align="bottom">
                 <el-col :xs="24" :md="10">
                     <div class="ingest-page__label">路径</div>
-                    <el-input v-model="path" placeholder="例如：backend/sample_docs" />
+                    <el-select
+                        v-model="path"
+                        allow-create
+                        filterable
+                        default-first-option
+                        placeholder="选择或输入导入路径"
+                    >
+                        <el-option v-for="item in pathOptions" :key="item" :label="item" :value="item" />
+                    </el-select>
                 </el-col>
                 <el-col :xs="24" :md="4">
                     <div class="ingest-page__label">知识库</div>
-                    <el-input v-model="knowledgeBase" placeholder="general" />
+                    <el-select
+                        v-model="knowledgeBase"
+                        allow-create
+                        filterable
+                        default-first-option
+                        placeholder="选择或输入知识库"
+                    >
+                        <el-option v-for="item in knowledgeBaseOptions" :key="item" :label="item" :value="item" />
+                    </el-select>
                 </el-col>
                 <el-col :xs="24" :md="6">
                     <div class="ingest-page__label">权限组</div>
-                    <el-input v-model="allowedGroupsText" placeholder="public,security" />
+                    <el-select
+                        v-model="allowedGroups"
+                        allow-create
+                        filterable
+                        multiple
+                        collapse-tags
+                        collapse-tags-tooltip
+                        default-first-option
+                        placeholder="选择或输入权限组"
+                    >
+                        <el-option v-for="item in groupOptions" :key="item" :label="item" :value="item" />
+                    </el-select>
                 </el-col>
                 <el-col :xs="24" :md="4" class="ingest-page__actions">
                     <el-button type="primary" :loading="submitting" class="ingest-page__submit" @click="submitIngest">
@@ -23,8 +50,6 @@
                 </el-col>
             </el-row>
         </el-card>
-
-        <el-alert v-if="message" :title="message" :type="hasError ? 'error' : 'success'" show-icon class="ingest-page__alert" />
 
         <el-card v-if="ingestResult" shadow="never" class="ingest-page__card">
             <div class="ingest-page__section-title">导入结果</div>
@@ -64,6 +89,7 @@
 </template>
 
 <script setup lang="ts">
+import { ElMessage } from 'element-plus';
 import { computed, ref } from 'vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
@@ -72,11 +98,21 @@ import type { RagIngestResultView } from '@/types/rag';
 const store = useRagStore();
 const path = ref<string>('backend/sample_docs');
 const knowledgeBase = ref<string>('general');
-const allowedGroupsText = ref<string>('public');
+const allowedGroups = ref<string[]>(['public']);
 const submitting = ref<boolean>(false);
-const message = ref<string>('');
-const hasError = ref<boolean>(false);
 const ingestResult = ref<RagIngestResultView | null>(null);
+
+const pathOptions = ['backend/sample_docs', 'backend/sample_docs/onboarding.md', 'backend/sample_docs/security.md'];
+const knowledgeBaseOptions = computed(() =>
+    Array.from(new Set([store.config.default_knowledge_base ?? 'general', ...store.knowledgeBases]))
+);
+const groupOptions = computed(() => {
+    const groups = new Set([...(store.config.default_groups ?? []), ...store.documents.flatMap((document) => document.allowed_groups)]);
+    if (!groups.size) {
+        ['public', 'security', 'hr', 'it', 'ops'].forEach((group) => groups.add(group));
+    }
+    return Array.from(groups);
+});
 
 const stats = computed(() => [
     { label: '新增文档', value: ingestResult.value?.documents_indexed ?? 0 },
@@ -90,30 +126,23 @@ const stats = computed(() => [
  */
 async function submitIngest(): Promise<void> {
     if (!path.value.trim()) {
-        message.value = '请输入要导入的文件或目录路径';
-        hasError.value = true;
         ingestResult.value = null;
+        ElMessage.warning('请输入要导入的文件或目录路径');
         return;
     }
     submitting.value = true;
-    message.value = '';
-    hasError.value = false;
     try {
-        const allowedGroups = allowedGroupsText.value
-            .split(',')
-            .map((group) => group.trim())
-            .filter((group) => group.length > 0);
+        const normalizedAllowedGroups = allowedGroups.value.map((group) => group.trim()).filter((group) => group.length > 0);
         ingestResult.value = await store.ingestPath(
             path.value.trim(),
             knowledgeBase.value.trim() || undefined,
-            allowedGroups.length > 0 ? allowedGroups : undefined
+            normalizedAllowedGroups.length > 0 ? normalizedAllowedGroups : undefined
         );
-        message.value = '导入完成';
+        ElMessage.success('导入完成');
         await store.syncDashboard();
     } catch (error) {
-        message.value = error instanceof Error ? error.message : '导入失败';
-        hasError.value = true;
         ingestResult.value = null;
+        ElMessage.error(error instanceof Error ? error.message : '导入失败');
     } finally {
         submitting.value = false;
     }
@@ -124,8 +153,7 @@ async function submitIngest(): Promise<void> {
 .ingest-page {
     min-width: 0;
 
-    &__card,
-    &__alert {
+    &__card {
         margin-bottom: 12px;
     }
 
@@ -133,6 +161,10 @@ async function submitIngest(): Promise<void> {
         margin-bottom: 6px;
         color: #64748b;
         font-size: 13px;
+    }
+
+    :deep(.el-select) {
+        width: 100%;
     }
 
     &__actions {

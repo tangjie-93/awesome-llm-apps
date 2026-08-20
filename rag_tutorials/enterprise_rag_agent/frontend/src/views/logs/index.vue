@@ -1,52 +1,63 @@
 <template>
     <section class="logs-page">
-        <PageHeader />
+        <PageHeader>
+            <template #actions>
+                <el-button @click="refreshLogs">刷新</el-button>
+            </template>
+        </PageHeader>
 
-        <el-row :gutter="12">
-            <el-col :xs="24" :lg="8">
-                <el-card shadow="never" class="logs-page__card">
-                    <div class="logs-page__title">回答日志</div>
-                    <el-table :data="store.answerLogs" border stripe size="small">
-                        <el-table-column label="问题" prop="question" min-width="180" />
-                        <el-table-column label="置信度" width="100">
+        <PageSection title="运行日志" subtitle="集中查看问答、评估和导入任务记录">
+            <el-tabs v-model="activeTab">
+                <el-tab-pane label="回答日志" name="answers">
+                    <EmptyState v-if="!store.answerLogs.length" description="暂无回答日志。" />
+                    <el-table v-else :data="store.answerLogs" border stripe>
+                        <el-table-column label="问题" prop="question" min-width="280" show-overflow-tooltip />
+                        <el-table-column label="置信度" width="110">
                             <template #default="{ row }">
-                                {{ Number(row.confidence).toFixed(2) }}
+                                <el-tag :type="row.confidence < 0.5 ? 'warning' : 'success'">
+                                    {{ Number(row.confidence).toFixed(2) }}
+                                </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="时间" prop="created_at" width="170" />
+                        <el-table-column label="知识库" width="150">
+                            <template #default="{ row }">
+                                {{ String(row.metadata.knowledge_base ?? '全部知识库') }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="时间" prop="created_at" width="180" />
                     </el-table>
-                    <el-empty v-if="!store.answerLogs.length" description="暂无回答日志。" />
-                </el-card>
-            </el-col>
+                </el-tab-pane>
 
-            <el-col :xs="24" :lg="8">
-                <el-card shadow="never" class="logs-page__card">
-                    <div class="logs-page__title">评估日志</div>
-                    <el-table :data="store.evaluationLogs" border stripe size="small">
-                        <el-table-column label="问题" prop="question" min-width="180" />
-                        <el-table-column label="得分" width="90">
+                <el-tab-pane label="评估日志" name="evaluations">
+                    <EmptyState v-if="!store.evaluationLogs.length" description="暂无评估日志。" />
+                    <el-table v-else :data="store.evaluationLogs" border stripe>
+                        <el-table-column label="问题" prop="question" min-width="260" show-overflow-tooltip />
+                        <el-table-column label="实际答案" prop="actual_answer" min-width="260" show-overflow-tooltip />
+                        <el-table-column label="得分" width="100">
                             <template #default="{ row }">
-                                {{ Number(row.score).toFixed(2) }}
+                                <el-tag :type="row.score < 0.6 ? 'warning' : 'success'">
+                                    {{ Number(row.score).toFixed(2) }}
+                                </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="时间" prop="created_at" width="170" />
+                        <el-table-column label="时间" prop="created_at" width="180" />
                     </el-table>
-                    <el-empty v-if="!store.evaluationLogs.length" description="暂无评估日志。" />
-                </el-card>
-            </el-col>
+                </el-tab-pane>
 
-            <el-col :xs="24" :lg="8">
-                <el-card shadow="never" class="logs-page__card">
-                    <div class="logs-page__title">导入日志</div>
-                    <el-table :data="store.operationLogs" border stripe size="small">
-                        <el-table-column label="状态" width="100">
+                <el-tab-pane label="导入日志" name="operations">
+                    <EmptyState v-if="!store.operationLogs.length" description="暂无导入日志。" />
+                    <el-table v-else :data="store.operationLogs" border stripe>
+                        <el-table-column label="状态" width="110">
                             <template #default="{ row }">
-                                {{ row.status === 'succeeded' ? '导入完成' : '导入失败' }}
+                                <el-tag :type="row.status === 'succeeded' ? 'success' : 'danger'">
+                                    {{ row.status === 'succeeded' ? '导入完成' : '导入失败' }}
+                                </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="路径" prop="path" min-width="180" />
-                        <el-table-column label="时间" prop="created_at" width="170" />
-                        <el-table-column label="操作" width="100">
+                        <el-table-column label="路径" prop="path" min-width="280" show-overflow-tooltip />
+                        <el-table-column label="知识库" prop="knowledge_base" width="140" />
+                        <el-table-column label="时间" prop="created_at" width="180" />
+                        <el-table-column label="操作" width="100" fixed="right">
                             <template #default="{ row }">
                                 <el-button
                                     v-if="row.operation === 'ingest' && row.path"
@@ -59,10 +70,9 @@
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="!store.operationLogs.length" description="暂无导入日志。" />
-                </el-card>
-            </el-col>
-        </el-row>
+                </el-tab-pane>
+            </el-tabs>
+        </PageSection>
 
         <el-alert v-if="message" :title="message" type="info" show-icon class="logs-page__alert" />
     </section>
@@ -70,16 +80,20 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import PageSection from '@/components/ui/PageSection.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
 const replayingId = ref<number | null>(null);
 const message = ref('');
+const activeTab = ref('answers');
 
-onMounted(() => {
-    void store.syncDashboard();
-});
+/** 刷新所有运行日志数据。 */
+async function refreshLogs(): Promise<void> {
+    await store.syncDashboard();
+}
 
 /** 回放一次已记录的导入操作，并向用户反馈结果或失败原因。 */
 async function replay(operationId: number): Promise<void> {
@@ -94,22 +108,18 @@ async function replay(operationId: number): Promise<void> {
         replayingId.value = null;
     }
 }
+
+onMounted(() => {
+    void refreshLogs();
+});
 </script>
 
 <style scoped lang="less">
 .logs-page {
     min-width: 0;
 
-    &__card,
     &__alert {
         margin-bottom: 12px;
-    }
-
-    &__title {
-        margin-bottom: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #0f172a;
     }
 }
 </style>

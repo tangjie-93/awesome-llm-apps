@@ -2,24 +2,36 @@
     <section class="users-page">
         <PageHeader />
 
-        <el-card shadow="never" class="users-page__card">
-            <div class="users-page__section-title">{{ editingId ? '编辑用户' : '新建用户' }}</div>
+        <PageSection :title="editingId ? '编辑用户' : '新建用户'">
             <el-row :gutter="12" align="bottom">
-                <el-col :xs="24" :md="4">
+                <el-col :xs="24" :md="3">
                     <div class="users-page__label">外部身份 ID</div>
                     <el-input v-model.trim="externalId" :disabled="Boolean(editingId)" />
                 </el-col>
-                <el-col :xs="24" :md="4">
+                <el-col :xs="24" :md="3">
                     <div class="users-page__label">显示名称</div>
                     <el-input v-model.trim="displayName" />
                 </el-col>
-                <el-col :xs="24" :md="4">
+                <el-col :xs="24" :md="3">
                     <div class="users-page__label">邮箱</div>
                     <el-input v-model.trim="email" type="email" />
                 </el-col>
                 <el-col :xs="24" :md="4">
                     <div class="users-page__label">权限组</div>
-                    <el-input v-model="groupsInput" placeholder="public,security" />
+                    <el-select
+                        v-model="selectedGroups"
+                        multiple
+                        collapse-tags
+                        collapse-tags-tooltip
+                        placeholder="选择权限组"
+                    >
+                        <el-option
+                            v-for="group in groupOptions"
+                            :key="group.value"
+                            :label="group.label"
+                            :value="group.value"
+                        />
+                    </el-select>
                 </el-col>
                 <el-col :xs="24" :md="4">
                     <div class="users-page__label">角色</div>
@@ -30,49 +42,50 @@
                 <el-col v-if="editingId" :xs="24" :md="2">
                     <el-checkbox v-model="isActive" class="users-page__checkbox">启用用户</el-checkbox>
                 </el-col>
-                <el-col :xs="24" :md="2" class="users-page__actions">
+                <el-col :xs="24" :md="5" class="users-page__actions">
                     <el-button type="primary" :loading="saving" @click="saveUser">
                         {{ editingId ? '保存修改' : '创建用户' }}
                     </el-button>
-                </el-col>
-                <el-col v-if="editingId" :xs="24" :md="2" class="users-page__actions">
-                    <el-button :loading="saving" @click="resetForm">取消编辑</el-button>
+                    <el-button :loading="saving" @click="refresh">刷新</el-button>
+                    <el-button v-if="editingId" :loading="saving" @click="resetForm">取消编辑</el-button>
                 </el-col>
             </el-row>
             <el-alert v-if="message" :title="message" type="info" show-icon class="users-page__alert" />
-        </el-card>
+        </PageSection>
 
-        <el-card shadow="never" class="users-page__card">
-            <div class="users-page__header">
-                <div class="users-page__section-title">用户列表</div>
-                <el-button :loading="saving" @click="refresh">刷新</el-button>
-            </div>
+        <PageSection>
             <el-empty v-if="!store.users.length" description="暂无用户。用户首次通过身份源访问后会自动同步。" />
             <el-table v-else :data="store.users" border stripe>
-                <el-table-column label="用户" min-width="220">
-                    <template #default="{ row }">
-                        <div class="users-page__identity">
-                            <strong>{{ row.display_name }}</strong>
-                            <span>{{ row.external_id }}</span>
-                            <span>{{ row.email || '未设置邮箱' }}</span>
-                        </div>
-                    </template>
+                <el-table-column label="显示名称" prop="display_name" min-width="160" />
+                <el-table-column label="外部身份 ID" prop="external_id" min-width="160" />
+                <el-table-column label="邮箱" min-width="180">
+                    <template #default="{ row }">{{ row.email || '未设置邮箱' }}</template>
                 </el-table-column>
                 <el-table-column label="组" min-width="150">
                     <template #default="{ row }">
-                        {{ row.groups.join(', ') || '-' }}
+                        <el-space v-if="row.groups.length" wrap>
+                            <el-tag v-for="group in row.groups" :key="group" size="small">
+                                {{ group }}
+                            </el-tag>
+                        </el-space>
+                        <span v-else>-</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="角色" min-width="180">
                     <template #default="{ row }">
-                        {{ row.roles.join(', ') || '-' }}
+                        <el-space v-if="row.roles.length" wrap>
+                            <el-tag v-for="role in row.roles" :key="role" size="small" type="info">
+                                {{ role }}
+                            </el-tag>
+                        </el-space>
+                        <span v-else>-</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="状态" width="90">
                     <template #default="{ row }">
-                        <span :class="{ 'users-page__status--disabled': !row.is_active }">
+                        <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
                             {{ row.is_active ? '启用' : '停用' }}
-                        </span>
+                        </el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" width="170" fixed="right">
@@ -84,13 +97,14 @@
                     </template>
                 </el-table-column>
             </el-table>
-        </el-card>
+        </PageSection>
     </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import PageSection from '@/components/ui/PageSection.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -98,17 +112,24 @@ const editingId = ref<number | null>(null);
 const externalId = ref('');
 const displayName = ref('');
 const email = ref('');
-const groupsInput = ref('');
+const selectedGroups = ref<string[]>([]);
 const selectedRoleIds = ref<number[]>([]);
 const isActive = ref(true);
 const saving = ref(false);
 const message = ref('');
 const roleOptions = computed(() => store.roles.map((role) => ({ label: role.name, value: role.id })));
+const groupOptions = computed(() => {
+    const groups = new Set([...(store.config.default_groups ?? []), ...store.users.flatMap((user) => user.groups)]);
+    if (!groups.size) {
+        ['public', 'security', 'hr', 'it', 'ops'].forEach((group) => groups.add(group));
+    }
+    return Array.from(groups).map((group) => ({ label: group, value: group }));
+});
 
 /** 刷新用户和角色目录。 */
 async function refresh(): Promise<void> {
     try {
-        await store.syncUserDirectory();
+        await Promise.all([store.syncUserDirectory(), store.syncDashboard()]);
     } catch (error) {
         message.value = error instanceof Error ? error.message : '用户目录加载失败';
     }
@@ -120,7 +141,7 @@ function resetForm(): void {
     externalId.value = '';
     displayName.value = '';
     email.value = '';
-    groupsInput.value = '';
+    selectedGroups.value = [];
     selectedRoleIds.value = [];
     isActive.value = true;
 }
@@ -133,7 +154,7 @@ function editUser(userId: number): void {
     externalId.value = user.external_id;
     displayName.value = user.display_name;
     email.value = user.email ?? '';
-    groupsInput.value = user.groups.join(',');
+    selectedGroups.value = [...user.groups];
     selectedRoleIds.value = store.roles.filter((role) => user.roles.includes(role.name)).map((role) => role.id);
     isActive.value = user.is_active;
 }
@@ -146,7 +167,7 @@ async function saveUser(): Promise<void> {
         message.value = '请填写身份 ID 和显示名称';
         return;
     }
-    const groups = groupsInput.value.split(',').map((item) => item.trim()).filter(Boolean);
+    const groups = selectedGroups.value;
     saving.value = true;
     message.value = '';
     try {
@@ -232,15 +253,6 @@ onMounted(() => {
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 12px;
-    }
-
-    &__identity {
-        display: grid;
-        gap: 4px;
-    }
-
-    &__status--disabled {
-        color: #dc2626;
     }
 
     &__row-actions {

@@ -2,14 +2,13 @@
     <section class="roles-page">
         <PageHeader />
 
-        <el-card shadow="never" class="roles-page__card">
-            <div class="roles-page__section-title">{{ editingId ? '编辑角色' : '新建角色' }}</div>
+        <PageSection :title="editingId ? '编辑角色' : '新建角色'">
             <el-row :gutter="12" align="bottom">
-                <el-col :xs="24" :md="8">
+                <el-col :xs="24" :md="6">
                     <div class="roles-page__label">角色名称</div>
                     <el-input v-model.trim="name" :disabled="editingSystemRole" />
                 </el-col>
-                <el-col :xs="24" :md="8">
+                <el-col :xs="24" :md="6">
                     <div class="roles-page__label">角色说明</div>
                     <el-input v-model.trim="description" />
                 </el-col>
@@ -24,7 +23,7 @@
                         />
                     </el-select>
                 </el-col>
-                <el-col :xs="24" class="roles-page__actions">
+                <el-col :xs="24" :md="4" class="roles-page__actions">
                     <el-button type="primary" :loading="saving" @click="saveRole">
                         {{ editingId ? '保存修改' : '创建角色' }}
                     </el-button>
@@ -33,12 +32,9 @@
                 </el-col>
             </el-row>
             <el-alert v-if="message" :title="message" type="info" show-icon class="roles-page__alert" />
-        </el-card>
+        </PageSection>
 
-        <el-card shadow="never" class="roles-page__card">
-            <div class="roles-page__header">
-                <div class="roles-page__section-title">角色列表</div>
-            </div>
+        <PageSection>
             <el-empty v-if="!store.roles.length" description="暂无角色。" />
             <el-table v-else :data="store.roles" border stripe>
                 <el-table-column label="角色" min-width="180">
@@ -53,7 +49,12 @@
                 </el-table-column>
                 <el-table-column label="权限项" min-width="240">
                     <template #default="{ row }">
-                        {{ row.permissions.join(', ') || '暂无权限项' }}
+                        <el-space v-if="row.permissions.length" wrap>
+                            <el-tag v-for="permission in row.permissions" :key="permission" size="small">
+                                {{ permission }}
+                            </el-tag>
+                        </el-space>
+                        <span v-else>暂无权限项</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="类型" width="120">
@@ -73,13 +74,14 @@
                     </template>
                 </el-table-column>
             </el-table>
-        </el-card>
+        </PageSection>
     </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import PageSection from '@/components/ui/PageSection.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -205,6 +207,7 @@ onMounted(() => {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+        align-items: flex-end;
     }
 
     &__alert {
