@@ -5,43 +5,46 @@
         <el-card shadow="never" class="ingest-page__card">
             <el-row :gutter="12" align="bottom">
                 <el-col :xs="24" :md="10">
-                    <div class="ingest-page__label">路径</div>
-                    <el-select
-                        v-model="path"
-                        allow-create
-                        filterable
-                        default-first-option
-                        placeholder="选择或输入导入路径"
-                    >
-                        <el-option v-for="item in pathOptions" :key="item" :label="item" :value="item" />
-                    </el-select>
+                    <FormField label="路径">
+                        <el-select
+                            v-model="path"
+                            allow-create
+                            filterable
+                            default-first-option
+                            placeholder="选择或输入导入路径"
+                        >
+                            <el-option v-for="item in pathOptions" :key="item" :label="item" :value="item" />
+                        </el-select>
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="4">
-                    <div class="ingest-page__label">知识库</div>
-                    <el-select
-                        v-model="knowledgeBase"
-                        allow-create
-                        filterable
-                        default-first-option
-                        placeholder="选择或输入知识库"
-                    >
-                        <el-option v-for="item in knowledgeBaseOptions" :key="item" :label="item" :value="item" />
-                    </el-select>
+                    <FormField label="知识库">
+                        <el-select
+                            v-model="knowledgeBase"
+                            allow-create
+                            filterable
+                            default-first-option
+                            placeholder="选择或输入知识库"
+                        >
+                            <el-option v-for="item in knowledgeBaseOptions" :key="item" :label="item" :value="item" />
+                        </el-select>
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="6">
-                    <div class="ingest-page__label">权限组</div>
-                    <el-select
-                        v-model="allowedGroups"
-                        allow-create
-                        filterable
-                        multiple
-                        collapse-tags
-                        collapse-tags-tooltip
-                        default-first-option
-                        placeholder="选择或输入权限组"
-                    >
-                        <el-option v-for="item in groupOptions" :key="item" :label="item" :value="item" />
-                    </el-select>
+                    <FormField label="权限组">
+                        <el-select
+                            v-model="allowedGroups"
+                            allow-create
+                            filterable
+                            multiple
+                            collapse-tags
+                            collapse-tags-tooltip
+                            default-first-option
+                            placeholder="选择或输入权限组"
+                        >
+                            <el-option v-for="item in groupOptions" :key="item" :label="item" :value="item" />
+                        </el-select>
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="4" class="ingest-page__actions">
                     <el-button type="primary" :loading="submitting" class="ingest-page__submit" @click="submitIngest">
@@ -91,6 +94,7 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { computed, ref } from 'vue';
+import FormField from '@/components/ui/FormField.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagIngestResultView } from '@/types/rag';
@@ -155,12 +159,6 @@ async function submitIngest(): Promise<void> {
 
     &__card {
         margin-bottom: 12px;
-    }
-
-    &__label {
-        margin-bottom: 6px;
-        color: #64748b;
-        font-size: 13px;
     }
 
     :deep(.el-select) {

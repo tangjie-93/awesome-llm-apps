@@ -1,30 +1,16 @@
 <template>
     <div class="app-content">
-        <div class="app-content__inner">
-            <slot />
-        </div>
+        <slot />
     </div>
 </template>
 
 <style scoped lang="less">
+// 内容区滚动兜底：页面内容不超过一屏时不出现滚动条；
+// 表格类页面通过自身 min-height/flex 布局把滚动收敛到表格体内部。
 .app-content {
-    min-height: 100%;
+    height: 100%;
+    min-width: 0;
     padding: 16px 20px 20px;
-
-    &__inner {
-        min-width: 0;
-    }
-
-    :deep(.page),
-    :deep(.admin-page),
-    :deep(.users-page),
-    :deep(.roles-page),
-    :deep(.scope-page),
-    :deep(.diagnostics-page),
-    :deep(.knowledge-graph-page) {
-        margin: 0;
-        padding: 0;
-        max-width: none;
-    }
+    overflow-y: auto;
 }
 </style>

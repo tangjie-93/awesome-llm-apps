@@ -4,22 +4,24 @@
 
         <el-card shadow="never" class="search-page__card">
             <div class="search-page__form">
-                <div>
-                    <div class="search-page__label">问题</div>
+                <FormField label="问题">
                     <el-input v-model="question" type="textarea" :rows="3" resize="none" placeholder="请输入检索问题" />
-                </div>
+                </FormField>
                 <el-row :gutter="12" align="bottom">
                     <el-col :xs="24" :md="7">
-                        <div class="search-page__label">知识库</div>
-                        <el-input v-model="knowledgeBase" placeholder="general" />
+                        <FormField label="知识库">
+                            <el-input v-model="knowledgeBase" placeholder="general" />
+                        </FormField>
                     </el-col>
                     <el-col :xs="24" :md="7">
-                        <div class="search-page__label">权限组</div>
-                        <el-input v-model="userGroupsText" placeholder="public,security" />
+                        <FormField label="权限组">
+                            <el-input v-model="userGroupsText" placeholder="public,security" />
+                        </FormField>
                     </el-col>
                     <el-col :xs="24" :md="4">
-                        <div class="search-page__label">Top K</div>
-                        <el-input-number v-model="topK" :min="1" :max="20" controls-position="right" class="search-page__number" />
+                        <FormField label="Top K">
+                            <el-input-number v-model="topK" :min="1" :max="20" controls-position="right" class="search-page__number" />
+                        </FormField>
                     </el-col>
                     <el-col :xs="24" :md="6" class="search-page__actions">
                         <el-button type="primary" :loading="submitting" class="search-page__submit" @click="submitSearch">
@@ -30,38 +32,50 @@
             </div>
         </el-card>
 
-        <el-empty
-            v-if="hasSearched && !submitting && !results.length && !hasError"
-            description="未检索到候选片段。请确认知识库、权限组或问题关键词。"
-            class="search-page__empty"
-        />
+        <div class="search-page__results">
+            <el-skeleton v-if="submitting" :rows="6" animated />
 
-        <el-space v-if="results.length" fill direction="vertical" class="search-page__results">
-            <el-card v-for="item in results" :key="item.chunk.chunk_id" shadow="never" class="search-page__result">
-                <div class="search-page__result-header">
-                    <div>
-                        <div class="search-page__result-title">{{ item.chunk.knowledge_base }} / {{ item.chunk.title }}</div>
-                        <div class="search-page__result-meta">
-                            {{ item.chunk.section_path }} · chunk {{ item.chunk.chunk_index }} · {{ item.chunk.risk_level }} · {{ item.chunk.path }}
+            <EmptyState
+                v-else-if="!hasSearched"
+                fill
+                description="输入问题并点击检索，候选片段和混合检索打分会展示在这里。"
+            />
+
+            <EmptyState
+                v-else-if="!results.length && !hasError"
+                fill
+                description="未检索到候选片段。请确认知识库、权限组或问题关键词。"
+            />
+
+            <el-space v-if="!submitting && results.length" fill direction="vertical" class="search-page__result-list">
+                <el-card v-for="item in results" :key="item.chunk.chunk_id" shadow="never" class="search-page__result">
+                    <div class="search-page__result-header">
+                        <div>
+                            <div class="search-page__result-title">{{ item.chunk.knowledge_base }} / {{ item.chunk.title }}</div>
+                            <div class="search-page__result-meta">
+                                {{ item.chunk.section_path }} · chunk {{ item.chunk.chunk_index }} · {{ item.chunk.risk_level }} · {{ item.chunk.path }}
+                            </div>
                         </div>
+                        <div class="search-page__result-score">{{ item.score.toFixed(3) }}</div>
                     </div>
-                    <div class="search-page__result-score">{{ item.score.toFixed(3) }}</div>
-                </div>
-                <p class="search-page__result-text">{{ item.chunk.text }}</p>
-                <div class="search-page__result-footer">
-                    <span>词元 {{ item.chunk.token_count }}</span>
-                    <span>lexical {{ item.lexical_score.toFixed(3) }}</span>
-                    <span>rerank {{ item.rerank_score.toFixed(3) }}</span>
-                    <span v-if="item.matched_terms.length">{{ item.matched_terms.join(', ') }}</span>
-                </div>
-            </el-card>
-        </el-space>
+                    <p class="search-page__result-text">{{ item.chunk.text }}</p>
+                    <div class="search-page__result-footer">
+                        <span>词元 {{ item.chunk.token_count }}</span>
+                        <span>lexical {{ item.lexical_score.toFixed(3) }}</span>
+                        <span>rerank {{ item.rerank_score.toFixed(3) }}</span>
+                        <span v-if="item.matched_terms.length">{{ item.matched_terms.join(', ') }}</span>
+                    </div>
+                </el-card>
+            </el-space>
+        </div>
     </section>
 </template>
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { ref } from 'vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import FormField from '@/components/ui/FormField.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagSearchItemView } from '@/types/rag';
@@ -116,20 +130,18 @@ async function submitSearch(): Promise<void> {
 <style scoped lang="less">
 .search-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__card {
+        flex-shrink: 0;
         margin-bottom: 12px;
     }
 
     &__form {
         display: grid;
         gap: 12px;
-    }
-
-    &__label {
-        margin-bottom: 6px;
-        color: #64748b;
-        font-size: 13px;
     }
 
     &__number {
@@ -145,11 +157,14 @@ async function submitSearch(): Promise<void> {
         min-width: 112px;
     }
 
-    &__empty {
-        margin-bottom: 12px;
+    // 结果区铺满剩余高度，结果多时在内部滚动，页面不出现滚动条
+    &__results {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
     }
 
-    &__results {
+    &__result-list {
         width: 100%;
     }
 

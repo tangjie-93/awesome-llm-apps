@@ -12,21 +12,22 @@
             </el-col>
         </el-row>
 
-        <PageSection title="近期动态" subtitle="最近产生的问答记录、导入任务和索引结果">
+        <PageSection fill title="近期动态" subtitle="最近产生的问答记录、导入任务和索引结果">
             <template #actions>
                 <el-button @click="goTo('/ask')">去提问</el-button>
                 <el-button @click="goTo('/documents')">查看文档</el-button>
             </template>
 
-            <el-tabs v-model="activeRecentTab" class="dashboard-page__tabs">
+            <FillTabs v-model="activeRecentTab">
                 <el-tab-pane label="近期回答" name="answers">
-                    <EmptyState
-                        v-if="!recentAnswerLogs.length"
-                        description="暂无回答日志。可以先发起一次智能问答。"
-                        action-label="去提问"
-                        @action="goTo('/ask')"
-                    />
-                    <el-table v-else :data="recentAnswerLogs" border stripe class="dashboard-page__table">
+                    <DataTable :data="recentAnswerLogs">
+                        <template #empty>
+                            <EmptyState
+                                description="暂无回答日志。可以先发起一次智能问答。"
+                                action-label="去提问"
+                                @action="goTo('/ask')"
+                            />
+                        </template>
                         <el-table-column label="问题" prop="question" min-width="420" show-overflow-tooltip />
                         <el-table-column label="置信度" width="110">
                             <template #default="{ row }">
@@ -41,16 +42,17 @@
                             </template>
                         </el-table-column>
                         <el-table-column label="时间" prop="created_at" width="180" />
-                    </el-table>
+                    </DataTable>
                 </el-tab-pane>
                 <el-tab-pane label="导入动态" name="operations">
-                    <EmptyState
-                        v-if="!recentOperationLogs.length"
-                        description="暂无导入日志。导入文档后这里会显示最近任务。"
-                        action-label="导入文档"
-                        @action="goTo('/ingest')"
-                    />
-                    <el-table v-else :data="recentOperationLogs" border stripe class="dashboard-page__table">
+                    <DataTable :data="recentOperationLogs">
+                        <template #empty>
+                            <EmptyState
+                                description="暂无导入日志。导入文档后这里会显示最近任务。"
+                                action-label="导入文档"
+                                @action="goTo('/ingest')"
+                            />
+                        </template>
                         <el-table-column label="状态" width="120">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'succeeded' ? 'success' : 'danger'">
@@ -60,19 +62,15 @@
                         </el-table-column>
                         <el-table-column label="路径" prop="path" min-width="420" show-overflow-tooltip />
                         <el-table-column label="时间" prop="created_at" width="180" />
-                    </el-table>
+                    </DataTable>
                 </el-tab-pane>
-            </el-tabs>
+            </FillTabs>
         </PageSection>
 
-        <PageSection title="待关注问题" subtitle="低置信度回答和评估记录会影响知识库质量">
-            <el-tabs v-model="activeAttentionTab" class="dashboard-page__tabs">
+        <PageSection fill title="待关注问题" subtitle="低置信度回答和评估记录会影响知识库质量">
+            <FillTabs v-model="activeAttentionTab">
                 <el-tab-pane :label="`低置信度回答 ${lowConfidenceCount}`" name="lowConfidence">
-                    <EmptyState
-                        v-if="!lowConfidenceLogs.length"
-                        description="暂无低置信度回答。"
-                    />
-                    <el-table v-else :data="lowConfidenceLogs" border stripe class="dashboard-page__table">
+                    <DataTable :data="lowConfidenceLogs" empty-description="暂无低置信度回答。">
                         <el-table-column label="问题" prop="question" min-width="420" show-overflow-tooltip />
                         <el-table-column label="置信度" width="110">
                             <template #default="{ row }">
@@ -80,14 +78,10 @@
                             </template>
                         </el-table-column>
                         <el-table-column label="时间" prop="created_at" width="180" />
-                    </el-table>
+                    </DataTable>
                 </el-tab-pane>
                 <el-tab-pane :label="`评估记录 ${recentEvaluationLogs.length}`" name="evaluations">
-                    <EmptyState
-                        v-if="!recentEvaluationLogs.length"
-                        description="暂无评估记录。"
-                    />
-                    <el-table v-else :data="recentEvaluationLogs" border stripe class="dashboard-page__table">
+                    <DataTable :data="recentEvaluationLogs" empty-description="暂无评估记录。">
                         <el-table-column label="问题" prop="question" min-width="420" show-overflow-tooltip />
                         <el-table-column label="得分" width="100">
                             <template #default="{ row }">
@@ -97,9 +91,9 @@
                             </template>
                         </el-table-column>
                         <el-table-column label="时间" prop="created_at" width="180" />
-                    </el-table>
+                    </DataTable>
                 </el-tab-pane>
-            </el-tabs>
+            </FillTabs>
         </PageSection>
     </section>
 </template>
@@ -108,7 +102,9 @@
 import { ElMessage } from 'element-plus';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import DataTable from '@/components/ui/DataTable.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import FillTabs from '@/components/ui/FillTabs.vue';
 import MetricCard from '@/components/ui/MetricCard.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import PageSection from '@/components/ui/PageSection.vue';
@@ -164,25 +160,13 @@ onMounted(() => {
 <style scoped lang="less">
 .dashboard-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__metrics {
+        flex-shrink: 0;
         margin-bottom: 12px;
-    }
-
-    &__tabs {
-        --el-tabs-header-height: 40px;
-    }
-
-    &__table {
-        width: 100%;
-    }
-
-    :deep(.el-tabs__header) {
-        margin-bottom: 12px;
-    }
-
-    :deep(.el-tabs__nav-wrap::after) {
-        height: 1px;
     }
 }
 </style>

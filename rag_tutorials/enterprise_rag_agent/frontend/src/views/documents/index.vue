@@ -9,29 +9,21 @@
 
         <el-alert v-if="store.error" :title="store.error" type="error" show-icon class="documents-page__alert" />
 
-        <PageSection title="文档索引" subtitle="按知识库、权限组和风险等级查看已导入文档">
-            <EmptyState
-                v-if="!store.loading && !store.documents.length"
-                description="暂无文档。请先导入样例目录或业务文档。"
-                action-label="导入文档"
-                @action="goToIngest"
-            />
-
-            <el-table v-else :data="store.documents" border stripe class="documents-page__table">
+        <PageSection fill title="文档索引" subtitle="按知识库、权限组和风险等级查看已导入文档">
+            <DataTable :data="store.documents" :loading="store.loading">
+                <template #empty>
+                    <EmptyState
+                        description="暂无文档。请先导入样例目录或业务文档。"
+                        action-label="导入文档"
+                        @action="goToIngest"
+                    />
+                </template>
                 <el-table-column label="知识库" prop="knowledge_base" min-width="120" />
                 <el-table-column label="标题" prop="title" min-width="160" show-overflow-tooltip />
-                <el-table-column label="路径" min-width="240" show-overflow-tooltip>
-                    <template #default="{ row }">
-                        {{ row.path }}
-                    </template>
-                </el-table-column>
+                <el-table-column label="路径" prop="path" min-width="240" show-overflow-tooltip />
                 <el-table-column label="权限组" min-width="180">
                     <template #default="{ row }">
-                        <el-space wrap>
-                            <el-tag v-for="group in row.allowed_groups" :key="group" size="small">
-                                {{ group }}
-                            </el-tag>
-                        </el-space>
+                        <TagList :items="row.allowed_groups" />
                     </template>
                 </el-table-column>
                 <el-table-column label="风险" width="100">
@@ -43,7 +35,7 @@
                 </el-table-column>
                 <el-table-column label="版本" prop="version" width="90" />
                 <el-table-column label="导入时间" prop="indexed_at" min-width="170" />
-            </el-table>
+            </DataTable>
         </PageSection>
     </section>
 </template>
@@ -51,10 +43,13 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import DataTable from '@/components/ui/DataTable.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import PageSection from '@/components/ui/PageSection.vue';
+import TagList from '@/components/ui/TagList.vue';
 import { useRagStore } from '@/store/rag';
+import { riskTagType } from '@/utils/tag';
 
 const store = useRagStore();
 const router = useRouter();
@@ -71,18 +66,6 @@ function goToIngest(): void {
     void router.push('/ingest');
 }
 
-/**
- * 将风险等级映射为 Element Plus 标签类型。
- * @param riskLevel 文档风险等级。
- * @returns 标签展示类型。
- */
-function riskTagType(riskLevel: string): 'success' | 'warning' | 'danger' | 'info' {
-    if (riskLevel === 'high') return 'danger';
-    if (riskLevel === 'medium') return 'warning';
-    if (riskLevel === 'low') return 'success';
-    return 'info';
-}
-
 onMounted(() => {
     void refreshDocuments();
 });
@@ -91,8 +74,12 @@ onMounted(() => {
 <style scoped lang="less">
 .documents-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__alert {
+        flex-shrink: 0;
         margin-bottom: 12px;
     }
 }

@@ -6,11 +6,10 @@
             </template>
         </PageHeader>
 
-        <PageSection title="运行日志" subtitle="集中查看问答、评估和导入任务记录">
-            <el-tabs v-model="activeTab">
+        <PageSection fill title="运行日志" subtitle="集中查看问答、评估和导入任务记录">
+            <FillTabs v-model="activeTab">
                 <el-tab-pane label="回答日志" name="answers">
-                    <EmptyState v-if="!store.answerLogs.length" description="暂无回答日志。" />
-                    <el-table v-else :data="store.answerLogs" border stripe>
+                    <DataTable :data="store.answerLogs" empty-description="暂无回答日志。">
                         <el-table-column label="问题" prop="question" min-width="280" show-overflow-tooltip />
                         <el-table-column label="置信度" width="110">
                             <template #default="{ row }">
@@ -25,12 +24,11 @@
                             </template>
                         </el-table-column>
                         <el-table-column label="时间" prop="created_at" width="180" />
-                    </el-table>
+                    </DataTable>
                 </el-tab-pane>
 
                 <el-tab-pane label="评估日志" name="evaluations">
-                    <EmptyState v-if="!store.evaluationLogs.length" description="暂无评估日志。" />
-                    <el-table v-else :data="store.evaluationLogs" border stripe>
+                    <DataTable :data="store.evaluationLogs" empty-description="暂无评估日志。">
                         <el-table-column label="问题" prop="question" min-width="260" show-overflow-tooltip />
                         <el-table-column label="实际答案" prop="actual_answer" min-width="260" show-overflow-tooltip />
                         <el-table-column label="得分" width="100">
@@ -41,12 +39,11 @@
                             </template>
                         </el-table-column>
                         <el-table-column label="时间" prop="created_at" width="180" />
-                    </el-table>
+                    </DataTable>
                 </el-tab-pane>
 
                 <el-tab-pane label="导入日志" name="operations">
-                    <EmptyState v-if="!store.operationLogs.length" description="暂无导入日志。" />
-                    <el-table v-else :data="store.operationLogs" border stripe>
+                    <DataTable :data="store.operationLogs" empty-description="暂无导入日志。">
                         <el-table-column label="状态" width="110">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'succeeded' ? 'success' : 'danger'">
@@ -69,9 +66,9 @@
                                 </el-button>
                             </template>
                         </el-table-column>
-                    </el-table>
+                    </DataTable>
                 </el-tab-pane>
-            </el-tabs>
+            </FillTabs>
         </PageSection>
 
         <el-alert v-if="message" :title="message" type="info" show-icon class="logs-page__alert" />
@@ -80,7 +77,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import EmptyState from '@/components/ui/EmptyState.vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import FillTabs from '@/components/ui/FillTabs.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import PageSection from '@/components/ui/PageSection.vue';
 import { useRagStore } from '@/store/rag';
@@ -117,9 +115,13 @@ onMounted(() => {
 <style scoped lang="less">
 .logs-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__alert {
-        margin-bottom: 12px;
+        flex-shrink: 0;
+        margin-top: 12px;
     }
 }
 </style>

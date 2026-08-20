@@ -5,23 +5,26 @@
         <PageSection :title="editingId ? '编辑角色' : '新建角色'">
             <el-row :gutter="12" align="bottom">
                 <el-col :xs="24" :md="6">
-                    <div class="roles-page__label">角色名称</div>
-                    <el-input v-model.trim="name" :disabled="editingSystemRole" />
+                    <FormField label="角色名称">
+                        <el-input v-model.trim="name" :disabled="editingSystemRole" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="6">
-                    <div class="roles-page__label">角色说明</div>
-                    <el-input v-model.trim="description" />
+                    <FormField label="角色说明">
+                        <el-input v-model.trim="description" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="8">
-                    <div class="roles-page__label">权限项</div>
-                    <el-select v-model="selectedPermissions" multiple collapse-tags collapse-tags-tooltip placeholder="选择权限项">
-                        <el-option
-                            v-for="permission in permissionOptions"
-                            :key="permission.value"
-                            :label="permission.label"
-                            :value="permission.value"
-                        />
-                    </el-select>
+                    <FormField label="权限项">
+                        <el-select v-model="selectedPermissions" multiple collapse-tags collapse-tags-tooltip placeholder="选择权限项">
+                            <el-option
+                                v-for="permission in permissionOptions"
+                                :key="permission.value"
+                                :label="permission.label"
+                                :value="permission.value"
+                            />
+                        </el-select>
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="4" class="roles-page__actions">
                     <el-button type="primary" :loading="saving" @click="saveRole">
@@ -34,9 +37,8 @@
             <el-alert v-if="message" :title="message" type="info" show-icon class="roles-page__alert" />
         </PageSection>
 
-        <PageSection>
-            <el-empty v-if="!store.roles.length" description="暂无角色。" />
-            <el-table v-else :data="store.roles" border stripe>
+        <PageSection fill>
+            <DataTable :data="store.roles" empty-description="暂无角色。">
                 <el-table-column label="角色" min-width="180">
                     <template #default="{ row }">
                         <strong>{{ row.name }}</strong>
@@ -49,12 +51,7 @@
                 </el-table-column>
                 <el-table-column label="权限项" min-width="240">
                     <template #default="{ row }">
-                        <el-space v-if="row.permissions.length" wrap>
-                            <el-tag v-for="permission in row.permissions" :key="permission" size="small">
-                                {{ permission }}
-                            </el-tag>
-                        </el-space>
-                        <span v-else>暂无权限项</span>
+                        <TagList :items="row.permissions" empty-text="暂无权限项" />
                     </template>
                 </el-table-column>
                 <el-table-column label="类型" width="120">
@@ -73,15 +70,18 @@
                         </div>
                     </template>
                 </el-table-column>
-            </el-table>
+            </DataTable>
         </PageSection>
     </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import FormField from '@/components/ui/FormField.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import PageSection from '@/components/ui/PageSection.vue';
+import TagList from '@/components/ui/TagList.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -185,22 +185,12 @@ onMounted(() => {
 <style scoped lang="less">
 .roles-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
-    &__card {
-        margin-bottom: 12px;
-    }
-
-    &__section-title {
-        margin-bottom: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #0f172a;
-    }
-
-    &__label {
-        margin-bottom: 6px;
-        color: #64748b;
-        font-size: 13px;
+    &__alert {
+        margin-top: 12px;
     }
 
     &__actions {
@@ -208,14 +198,6 @@ onMounted(() => {
         flex-wrap: wrap;
         gap: 10px;
         align-items: flex-end;
-    }
-
-    &__alert {
-        margin-top: 12px;
-    }
-
-    &__header {
-        margin-bottom: 12px;
     }
 
     &__row-actions {

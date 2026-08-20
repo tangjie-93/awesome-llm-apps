@@ -5,39 +5,44 @@
         <PageSection :title="editingId ? '编辑用户' : '新建用户'">
             <el-row :gutter="12" align="bottom">
                 <el-col :xs="24" :md="3">
-                    <div class="users-page__label">外部身份 ID</div>
-                    <el-input v-model.trim="externalId" :disabled="Boolean(editingId)" />
+                    <FormField label="外部身份 ID">
+                        <el-input v-model.trim="externalId" :disabled="Boolean(editingId)" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="3">
-                    <div class="users-page__label">显示名称</div>
-                    <el-input v-model.trim="displayName" />
+                    <FormField label="显示名称">
+                        <el-input v-model.trim="displayName" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="3">
-                    <div class="users-page__label">邮箱</div>
-                    <el-input v-model.trim="email" type="email" />
+                    <FormField label="邮箱">
+                        <el-input v-model.trim="email" type="email" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="4">
-                    <div class="users-page__label">权限组</div>
-                    <el-select
-                        v-model="selectedGroups"
-                        multiple
-                        collapse-tags
-                        collapse-tags-tooltip
-                        placeholder="选择权限组"
-                    >
-                        <el-option
-                            v-for="group in groupOptions"
-                            :key="group.value"
-                            :label="group.label"
-                            :value="group.value"
-                        />
-                    </el-select>
+                    <FormField label="权限组">
+                        <el-select
+                            v-model="selectedGroups"
+                            multiple
+                            collapse-tags
+                            collapse-tags-tooltip
+                            placeholder="选择权限组"
+                        >
+                            <el-option
+                                v-for="group in groupOptions"
+                                :key="group.value"
+                                :label="group.label"
+                                :value="group.value"
+                            />
+                        </el-select>
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" :md="4">
-                    <div class="users-page__label">角色</div>
-                    <el-select v-model="selectedRoleIds" multiple collapse-tags collapse-tags-tooltip placeholder="选择角色">
-                        <el-option v-for="role in roleOptions" :key="role.value" :label="role.label" :value="role.value" />
-                    </el-select>
+                    <FormField label="角色">
+                        <el-select v-model="selectedRoleIds" multiple collapse-tags collapse-tags-tooltip placeholder="选择角色">
+                            <el-option v-for="role in roleOptions" :key="role.value" :label="role.label" :value="role.value" />
+                        </el-select>
+                    </FormField>
                 </el-col>
                 <el-col v-if="editingId" :xs="24" :md="2">
                     <el-checkbox v-model="isActive" class="users-page__checkbox">启用用户</el-checkbox>
@@ -53,9 +58,8 @@
             <el-alert v-if="message" :title="message" type="info" show-icon class="users-page__alert" />
         </PageSection>
 
-        <PageSection>
-            <el-empty v-if="!store.users.length" description="暂无用户。用户首次通过身份源访问后会自动同步。" />
-            <el-table v-else :data="store.users" border stripe>
+        <PageSection fill>
+            <DataTable :data="store.users" empty-description="暂无用户。用户首次通过身份源访问后会自动同步。">
                 <el-table-column label="显示名称" prop="display_name" min-width="160" />
                 <el-table-column label="外部身份 ID" prop="external_id" min-width="160" />
                 <el-table-column label="邮箱" min-width="180">
@@ -63,22 +67,12 @@
                 </el-table-column>
                 <el-table-column label="组" min-width="150">
                     <template #default="{ row }">
-                        <el-space v-if="row.groups.length" wrap>
-                            <el-tag v-for="group in row.groups" :key="group" size="small">
-                                {{ group }}
-                            </el-tag>
-                        </el-space>
-                        <span v-else>-</span>
+                        <TagList :items="row.groups" />
                     </template>
                 </el-table-column>
                 <el-table-column label="角色" min-width="180">
                     <template #default="{ row }">
-                        <el-space v-if="row.roles.length" wrap>
-                            <el-tag v-for="role in row.roles" :key="role" size="small" type="info">
-                                {{ role }}
-                            </el-tag>
-                        </el-space>
-                        <span v-else>-</span>
+                        <TagList :items="row.roles" type="info" />
                     </template>
                 </el-table-column>
                 <el-table-column label="状态" width="90">
@@ -96,15 +90,18 @@
                         </div>
                     </template>
                 </el-table-column>
-            </el-table>
+            </DataTable>
         </PageSection>
     </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import FormField from '@/components/ui/FormField.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import PageSection from '@/components/ui/PageSection.vue';
+import TagList from '@/components/ui/TagList.vue';
 import { useRagStore } from '@/store/rag';
 
 const store = useRagStore();
@@ -221,38 +218,17 @@ onMounted(() => {
 <style scoped lang="less">
 .users-page {
     min-width: 0;
-
-    &__card {
-        margin-bottom: 12px;
-    }
-
-    &__section-title {
-        margin-bottom: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #0f172a;
-    }
-
-    &__label {
-        margin-bottom: 6px;
-        color: #64748b;
-        font-size: 13px;
-    }
-
-    &__actions {
-        display: flex;
-        align-items: flex-end;
-    }
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__alert {
         margin-top: 12px;
     }
 
-    &__header {
+    &__actions {
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
+        align-items: flex-end;
     }
 
     &__row-actions {

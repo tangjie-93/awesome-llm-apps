@@ -29,6 +29,7 @@ const resolvedSubtitle = computed(() => props.subtitle ?? String(route.meta.subt
     align-items: flex-start;
     gap: 16px;
     margin-bottom: 16px;
+    flex-shrink: 0;
 
     &__content {
         min-width: 0;

@@ -9,40 +9,41 @@
         <el-alert v-if="message" :title="message" type="info" show-icon class="knowledge-graph-page__alert" />
 
         <el-row :gutter="12" class="knowledge-graph-page__metrics">
-            <el-col :xs="12" :md="12">
-                <el-card shadow="never" class="knowledge-graph-page__metric">
-                    <div class="knowledge-graph-page__metric-label">实体</div>
-                    <div class="knowledge-graph-page__metric-value">{{ graph?.entity_count ?? 0 }}</div>
-                </el-card>
+            <el-col :xs="12" :md="6">
+                <MetricCard label="实体" :value="graph?.entity_count ?? 0" />
             </el-col>
-            <el-col :xs="12" :md="12">
-                <el-card shadow="never" class="knowledge-graph-page__metric">
-                    <div class="knowledge-graph-page__metric-label">关系</div>
-                    <div class="knowledge-graph-page__metric-value">{{ graph?.relation_count ?? 0 }}</div>
-                </el-card>
+            <el-col :xs="12" :md="6">
+                <MetricCard label="关系" :value="graph?.relation_count ?? 0" />
+            </el-col>
+            <el-col :xs="12" :md="6">
+                <MetricCard label="平均共现权重" :value="averageWeight" />
+            </el-col>
+            <el-col :xs="12" :md="6">
+                <MetricCard label="关系类型" :value="relationTypeCount" />
             </el-col>
         </el-row>
 
-        <el-card shadow="never" class="knowledge-graph-page__card">
-            <div class="knowledge-graph-page__section-title">多跳查询</div>
+        <PageSection title="多跳查询">
             <el-row :gutter="12" align="bottom">
-                <el-col :xs="24" :md="18">
-                    <div class="knowledge-graph-page__label">查询问题</div>
-                    <el-input
-                        v-model.trim="question"
-                        placeholder="输入实体或关系问题"
-                        @keyup.enter="queryGraph"
-                    />
+                <el-col :xs="24" :md="16">
+                    <FormField label="查询问题">
+                        <el-input
+                            v-model.trim="question"
+                            placeholder="输入实体或关系问题"
+                            @keyup.enter="queryGraph"
+                        />
+                    </FormField>
                 </el-col>
-                <el-col :xs="24" :md="4">
-                    <div class="knowledge-graph-page__label">最大跳数</div>
-                    <el-select v-model="maxHops" class="knowledge-graph-page__select">
-                        <el-option :value="1" label="1 跳" />
-                        <el-option :value="2" label="2 跳" />
-                        <el-option :value="3" label="3 跳" />
-                    </el-select>
+                <el-col :xs="12" :md="4">
+                    <FormField label="最大跳数">
+                        <el-select v-model="maxHops">
+                            <el-option :value="1" label="1 跳" />
+                            <el-option :value="2" label="2 跳" />
+                            <el-option :value="3" label="3 跳" />
+                        </el-select>
+                    </FormField>
                 </el-col>
-                <el-col :xs="24" :md="2">
+                <el-col :xs="12" :md="4">
                     <el-button type="primary" :loading="queryLoading" class="knowledge-graph-page__submit" @click="queryGraph">
                         查询
                     </el-button>
@@ -65,38 +66,38 @@
                     <span class="knowledge-graph-page__path">{{ path.entities.join(' -> ') }}</span>
                 </el-card>
             </el-space>
-        </el-card>
+        </PageSection>
 
-        <el-row :gutter="12">
+        <el-row :gutter="12" class="knowledge-graph-page__tables">
             <el-col :xs="24" :md="12">
-                <el-card shadow="never" class="knowledge-graph-page__card">
-                    <div class="knowledge-graph-page__section-title">实体</div>
-                    <el-empty v-if="!graph?.entities.length" description="暂无可见实体，请先导入文档。" />
-                    <el-table v-else :data="graph.entities" border stripe size="small">
+                <PageSection fill title="实体">
+                    <DataTable :data="graph?.entities ?? []" size="small" empty-description="暂无可见实体，请先导入文档。">
                         <el-table-column label="名称" prop="name" min-width="180" />
                         <el-table-column label="切块数" prop="chunk_count" width="100" />
-                    </el-table>
-                </el-card>
+                    </DataTable>
+                </PageSection>
             </el-col>
             <el-col :xs="24" :md="12">
-                <el-card shadow="never" class="knowledge-graph-page__card">
-                    <div class="knowledge-graph-page__section-title">共现关系</div>
-                    <el-empty v-if="!graph?.relations.length" description="暂无可见关系。" />
-                    <el-table v-else :data="graph.relations" border stripe size="small">
+                <PageSection fill title="共现关系">
+                    <DataTable :data="graph?.relations ?? []" size="small" empty-description="暂无可见关系。">
                         <el-table-column label="来源" prop="source" min-width="140" />
                         <el-table-column label="目标" prop="target" min-width="140" />
                         <el-table-column label="类型" prop="type" width="120" />
                         <el-table-column label="权重" prop="weight" width="80" />
-                    </el-table>
-                </el-card>
+                    </DataTable>
+                </PageSection>
             </el-col>
         </el-row>
     </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import FormField from '@/components/ui/FormField.vue';
+import MetricCard from '@/components/ui/MetricCard.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import PageSection from '@/components/ui/PageSection.vue';
 import { ragApi } from '@/services/ragApi';
 import type { RagKnowledgeGraphView } from '@/types/rag';
 
@@ -108,6 +109,12 @@ const maxHops = ref(2);
 const queryLoading = ref(false);
 const queryMessage = ref('');
 const queryResult = ref<Awaited<ReturnType<typeof ragApi.queryKnowledgeGraph>> | null>(null);
+const averageWeight = computed(() => {
+    const relations = graph.value?.relations ?? [];
+    if (!relations.length) return '0.00';
+    return (relations.reduce((sum, relation) => sum + relation.weight, 0) / relations.length).toFixed(2);
+});
+const relationTypeCount = computed(() => new Set((graph.value?.relations ?? []).map((relation) => relation.type)).size);
 
 /**
  * 加载当前用户权限范围内的图谱数据；请求失败时保留已有结果并显示错误。
@@ -145,46 +152,64 @@ async function queryGraph(): Promise<void> {
 <style scoped lang="less">
 .knowledge-graph-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
-    &__alert,
-    &__card,
-    &__metrics {
+    &__alert {
+        flex-shrink: 0;
         margin-bottom: 12px;
     }
 
-    &__metric {
-        height: 100%;
+    &__metrics {
+        flex-shrink: 0;
+        margin-bottom: 12px;
     }
 
-    &__metric-label,
-    &__label,
     &__path {
         color: #64748b;
         font-size: 13px;
     }
 
-    &__metric-value {
-        margin-top: 10px;
-        font-size: 24px;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    &__section-title {
-        margin-bottom: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #0f172a;
-    }
-
-    &__submit,
-    &__select {
+    &__submit {
         width: 100%;
     }
 
+    // 查询结果较多时限高内部滚动，查询区不抢占表格高度
     &__stack {
         width: 100%;
         margin-top: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    // 底部两列表格铺满剩余高度：列内卡片各自填满列高
+    &__tables {
+        flex: 1;
+        min-height: 0;
+
+        :deep(> .el-col) {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+    }
+
+    // 窄屏单列：表格恢复自然高度，由内容区整体滚动
+    @media (max-width: 991px) {
+        &__tables {
+            display: block;
+
+            :deep(> .el-col) {
+                height: auto;
+                margin-bottom: 12px;
+            }
+
+            :deep(.page-section--fill) {
+                flex: none;
+                min-height: 240px;
+            }
+        }
     }
 }
 </style>

@@ -6,15 +6,15 @@
             </template>
         </PageHeader>
 
-        <PageSection title="知识库概览" subtitle="按库级维度查看文档规模、权限覆盖和风险分布">
-            <EmptyState
-                v-if="!store.knowledgeBases.length"
-                description="暂无知识库。导入文档后会自动创建或更新知识库。"
-                action-label="导入文档"
-                @action="goToIngest"
-            />
-
-            <el-table v-else :data="knowledgeBaseRows" border stripe>
+        <PageSection fill title="知识库概览" subtitle="按库级维度查看文档规模、权限覆盖和风险分布">
+            <DataTable :data="knowledgeBaseRows">
+                <template #empty>
+                    <EmptyState
+                        description="暂无知识库。导入文档后会自动创建或更新知识库。"
+                        action-label="导入文档"
+                        @action="goToIngest"
+                    />
+                </template>
                 <el-table-column label="知识库" min-width="180">
                     <template #default="{ row }">
                         <div class="knowledge-bases-page__name">{{ row.name }}</div>
@@ -23,26 +23,16 @@
                 <el-table-column label="文档数" prop="documentCount" width="110" />
                 <el-table-column label="权限组覆盖" min-width="220">
                     <template #default="{ row }">
-                        <el-space v-if="row.groups.length" wrap>
-                            <el-tag v-for="group in row.groups" :key="group" size="small">
-                                {{ group }}
-                            </el-tag>
-                        </el-space>
-                        <span v-else class="knowledge-bases-page__empty-text">暂无权限组</span>
+                        <TagList :items="row.groups" empty-text="暂无权限组" />
                     </template>
                 </el-table-column>
                 <el-table-column label="风险等级" min-width="160">
                     <template #default="{ row }">
-                        <el-space v-if="row.risks.length" wrap>
-                            <el-tag v-for="risk in row.risks" :key="risk" size="small" :type="riskTagType(risk)">
-                                {{ risk }}
-                            </el-tag>
-                        </el-space>
-                        <span v-else class="knowledge-bases-page__empty-text">暂无风险信息</span>
+                        <TagList :items="row.risks" :type-for="riskTagType" empty-text="暂无风险信息" />
                     </template>
                 </el-table-column>
                 <el-table-column label="最近索引时间" prop="latestIndexedAt" min-width="180" />
-            </el-table>
+            </DataTable>
         </PageSection>
     </section>
 </template>
@@ -50,11 +40,14 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import DataTable from '@/components/ui/DataTable.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import PageSection from '@/components/ui/PageSection.vue';
+import TagList from '@/components/ui/TagList.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagDocumentSummary } from '@/types/rag';
+import { riskTagType } from '@/utils/tag';
 
 const store = useRagStore();
 const router = useRouter();
@@ -110,18 +103,6 @@ function latestIndexedAtByKnowledgeBase(knowledgeBase: string): string {
     return indexedTimes[0] ?? '-';
 }
 
-/**
- * 将风险等级映射为 Element Plus 标签类型。
- * @param riskLevel 风险等级。
- * @returns 标签展示类型。
- */
-function riskTagType(riskLevel: string): 'success' | 'warning' | 'danger' | 'info' {
-    if (riskLevel === 'high') return 'danger';
-    if (riskLevel === 'medium') return 'warning';
-    if (riskLevel === 'low') return 'success';
-    return 'info';
-}
-
 /** 跳转到文档导入页面。 */
 function goToIngest(): void {
     void router.push('/ingest');
@@ -135,15 +116,13 @@ onMounted(() => {
 <style scoped lang="less">
 .knowledge-bases-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__name {
         color: #0f172a;
         font-weight: 600;
-    }
-
-    &__empty-text {
-        color: #64748b;
-        font-size: 13px;
     }
 }
 </style>

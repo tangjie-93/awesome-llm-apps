@@ -111,7 +111,8 @@ const openedSections = computed(() => navigationSections.value.map((section) => 
     &__main {
         min-width: 0;
         height: 100vh;
-        overflow-y: auto;
+        // 页面级不滚动：滚动收敛到内容区内部（如表格体）
+        overflow: hidden;
         padding: 0;
     }
 
@@ -140,6 +141,12 @@ const openedSections = computed(() => navigationSections.value.map((section) => 
     height: 40px;
     line-height: 40px;
     font-weight: 600;
+    pointer-events: none;
+    cursor: default;
+}
+
+:deep(.el-sub-menu__title:hover) {
+    background: transparent;
 }
 
 :deep(.el-sub-menu__icon-arrow) {

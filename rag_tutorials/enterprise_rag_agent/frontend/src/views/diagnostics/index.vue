@@ -1,97 +1,109 @@
 <template>
     <section class="diagnostics-page">
-        <PageHeader />
+        <PageHeader>
+            <template #actions>
+                <el-button :loading="loading" @click="refresh">刷新诊断</el-button>
+            </template>
+        </PageHeader>
 
         <el-row :gutter="12" class="diagnostics-page__metrics">
             <el-col v-for="metric in metrics" :key="metric.label" :xs="12" :sm="12" :md="6">
-                <el-card shadow="never" class="diagnostics-page__metric">
-                    <div class="diagnostics-page__metric-label">{{ metric.label }}</div>
-                    <div class="diagnostics-page__metric-value">{{ metric.value }}</div>
-                </el-card>
+                <MetricCard :label="metric.label" :value="metric.value" />
             </el-col>
         </el-row>
 
-        <el-card shadow="never" class="diagnostics-page__card">
-            <div class="diagnostics-page__section-header">
-                <div>
-                    <div class="diagnostics-page__section-title">诊断建议</div>
-                    <div class="diagnostics-page__hint">建议来自当前租户的运行指标，不会自动修改模型或排序配置。</div>
-                </div>
-            </div>
-            <el-row :gutter="12">
-                <el-col v-for="suggestion in suggestions" :key="suggestion.code" :xs="24" :md="8">
-                    <el-card shadow="never" class="diagnostics-page__suggestion" :class="`diagnostics-page__suggestion--${suggestion.severity}`">
-                        <div class="diagnostics-page__suggestion-header">
-                            <strong>{{ suggestion.title }}</strong>
-                            <el-tag size="small">{{ severityLabel(suggestion.severity) }}</el-tag>
-                        </div>
-                        <p>{{ suggestion.detail }}</p>
-                        <p class="diagnostics-page__suggestion-action">建议：{{ suggestion.action }}</p>
-                    </el-card>
-                </el-col>
-            </el-row>
-        </el-card>
-
-        <el-card shadow="never" class="diagnostics-page__card">
-            <div class="diagnostics-page__section-header">
-                <div>
-                    <div class="diagnostics-page__section-title">人工处置</div>
-                    <div class="diagnostics-page__hint">仅支持经过审批令牌确认的失败导入回放，执行结果会写入操作日志和审计日志。</div>
-                </div>
-            </div>
-            <el-row :gutter="12" align="bottom">
-                <el-col :xs="24" :md="8">
-                    <div class="diagnostics-page__label">失败导入操作 ID</div>
-                    <el-input v-model.number="operationId" type="number" min="1" placeholder="例如 12" />
-                </el-col>
-                <el-col :xs="24" :md="12">
-                    <div class="diagnostics-page__label">审批令牌</div>
-                    <el-input v-model.trim="approvalToken" type="password" autocomplete="off" placeholder="服务端配置的审批令牌" />
-                </el-col>
-                <el-col :xs="24" :md="4">
-                    <el-button type="primary" :loading="actionLoading" class="diagnostics-page__submit" @click="executeAction">
-                        回放失败导入
-                    </el-button>
-                </el-col>
-            </el-row>
-            <el-alert v-if="actionMessage" :title="actionMessage" type="info" show-icon class="diagnostics-page__alert" />
-        </el-card>
-
-        <el-card shadow="never" class="diagnostics-page__card">
-            <div class="diagnostics-page__section-header">
-                <div>
-                    <div class="diagnostics-page__section-title">外部检索</div>
-                    <div class="diagnostics-page__hint">
-                        {{ store.diagnostics?.web_fallback_enabled ? '已启用受控 Web fallback。' : '当前未启用 Web fallback。' }}
+        <el-row :gutter="12" class="diagnostics-page__columns">
+            <el-col :xs="24" :md="12">
+                <PageSection fill title="诊断建议" subtitle="建议来自当前租户的运行指标，不会自动修改模型或排序配置。">
+                    <div class="diagnostics-page__suggestions">
+                        <el-skeleton v-if="loading && !suggestions.length" :rows="4" animated />
+                        <EmptyState
+                            v-else-if="!suggestions.length"
+                            fill
+                            description="暂无诊断建议。导入文档并产生问答记录后，这里会给出优化建议。"
+                        />
+                        <el-card
+                            v-for="suggestion in suggestions"
+                            v-else
+                            :key="suggestion.code"
+                            shadow="never"
+                            class="diagnostics-page__suggestion"
+                            :class="`diagnostics-page__suggestion--${suggestion.severity}`"
+                        >
+                            <div class="diagnostics-page__suggestion-header">
+                                <strong>{{ suggestion.title }}</strong>
+                                <el-tag size="small">{{ severityLabel(suggestion.severity) }}</el-tag>
+                            </div>
+                            <p class="diagnostics-page__suggestion-detail">{{ suggestion.detail }}</p>
+                            <p class="diagnostics-page__suggestion-action">建议：{{ suggestion.action }}</p>
+                        </el-card>
                     </div>
-                </div>
-                <el-button :loading="loading" @click="refresh">刷新诊断</el-button>
-            </div>
-            <el-row :gutter="12" align="bottom">
-                <el-col :xs="24" :md="20">
-                    <div class="diagnostics-page__label">检索问题</div>
-                    <el-input v-model.trim="question" placeholder="输入需要补充检索的问题" @keyup.enter="searchWeb" />
-                </el-col>
-                <el-col :xs="24" :md="4">
-                    <el-button type="primary" :loading="searching" class="diagnostics-page__submit" @click="searchWeb">
-                        检索
-                    </el-button>
-                </el-col>
-            </el-row>
-            <el-alert v-if="message" :title="message" type="info" show-icon class="diagnostics-page__alert" />
-            <el-space v-if="results.length" fill direction="vertical" class="diagnostics-page__stack">
-                <el-card v-for="result in results" :key="result.url" shadow="never">
-                    <el-link :href="result.url" target="_blank" rel="noopener noreferrer">{{ result.title }}</el-link>
-                    <p class="diagnostics-page__snippet">{{ result.snippet }}</p>
-                </el-card>
-            </el-space>
-        </el-card>
+                </PageSection>
+            </el-col>
+
+            <el-col :xs="24" :md="12">
+                <PageSection title="人工处置" subtitle="仅支持经过审批令牌确认的失败导入回放。">
+                    <el-row :gutter="12" align="bottom">
+                        <el-col :xs="24" :md="8">
+                            <FormField label="失败导入操作 ID">
+                                <el-input v-model.number="operationId" type="number" min="1" placeholder="例如 12" />
+                            </FormField>
+                        </el-col>
+                        <el-col :xs="24" :md="10">
+                            <FormField label="审批令牌">
+                                <el-input v-model.trim="approvalToken" type="password" autocomplete="off" placeholder="服务端配置的审批令牌" />
+                            </FormField>
+                        </el-col>
+                        <el-col :xs="24" :md="6">
+                            <el-button type="primary" :loading="actionLoading" class="diagnostics-page__submit" @click="executeAction">
+                                回放失败导入
+                            </el-button>
+                        </el-col>
+                    </el-row>
+                    <el-alert v-if="actionMessage" :title="actionMessage" type="info" show-icon class="diagnostics-page__alert" />
+                </PageSection>
+
+                <PageSection fill title="外部检索" :subtitle="store.diagnostics?.web_fallback_enabled ? '已启用受控 Web fallback。' : '当前未启用 Web fallback。'">
+                    <el-row :gutter="12" align="bottom">
+                        <el-col :xs="24" :md="20">
+                            <FormField label="检索问题">
+                                <el-input v-model.trim="question" placeholder="输入需要补充检索的问题" @keyup.enter="searchWeb" />
+                            </FormField>
+                        </el-col>
+                        <el-col :xs="24" :md="4">
+                            <el-button type="primary" :loading="searching" class="diagnostics-page__submit" @click="searchWeb">
+                                检索
+                            </el-button>
+                        </el-col>
+                    </el-row>
+                    <el-alert v-if="message" :title="message" type="info" show-icon class="diagnostics-page__alert" />
+
+                    <div class="diagnostics-page__web-results">
+                        <EmptyState
+                            v-if="!results.length"
+                            fill
+                            description="输入问题检索外部资料，结果会展示在这里。"
+                        />
+                        <el-space v-else fill direction="vertical" class="diagnostics-page__stack">
+                            <el-card v-for="result in results" :key="result.url" shadow="never">
+                                <el-link :href="result.url" target="_blank" rel="noopener noreferrer">{{ result.title }}</el-link>
+                                <p class="diagnostics-page__snippet">{{ result.snippet }}</p>
+                            </el-card>
+                        </el-space>
+                    </div>
+                </PageSection>
+            </el-col>
+        </el-row>
     </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import FormField from '@/components/ui/FormField.vue';
+import MetricCard from '@/components/ui/MetricCard.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import PageSection from '@/components/ui/PageSection.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagDiagnosticSuggestionView, RagWebSearchResultView } from '@/types/rag';
 
@@ -158,6 +170,7 @@ async function searchWeb(): Promise<void> {
     }
 }
 
+/** 执行审批确认后的失败导入回放，并同步最新指标。 */
 async function executeAction(): Promise<void> {
     if (!operationId.value || !approvalToken.value) {
         actionMessage.value = '请输入失败导入操作 ID 和审批令牌';
@@ -188,50 +201,47 @@ onMounted(() => {
 <style scoped lang="less">
 .diagnostics-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
-    &__metrics,
-    &__card {
+    &__metrics {
+        flex-shrink: 0;
         margin-bottom: 12px;
     }
 
-    &__metric {
-        height: 100%;
+    // 双栏铺满剩余高度：左建议流，右处置+外部检索
+    &__columns {
+        flex: 1;
+        min-height: 0;
+
+        :deep(> .el-col) {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
     }
 
-    &__metric-label,
-    &__hint,
-    &__label,
     &__snippet,
     &__suggestion-action {
         color: #64748b;
         font-size: 13px;
     }
 
-    &__metric-value {
-        margin-top: 10px;
-        font-size: 22px;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    &__section-header,
-    &__suggestion-header {
+    // 建议列表占满左栏剩余高度，内容多时内部滚动
+    &__suggestions {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
-    }
-
-    &__section-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #0f172a;
+        flex-direction: column;
+        gap: 10px;
     }
 
     &__suggestion {
-        height: 100%;
-        margin-bottom: 12px;
         border-left: 3px solid #94a3b8;
+        flex-shrink: 0;
 
         &--critical {
             border-left-color: #dc2626;
@@ -246,6 +256,18 @@ onMounted(() => {
         }
     }
 
+    &__suggestion-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    &__suggestion-detail {
+        margin: 10px 0 0;
+        line-height: 1.6;
+    }
+
     &__submit {
         width: 100%;
     }
@@ -254,9 +276,36 @@ onMounted(() => {
         margin-top: 12px;
     }
 
+    // 外部检索结果占满剩余高度，内容多时内部滚动
+    &__web-results {
+        flex: 1;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+    }
+
     &__stack {
         width: 100%;
         margin-top: 12px;
+        overflow-y: auto;
+    }
+
+    // 窄屏单列：恢复自然高度，由内容区整体滚动
+    @media (max-width: 991px) {
+        &__columns {
+            display: block;
+            overflow-y: auto;
+
+            :deep(> .el-col) {
+                height: auto;
+                min-height: auto;
+            }
+        }
+
+        &__suggestions,
+        &__web-results {
+            overflow: visible;
+        }
     }
 }
 </style>

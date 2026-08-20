@@ -2,105 +2,141 @@
     <section class="ask-page">
         <PageHeader />
 
-        <el-card shadow="never" class="ask-page__card ask-page__card--form">
-            <div class="ask-page__form">
-                <div class="ask-page__label">问题</div>
-                <el-input
-                    v-model="question"
-                    :rows="3"
-                    type="textarea"
-                    resize="none"
-                    placeholder="请输入问题"
-                />
-                <div class="ask-page__actions">
-                    <el-button
-                        type="primary"
-                        :loading="submitting"
-                        class="ask-page__submit"
-                        @click="submitQuestion"
-                    >
-                        提问
-                    </el-button>
-                </div>
-            </div>
-        </el-card>
-
-        <el-card v-if="answer" shadow="never" class="ask-page__card">
-            <div class="ask-page__result-header">
-                <el-tag type="success">置信度 {{ answer.confidence.toFixed(2) }}</el-tag>
-                <span v-if="answer.clarifying_question" class="ask-page__clarifying">{{ answer.clarifying_question }}</span>
-            </div>
-            <pre class="ask-page__answer">{{ answer.answer }}</pre>
-
-            <el-empty
-                v-if="!answer.citations.length"
-                description="未返回引用来源，当前回答不能作为已验证结论。"
-                class="ask-page__empty"
-            />
-
-            <div v-if="answer.citations.length" class="ask-page__section">
-                <div class="ask-page__section-title">引用来源</div>
-                <el-row :gutter="12">
-                    <el-col v-for="citation in answer.citations" :key="citation.source + String(citation.chunk_index)" :xs="24" :md="12">
-                        <el-card shadow="never" class="ask-page__citation">
-                            <div class="ask-page__citation-title">{{ citation.knowledge_base }} / {{ citation.title }}</div>
-                            <div class="ask-page__citation-meta">{{ citation.section_path }} 段 chunk {{ citation.chunk_index }} / {{ citation.risk_level }}</div>
-                            <div class="ask-page__citation-terms">{{ citation.matched_terms.join(', ') }}</div>
-                        </el-card>
-                    </el-col>
-                </el-row>
-            </div>
-
-            <div v-if="answer.evidence_snippets.length" class="ask-page__section">
-                <div class="ask-page__section-title">证据片段</div>
-                <el-space fill direction="vertical" class="ask-page__stack">
-                    <el-card
-                        v-for="snippet in answer.evidence_snippets"
-                        :key="snippet.source + snippet.section_path"
-                        shadow="never"
-                        class="ask-page__evidence"
-                    >
-                        <div class="ask-page__citation-meta">
-                            {{ snippet.knowledge_base }} / {{ snippet.section_path }} / {{ snippet.risk_level }}
+        <el-row :gutter="12" class="ask-page__columns">
+            <el-col :xs="24" :md="14">
+                <el-card shadow="never" class="ask-page__panel">
+                    <div class="ask-page__form">
+                        <FormField label="问题">
+                            <el-input
+                                v-model="question"
+                                :autosize="{ minRows: 3, maxRows: 8 }"
+                                type="textarea"
+                                resize="none"
+                                placeholder="请输入问题"
+                                @keyup.ctrl.enter="submitQuestion"
+                            />
+                        </FormField>
+                        <div class="ask-page__actions">
+                            <span class="ask-page__shortcut">Ctrl + Enter 快速提问</span>
+                            <el-button type="primary" :loading="submitting" class="ask-page__submit" @click="submitQuestion">
+                                提问
+                            </el-button>
                         </div>
-                        <p class="ask-page__answer-text">{{ snippet.snippet }}</p>
-                    </el-card>
-                </el-space>
-            </div>
+                    </div>
 
-            <div v-if="answer.external_sources.length" class="ask-page__section">
-                <div class="ask-page__section-title">外部补充来源</div>
-                <el-space fill direction="vertical" class="ask-page__stack">
-                    <el-link
-                        v-for="source in answer.external_sources"
-                        :key="source.url"
-                        :href="source.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="ask-page__source"
-                    >
-                        <strong>{{ source.title }}</strong>
-                        <span>{{ source.snippet }}</span>
-                    </el-link>
-                </el-space>
-            </div>
+                    <el-divider />
 
-            <div v-if="answer.tool_trace.length" class="ask-page__trace">
-                调用链：{{ answer.tool_trace.join(' → ') }}
-            </div>
+                    <div class="ask-page__answer-area">
+                        <el-skeleton v-if="submitting" :rows="5" animated />
+                        <EmptyState
+                            v-else-if="!answer"
+                            fill
+                            description="输入问题后点击提问，回答会展示在这里。"
+                        />
+                        <div v-else class="ask-page__answer">
+                            <div class="ask-page__result-header">
+                                <el-tag :type="answer.confidence < 0.5 ? 'warning' : 'success'">
+                                    置信度 {{ answer.confidence.toFixed(2) }}
+                                </el-tag>
+                                <span v-if="answer.clarifying_question" class="ask-page__clarifying">
+                                    {{ answer.clarifying_question }}
+                                </span>
+                            </div>
+                            <pre class="ask-page__answer-text">{{ answer.answer }}</pre>
+                            <div class="ask-page__feedback">
+                                <span>这次回答是否有帮助？</span>
+                                <el-button size="small" :loading="feedbackSubmitting" @click="submitFeedback(5)">有帮助</el-button>
+                                <el-button size="small" :loading="feedbackSubmitting" @click="submitFeedback(1)">需改进</el-button>
+                            </div>
+                        </div>
+                    </div>
+                </el-card>
+            </el-col>
 
-            <div class="ask-page__feedback">
-                <span>这次回答是否有帮助？</span>
-                <el-button :loading="feedbackSubmitting" @click="submitFeedback(5)">有帮助</el-button>
-                <el-button :loading="feedbackSubmitting" @click="submitFeedback(1)">需改进</el-button>
-            </div>
-        </el-card>
+            <el-col :xs="24" :md="10">
+                <el-card shadow="never" class="ask-page__panel">
+                    <template #header>
+                        <span class="ask-page__panel-title">引用与证据</span>
+                    </template>
+                    <div class="ask-page__sources">
+                        <EmptyState
+                            v-if="!answer"
+                            fill
+                            description="提交问题后展示引用来源、证据片段和外部补充。"
+                        />
+                        <el-empty
+                            v-else-if="!answer.citations.length && !answer.evidence_snippets.length"
+                            description="未返回引用来源，当前回答不能作为已验证结论。"
+                        />
+
+                        <template v-if="answer">
+                            <div v-if="answer.citations.length" class="ask-page__section">
+                                <div class="ask-page__section-title">引用来源</div>
+                                <el-space fill direction="vertical" class="ask-page__stack">
+                                    <el-card
+                                        v-for="citation in answer.citations"
+                                        :key="citation.source + String(citation.chunk_index)"
+                                        shadow="never"
+                                        class="ask-page__citation"
+                                    >
+                                        <div class="ask-page__citation-title">{{ citation.knowledge_base }} / {{ citation.title }}</div>
+                                        <div class="ask-page__citation-meta">
+                                            {{ citation.section_path }} · chunk {{ citation.chunk_index }} · {{ citation.risk_level }}
+                                        </div>
+                                        <div class="ask-page__citation-terms">{{ citation.matched_terms.join(', ') }}</div>
+                                    </el-card>
+                                </el-space>
+                            </div>
+
+                            <div v-if="answer.evidence_snippets.length" class="ask-page__section">
+                                <div class="ask-page__section-title">证据片段</div>
+                                <el-space fill direction="vertical" class="ask-page__stack">
+                                    <el-card
+                                        v-for="snippet in answer.evidence_snippets"
+                                        :key="snippet.source + snippet.section_path"
+                                        shadow="never"
+                                    >
+                                        <div class="ask-page__citation-meta">
+                                            {{ snippet.knowledge_base }} / {{ snippet.section_path }} / {{ snippet.risk_level }}
+                                        </div>
+                                        <p class="ask-page__snippet-text">{{ snippet.snippet }}</p>
+                                    </el-card>
+                                </el-space>
+                            </div>
+
+                            <div v-if="answer.external_sources.length" class="ask-page__section">
+                                <div class="ask-page__section-title">外部补充来源</div>
+                                <el-space fill direction="vertical" class="ask-page__stack">
+                                    <el-link
+                                        v-for="source in answer.external_sources"
+                                        :key="source.url"
+                                        :href="source.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="ask-page__source"
+                                    >
+                                        <strong>{{ source.title }}</strong>
+                                        <span>{{ source.snippet }}</span>
+                                    </el-link>
+                                </el-space>
+                            </div>
+
+                            <div v-if="answer.tool_trace.length" class="ask-page__trace">
+                                调用链：{{ answer.tool_trace.join(' → ') }}
+                            </div>
+                        </template>
+                    </div>
+                </el-card>
+            </el-col>
+        </el-row>
     </section>
 </template>
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { ref } from 'vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import FormField from '@/components/ui/FormField.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useRagStore } from '@/store/rag';
 import type { AnswerView } from '@/types/rag';
@@ -151,68 +187,119 @@ async function submitFeedback(rating: number): Promise<void> {
 <style scoped lang="less">
 .ask-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
-    &__card {
-        margin-bottom: 12px;
+    // 双栏铺满剩余高度：窄屏堆叠时恢复自然高度并允许页面内滚动
+    &__columns {
+        flex: 1;
+        min-height: 0;
+
+        :deep(> .el-col) {
+            height: 100%;
+        }
+    }
+
+    &__panel {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        :deep(.el-card__body) {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+    }
+
+    &__panel-title {
+        font-weight: 600;
     }
 
     &__form {
+        flex-shrink: 0;
         display: grid;
         gap: 10px;
     }
 
-    &__label {
-        color: #475569;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
     &__actions {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    &__shortcut {
+        color: #94a3b8;
+        font-size: 12px;
     }
 
     &__submit {
         min-width: 112px;
     }
 
-    &__result-header,
-    &__feedback {
+    // 答案区占满左栏剩余高度，内容多时内部滚动
+    &__answer-area {
+        flex: 1;
+        min-height: 0;
         display: flex;
-        align-items: center;
-        gap: 12px;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    &__answer {
+        display: flex;
+        flex-direction: column;
     }
 
     &__result-header {
+        display: flex;
         justify-content: space-between;
+        align-items: center;
+        gap: 12px;
         margin-bottom: 12px;
     }
 
     &__clarifying {
         color: #92400e;
+        font-size: 13px;
     }
 
-    &__answer,
-    &__answer-text {
+    &__answer-text,
+    &__snippet-text {
         margin: 0;
         white-space: pre-wrap;
         font-family: inherit;
         line-height: 1.6;
     }
 
-    &__section {
+    &__feedback {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #eef2f7;
+    }
+
+    // 引用区占满右栏剩余高度，内容多时内部滚动
+    &__sources {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    &__section {
+        margin-bottom: 16px;
     }
 
     &__section-title {
         margin-bottom: 10px;
         font-weight: 600;
         color: #0f172a;
-    }
-
-    &__citation {
-        height: 100%;
-        margin-bottom: 12px;
     }
 
     &__citation-title {
@@ -244,8 +331,30 @@ async function submitFeedback(rating: number): Promise<void> {
         width: 100%;
     }
 
-    &__empty {
-        margin-top: 10px;
+    // 窄屏单列：双栏卡片恢复自然高度，由内容撑开
+    @media (max-width: 991px) {
+        &__columns {
+            display: block;
+            overflow-y: auto;
+
+            :deep(> .el-col) {
+                height: auto;
+            }
+        }
+
+        &__panel {
+            height: auto;
+            margin-bottom: 12px;
+
+            :deep(.el-card__body) {
+                overflow: visible;
+            }
+        }
+
+        &__answer-area,
+        &__sources {
+            overflow: visible;
+        }
     }
 }
 </style>

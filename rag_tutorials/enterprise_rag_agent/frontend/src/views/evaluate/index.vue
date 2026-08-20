@@ -2,25 +2,28 @@
     <section class="evaluate-page">
         <PageHeader />
 
-        <el-card shadow="never" class="evaluate-page__card">
+        <PageSection title="答案评估">
             <el-row :gutter="12">
                 <el-col :xs="24" class="evaluate-page__field">
-                    <div class="evaluate-page__label">问题</div>
-                    <el-input v-model="question" :rows="3" type="textarea" resize="none" />
+                    <FormField label="问题">
+                        <el-input v-model="question" :rows="3" type="textarea" resize="none" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" class="evaluate-page__field">
-                    <div class="evaluate-page__label">预期答案</div>
-                    <el-input v-model="expectedAnswer" :rows="4" type="textarea" resize="none" />
+                    <FormField label="预期答案">
+                        <el-input v-model="expectedAnswer" :rows="4" type="textarea" resize="none" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" class="evaluate-page__field">
-                    <div class="evaluate-page__label">实际答案</div>
-                    <el-input v-model="actualAnswer" :rows="4" type="textarea" resize="none" />
+                    <FormField label="实际答案">
+                        <el-input v-model="actualAnswer" :rows="4" type="textarea" resize="none" />
+                    </FormField>
                 </el-col>
                 <el-col :xs="24" class="evaluate-page__actions">
                     <el-button type="primary" :loading="submitting" @click="submitEvaluation">提交评估</el-button>
                 </el-col>
             </el-row>
-        </el-card>
+        </PageSection>
 
         <el-alert v-if="message" :title="message" type="info" show-icon class="evaluate-page__alert" />
 
@@ -34,30 +37,20 @@
             </el-descriptions>
         </el-card>
 
-        <el-card shadow="never" class="evaluate-page__card">
-            <div class="evaluate-page__result-header">
-                <div>
-                    <div class="evaluate-page__title">召回基准</div>
-                    <div class="evaluate-page__hint">运行内置样例，比较命中率和 MRR。</div>
-                </div>
+        <PageSection fill title="召回基准" subtitle="运行内置样例，比较命中率和 MRR。">
+            <template #actions>
                 <el-button :loading="retrievalSubmitting" @click="runRetrievalEvaluation">
                     运行召回评估
                 </el-button>
-            </div>
+            </template>
 
-            <el-empty
-                v-if="!retrievalResult"
-                description="当前还没有运行召回评估。"
-                class="evaluate-page__empty"
-            />
-
-            <div v-else class="evaluate-page__metrics">
+            <div v-if="retrievalResult" class="evaluate-page__metrics">
                 <el-tag>样例 {{ retrievalResult.total }}</el-tag>
                 <el-tag type="success">命中率 {{ (retrievalResult.hit_rate * 100).toFixed(1) }}%</el-tag>
                 <el-tag type="warning">MRR {{ retrievalResult.mrr.toFixed(3) }}</el-tag>
             </div>
 
-            <el-table v-if="retrievalResult" :data="retrievalResult.results" border stripe>
+            <DataTable :data="retrievalResult?.results ?? []" empty-description="当前还没有运行召回评估。">
                 <el-table-column label="结果" width="90">
                     <template #default="{ row }">
                         {{ row.hit ? '命中' : '未命中' }}
@@ -69,14 +62,17 @@
                         {{ row.rank || '-' }}
                     </template>
                 </el-table-column>
-            </el-table>
-        </el-card>
+            </DataTable>
+        </PageSection>
     </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import FormField from '@/components/ui/FormField.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import PageSection from '@/components/ui/PageSection.vue';
 import { useRagStore } from '@/store/rag';
 import type { RagEvaluationResultView, RagRetrievalEvaluationView } from '@/types/rag';
 
@@ -121,21 +117,18 @@ async function runRetrievalEvaluation(): Promise<void> {
 <style scoped lang="less">
 .evaluate-page {
     min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__card,
     &__alert {
+        flex-shrink: 0;
         margin-bottom: 12px;
     }
 
     &__field {
         margin-bottom: 12px;
-    }
-
-    &__label,
-    &__hint {
-        margin-bottom: 6px;
-        color: #64748b;
-        font-size: 13px;
     }
 
     &__actions {
@@ -148,12 +141,6 @@ async function runRetrievalEvaluation(): Promise<void> {
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 12px;
-    }
-
-    &__title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #0f172a;
     }
 
     &__metrics {
